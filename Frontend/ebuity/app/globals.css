@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #CF565D;
+  --color-primary-hover: #B9474E;
+  --color-primary-light: #FBF0EF;
+  --color-bg-ivory: #FAF7F2;
+  --color-blush: #F5DAD6;
+  --color-blush-soft: #FCF4F2;
+  --color-heading: #292525;
+  --color-body: #746D69;
+  --color-champagne: #E8D8C8;
+  --color-champagne-light: #F4ECE3;
+  --color-white: #FFFFFF;
+
+  --font-display: var(--font-display), Georgia, serif;
+  --font-serif: var(--font-serif-soft), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-primary: #CF565D;
+  --color-primary-hover: #B9474E;
+  --color-bg-ivory: #FAF7F2;
+  --color-blush: #F5DAD6;
+  --color-heading: #292525;
+  --color-body: #746D69;
+  --color-champagne: #E8D8C8;
+  --color-white: #FFFFFF;
+}
+
+body {
+  background-color: #FAF7F2;
+  color: #746D69;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+html.dark body {
+  background-color: #121010;
+  color: #C4BBB7;
+}
+
+:where(h1, h2, h3, h4, h5, h6) {
+  color: #292525;
+}
+
+html.dark :where(h1, h2, h3, h4, h5, h6) {
+  color: #FAF7F2;
+}
+
+/* Subtle focus indicators for accessibility */
+*:focus-visible {
+  outline: 2px solid #CF565D;
+  outline-offset: 3px;
+}
+
+/* Soft floating petal animation for editorial atmosphere */
+@keyframes petalDrift {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(4deg);
+  }
+
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes petalDriftAlt {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(10px) rotate(-5deg);
+  }
+
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.animate-petal-float {
+  animation: petalDrift 8s ease-in-out infinite;
+}
+
+.animate-petal-float-alt {
+  animation: petalDriftAlt 10s ease-in-out infinite;
+}
+
+/* Staggered organic petal drift keyframes (6s-10s) */
+@keyframes petalDrift1 {
+
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-16px) translateX(-8px) rotate(8deg);
+  }
+}
+
+@keyframes petalDrift2 {
+
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(14px) translateX(10px) rotate(-10deg);
+  }
+}
+
+@keyframes petalDrift3 {
+
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-12px) translateX(8px) rotate(12deg);
+  }
+}
+
+@keyframes petalDrift4 {
+
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(16px) translateX(-6px) rotate(-8deg);
+  }
+}
+
+.animate-petal-1 {
+  animation: petalDrift1 7.5s ease-in-out infinite;
+}
+
+.animate-petal-2 {
+  animation: petalDrift2 9s ease-in-out infinite 1.2s;
+}
+
+.animate-petal-3 {
+  animation: petalDrift3 8s ease-in-out infinite 0.6s;
+}
+
+.animate-petal-4 {
+  animation: petalDrift4 10s ease-in-out infinite 2.5s;
+}
+
+.animate-petal-5 {
+  animation: petalDrift1 8.5s ease-in-out infinite 3.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .animate-petal-float,
+  .animate-petal-float-alt,
+  .animate-petal-1,
+  .animate-petal-2,
+  .animate-petal-3,
+  .animate-petal-4,
+  .animate-petal-5 {
+    animation: none !important;
+  }
+}
