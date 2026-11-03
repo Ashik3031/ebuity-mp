@@ -11,6 +11,8 @@ const allowedOrigins = [
   "http://thabioka.xyraco.com/",
   "http://adthabioka.xyraco.com/login",
   "https://www.thabiokaluxurycloset.com",
+  "https://roseessence.ae",
+  "https://www.roseessence.ae",
 ];
 
 export function initRealtimeService(httpServer) {

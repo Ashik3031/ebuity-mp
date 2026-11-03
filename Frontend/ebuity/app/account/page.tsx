@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -68,7 +68,7 @@ type AccountTab =
   | "addresses"
   | "settings";
 
-export default function SinglePageCustomerAccount() {
+function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, loading: authLoading, logout, refreshUser } = useAuth();
@@ -757,10 +757,10 @@ export default function SinglePageCustomerAccount() {
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom duration-200">
           <div
             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl border text-xs font-medium ${alertNotice.type === "success"
-                ? "bg-[#292525] text-white border-[#3F3A3A]"
-                : alertNotice.type === "error"
-                  ? "bg-rose-50 text-rose-900 border-rose-200"
-                  : "bg-white text-[#292525] border-[#E8D8C8]"
+              ? "bg-[#292525] text-white border-[#3F3A3A]"
+              : alertNotice.type === "error"
+                ? "bg-rose-50 text-rose-900 border-rose-200"
+                : "bg-white text-[#292525] border-[#E8D8C8]"
               }`}
           >
             {alertNotice.type === "success" ? (
@@ -883,8 +883,8 @@ export default function SinglePageCustomerAccount() {
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id as AccountTab)}
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium tracking-wide whitespace-nowrap transition-all duration-200 ${isActive
-                    ? "bg-[#292525] text-white shadow-xs font-semibold"
-                    : "bg-white text-[#746D69] border border-[#E8D8C8] hover:border-[#CF565D] hover:text-[#292525]"
+                  ? "bg-[#292525] text-white shadow-xs font-semibold"
+                  : "bg-white text-[#746D69] border border-[#E8D8C8] hover:border-[#CF565D] hover:text-[#292525]"
                   }`}
               >
                 <Icon
@@ -895,8 +895,8 @@ export default function SinglePageCustomerAccount() {
                 {typeof tab.count === "number" && (
                   <span
                     className={`ml-1 text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-[#FAF7F2] text-[#292525] border border-[#E8D8C8]"
+                      ? "bg-white/20 text-white"
+                      : "bg-[#FAF7F2] text-[#292525] border border-[#E8D8C8]"
                       }`}
                   >
                     {tab.count}
@@ -1783,8 +1783,8 @@ export default function SinglePageCustomerAccount() {
                       <div
                         key={addr._id}
                         className={`bg-white rounded-3xl p-5 border transition-all flex flex-col justify-between space-y-4 relative ${addr.isDefault
-                            ? "border-[#CF565D] shadow-xs"
-                            : "border-[#E8D8C8] shadow-2xs hover:border-[#CF565D]/60"
+                          ? "border-[#CF565D] shadow-xs"
+                          : "border-[#E8D8C8] shadow-2xs hover:border-[#CF565D]/60"
                           }`}
                       >
                         <div className="space-y-3">
@@ -2369,8 +2369,8 @@ export default function SinglePageCustomerAccount() {
                             type="button"
                             onClick={() => setRescheduleTime(slot.time)}
                             className={`py-2 px-1 text-center rounded-xl text-xs font-medium transition-all ${isSelected
-                                ? "bg-[#CF565D] text-white font-bold shadow-xs"
-                                : "bg-[#FAF7F2] border border-[#E8D8C8] text-[#292525] hover:border-[#CF565D]"
+                              ? "bg-[#CF565D] text-white font-bold shadow-xs"
+                              : "bg-[#FAF7F2] border border-[#E8D8C8] text-[#292525] hover:border-[#CF565D]"
                               }`}
                           >
                             {format12Hour(slot.time)}
@@ -2836,5 +2836,19 @@ export default function SinglePageCustomerAccount() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function SinglePageCustomerAccount() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2]">
+          <div className="w-8 h-8 border-2 border-[#CF565D] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <AccountContent />
+    </Suspense>
   );
 }

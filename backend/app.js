@@ -17,7 +17,7 @@ import productRoutes from "./routes/productRoutes.js";
 import adminRouter from "./routes/adminRoutes.js";
 import couponRouter from "./routes/couponRoutes.js";
 import wishlistRouter from "./routes/wishlistRoutes.js";
-import varitantRoute from "./routes/variant.routes.js";  
+import varitantRoute from "./routes/variant.routes.js";
 import uploadRoutes from './routes/uploadRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import reviewRoutes from './routes/reviews.js';
@@ -66,14 +66,12 @@ const debugging = debug("development:app");
 //cors
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://localhost:5173', 
+  'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
-   
- "http://thabioka.xyraco.com/",
- "http://adthabioka.xyraco.com/login",
- "https://www.thabiokaluxurycloset.com"
- 
+
+  "https://roseessence.ae",
+  "https://www.roseessence.ae"
 ];
 
 // Middlewares
@@ -88,7 +86,7 @@ app.use(cors({
   },
   credentials: true,
   optionsSuccessStatus: 200
-  
+
 }));
 
 
@@ -107,7 +105,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API Endpoints
-app.use('/api/auth',authRouter);
+app.use('/api/auth', authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/banner", bannerRouter);
 app.use("/api/category", categoryRoutes);
@@ -124,14 +122,14 @@ app.use("/api/settings", settingRoutes)
 app.use("/api/admin/orders", adminOrderRoutes)
 app.use("/api/admin/inventory", adminInventoryRoutes)
 app.use("/api/notify", notifyRoutes);
-app.use("/api/reviews",reviewRoutes);
+app.use("/api/reviews", reviewRoutes);
 app.use("/api/offers", adminOfferRoutes);
-app.use("/api/public/offer", offerRoutes);  
+app.use("/api/public/offer", offerRoutes);
 app.use("/api/personal-stylist", personalStylistRoutes);
 
 app.use("/api/payment", paymentRoutes);
 app.use("/api/admin/stripe-orders", adminStripeOrderRoutes);
-app.use("/api/newsletter", newsletterRoutes )
+app.use("/api/newsletter", newsletterRoutes)
 app.use("/api/features", featureRoutes);
 app.use("/api/rates", ratesRoutes)
 app.use("/api/sell-page", sellPageRoutes);

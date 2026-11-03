@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -28,7 +28,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-export default function CustomerOrderDetailPage() {
+function CustomerOrderDetailContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -225,11 +225,10 @@ export default function CustomerOrderDetailPage() {
                     {/* Step 2: Shipped */}
                     <div className="space-y-2">
                       <div
-                        className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold transition-all ${
-                          order.status === "Shipped" || order.status === "Delivered"
+                        className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold transition-all ${order.status === "Shipped" || order.status === "Delivered"
                             ? "bg-[#CF565D] text-white"
                             : "bg-stone-200 text-stone-500"
-                        }`}
+                          }`}
                       >
                         <Truck className="w-4 h-4" />
                       </div>
@@ -240,11 +239,10 @@ export default function CustomerOrderDetailPage() {
                     {/* Step 3: Delivered */}
                     <div className="space-y-2">
                       <div
-                        className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold transition-all ${
-                          order.status === "Delivered"
+                        className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center font-bold transition-all ${order.status === "Delivered"
                             ? "bg-emerald-600 text-white"
                             : "bg-stone-200 text-stone-500"
-                        }`}
+                          }`}
                       >
                         <Package className="w-4 h-4" />
                       </div>
@@ -260,10 +258,10 @@ export default function CustomerOrderDetailPage() {
                     This order was cancelled on{" "}
                     {order.cancelledAt
                       ? new Date(order.cancelledAt).toLocaleDateString("en-AE", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
                       : "recently"}
                     . Products were restocked.
                   </span>
@@ -335,11 +333,10 @@ export default function CustomerOrderDetailPage() {
                   <div className="flex justify-between">
                     <span className="text-[#746D69]">Payment State</span>
                     <span
-                      className={`font-semibold ${
-                        order.paymentStatus === "Paid"
+                      className={`font-semibold ${order.paymentStatus === "Paid"
                           ? "text-emerald-700"
                           : "text-amber-800"
-                      }`}
+                        }`}
                     >
                       {order.paymentStatus === "Paid"
                         ? "Paid & Collected"
@@ -530,5 +527,19 @@ export default function CustomerOrderDetailPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function CustomerOrderDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#CF565D] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <CustomerOrderDetailContent />
+    </Suspense>
   );
 }

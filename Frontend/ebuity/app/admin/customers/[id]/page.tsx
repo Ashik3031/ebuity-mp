@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -42,7 +42,7 @@ import { formatBookingTime } from "../../../../lib/booking-utils";
 import { CustomerStatusModal } from "../../../../components/admin/CustomerStatusModal";
 import { CustomerPasswordResetModal } from "../../../../components/admin/CustomerPasswordResetModal";
 
-export default function AdminCustomerDetailPage() {
+function AdminCustomerDetailContent() {
   const params = useParams();
   const router = useRouter();
   const customerId = (params?.id as string) || "";
@@ -232,10 +232,10 @@ export default function AdminCustomerDetailPage() {
   const initial = (customer.name || "C").charAt(0).toUpperCase();
   const regDateFormatted = customer.createdAt
     ? new Date(customer.createdAt).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })
     : "—";
 
   return (
@@ -258,11 +258,10 @@ export default function AdminCustomerDetailPage() {
           <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#292525] flex items-center gap-3">
             <span>{customer.name}</span>
             <span
-              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                customer.isBlocked
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${customer.isBlocked
                   ? "bg-red-50 text-red-700 border border-red-200"
                   : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-              }`}
+                }`}
             >
               {customer.isBlocked ? (
                 <>
@@ -302,11 +301,10 @@ export default function AdminCustomerDetailPage() {
           {/* Block / Unblock Account */}
           <button
             onClick={() => setStatusModalOpen(true)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl transition-all shadow-xs ${
-              customer.isBlocked
+            className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl transition-all shadow-xs ${customer.isBlocked
                 ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                 : "bg-red-50 hover:bg-red-100 text-red-700 border border-red-200"
-            }`}
+              }`}
           >
             {customer.isBlocked ? (
               <>
@@ -584,11 +582,10 @@ export default function AdminCustomerDetailPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveTab("bookings")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                    activeTab === "bookings"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${activeTab === "bookings"
                       ? "bg-[#CF565D] text-white shadow-xs"
                       : "text-[#746D69] hover:bg-[#FAF7F2] hover:text-[#292525]"
-                  }`}
+                    }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Service Bookings ({customerBookings.length})</span>
@@ -596,11 +593,10 @@ export default function AdminCustomerDetailPage() {
 
                 <button
                   onClick={() => setActiveTab("orders")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                    activeTab === "orders"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${activeTab === "orders"
                       ? "bg-[#CF565D] text-white shadow-xs"
                       : "text-[#746D69] hover:bg-[#FAF7F2] hover:text-[#292525]"
-                  }`}
+                    }`}
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Product Orders ({customerOrders.length})</span>
@@ -656,13 +652,12 @@ export default function AdminCustomerDetailPage() {
                                 #{refCode}
                               </span>
                               <span
-                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  b.status === "completed"
+                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.status === "completed"
                                     ? "bg-emerald-100 text-emerald-800"
                                     : b.status === "cancelled"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-blue-100 text-blue-800"
-                                }`}
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-blue-100 text-blue-800"
+                                  }`}
                               >
                                 {b.status}
                               </span>
@@ -747,10 +742,10 @@ export default function AdminCustomerDetailPage() {
                       const refCode = `ORD-${o._id.slice(-6).toUpperCase()}`;
                       const orderDate = o.createdAt
                         ? new Date(o.createdAt).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
                         : "—";
 
                       return (
@@ -764,13 +759,12 @@ export default function AdminCustomerDetailPage() {
                                 #{refCode}
                               </span>
                               <span
-                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  o.status === "Delivered"
+                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${o.status === "Delivered"
                                     ? "bg-emerald-100 text-emerald-800"
                                     : o.status === "Cancelled"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-amber-100 text-amber-800"
-                                }`}
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
                               >
                                 {o.status}
                               </span>
@@ -847,5 +841,19 @@ export default function AdminCustomerDetailPage() {
         onClose={() => setResetModalOpen(false)}
       />
     </div>
+  );
+}
+
+export default function AdminCustomerDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[400px] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#CF565D] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <AdminCustomerDetailContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -41,7 +41,7 @@ import {
   Zap,
 } from "lucide-react";
 
-export default function AdminServicesManagementPage() {
+function AdminServicesManagementContent() {
   const searchParams = useSearchParams();
   const initialCategoryParam = searchParams.get("category") || "all";
 
@@ -493,8 +493,8 @@ export default function AdminServicesManagementPage() {
       {message && (
         <div
           className={`p-3.5 rounded-2xl text-xs font-medium flex items-center justify-between border ${message.type === "success"
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-rose-50 text-rose-800 border-rose-200"
+            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+            : "bg-rose-50 text-rose-800 border-rose-200"
             }`}
         >
           <div className="flex items-center gap-2">
@@ -532,8 +532,8 @@ export default function AdminServicesManagementPage() {
             setCurrentPage(1);
           }}
           className={`rounded-2xl p-4 border text-left transition-all cursor-pointer ${statusFilter === "deals"
-              ? "bg-amber-50 border-amber-400 shadow-sm ring-2 ring-amber-400/40"
-              : "bg-white border-[#E8D8C8]/60 shadow-xs hover:border-amber-300"
+            ? "bg-amber-50 border-amber-400 shadow-sm ring-2 ring-amber-400/40"
+            : "bg-white border-[#E8D8C8]/60 shadow-xs hover:border-amber-300"
             }`}
         >
           <div className="flex items-center gap-3">
@@ -634,8 +634,8 @@ export default function AdminServicesManagementPage() {
                   setCurrentPage(1);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${statusFilter === st.id
-                    ? "bg-[#292525] text-white shadow-xs"
-                    : "text-[#746D69] hover:text-[#292525]"
+                  ? "bg-[#292525] text-white shadow-xs"
+                  : "text-[#746D69] hover:text-[#292525]"
                   }`}
               >
                 {st.label}
@@ -650,10 +650,10 @@ export default function AdminServicesManagementPage() {
               setCurrentPage(1);
             }}
             className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all ${womenOnlyFilter === true
-                ? "bg-[#FCF4F2] text-[#CF565D] border-[#CF565D]"
-                : womenOnlyFilter === false
-                  ? "bg-stone-100 text-stone-700 border-stone-300"
-                  : "bg-[#FAF7F2] text-[#746D69] border-[#E8D8C8]"
+              ? "bg-[#FCF4F2] text-[#CF565D] border-[#CF565D]"
+              : womenOnlyFilter === false
+                ? "bg-stone-100 text-stone-700 border-stone-300"
+                : "bg-[#FAF7F2] text-[#746D69] border-[#E8D8C8]"
               }`}
             title="Cycle: All / Women Only / General"
           >
@@ -810,8 +810,8 @@ export default function AdminServicesManagementPage() {
                           <button
                             onClick={() => handleOpenDealModal(service)}
                             className={`p-1.5 rounded-lg transition-colors cursor-pointer ${service.isExclusiveDeal
-                                ? "text-amber-700 bg-amber-100 hover:bg-amber-200"
-                                : "text-[#746D69] hover:text-amber-600 hover:bg-amber-50"
+                              ? "text-amber-700 bg-amber-100 hover:bg-amber-200"
+                              : "text-[#746D69] hover:text-amber-600 hover:bg-amber-50"
                               }`}
                             title={service.isExclusiveDeal ? "Edit Today's Exclusive Deal" : "Set as Today's Exclusive Deal"}
                           >
@@ -1060,8 +1060,8 @@ export default function AdminServicesManagementPage() {
                   TODAY'S EXCLUSIVE DEAL SECTION
                  ======================================================== */}
               <div className={`p-4 rounded-2xl border transition-all ${formData.isExclusiveDeal
-                  ? "bg-gradient-to-br from-amber-50/90 via-[#FAF7F2] to-rose-50/60 border-amber-300 shadow-xs"
-                  : "bg-[#FAF7F2] border-[#E8D8C8]"
+                ? "bg-gradient-to-br from-amber-50/90 via-[#FAF7F2] to-rose-50/60 border-amber-300 shadow-xs"
+                : "bg-[#FAF7F2] border-[#E8D8C8]"
                 }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1092,8 +1092,8 @@ export default function AdminServicesManagementPage() {
                       });
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${formData.isExclusiveDeal
-                        ? "bg-amber-500 text-white shadow-xs hover:bg-amber-600"
-                        : "bg-white text-stone-600 border border-[#E8D8C8] hover:border-amber-400"
+                      ? "bg-amber-500 text-white shadow-xs hover:bg-amber-600"
+                      : "bg-white text-stone-600 border border-[#E8D8C8] hover:border-amber-400"
                       }`}
                   >
                     {formData.isExclusiveDeal ? "Deal Active" : "Enable Deal"}
@@ -1206,8 +1206,8 @@ export default function AdminServicesManagementPage() {
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, womenOnly: !prev.womenOnly }))}
                   className={`p-3 rounded-xl border flex items-center gap-2.5 font-semibold transition-all ${formData.womenOnly
-                      ? "bg-rose-50 text-rose-800 border-rose-300"
-                      : "bg-[#FAF7F2] text-[#746D69] border-[#E8D8C8]"
+                    ? "bg-rose-50 text-rose-800 border-rose-300"
+                    : "bg-[#FAF7F2] text-[#746D69] border-[#E8D8C8]"
                     }`}
                 >
                   <Heart className={`w-4 h-4 ${formData.womenOnly ? "text-[#CF565D]" : "text-stone-400"}`} />
@@ -1223,8 +1223,8 @@ export default function AdminServicesManagementPage() {
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
                   className={`p-3 rounded-xl border flex items-center gap-2.5 font-semibold transition-all ${formData.isActive
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                      : "bg-stone-100 text-stone-600 border-stone-300"
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                    : "bg-stone-100 text-stone-600 border-stone-300"
                     }`}
                 >
                   {formData.isActive ? (
@@ -1406,8 +1406,8 @@ export default function AdminServicesManagementPage() {
                   type="button"
                   onClick={() => setDealFormData((prev) => ({ ...prev, isExclusiveDeal: !prev.isExclusiveDeal }))}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${dealFormData.isExclusiveDeal
-                      ? "bg-amber-500 text-white shadow-xs hover:bg-amber-600"
-                      : "bg-white text-stone-600 border border-[#E8D8C8]"
+                    ? "bg-amber-500 text-white shadow-xs hover:bg-amber-600"
+                    : "bg-white text-stone-600 border border-[#E8D8C8]"
                     }`}
                 >
                   {dealFormData.isExclusiveDeal ? "Active" : "Disabled"}
@@ -1558,5 +1558,19 @@ export default function AdminServicesManagementPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminServicesManagementPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[400px] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#CF565D] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <AdminServicesManagementContent />
+    </Suspense>
   );
 }
