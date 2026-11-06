@@ -180,35 +180,73 @@ export const ServiceCategories: React.FC = () => {
               : [
                 {
                   _id: "c1",
-                  name: "Face",
-                  slug: "face",
-                  description: "Facial and face grooming services",
-                  image:
-                    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
-                },
-                {
-                  _id: "c2",
-                  name: "Hair",
-                  slug: "hair",
-                  description: "Hair styling and care services",
+                  name: "Hair Styling",
+                  slug: "hair-styling",
+                  description: "Professional blowouts, waves, curls, and straightening",
+                  displayOrder: 1,
+                  isActive: true,
                   image:
                     "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80",
                 },
                 {
-                  _id: "c3",
-                  name: "Nail",
-                  slug: "nail",
-                  description: "Manicure, pedicure and nail services",
+                  _id: "c2",
+                  name: "Manicure",
+                  slug: "manicure",
+                  description: "Luxury manicures, gel polish, cut & file, and hand care",
+                  displayOrder: 2,
+                  isActive: true,
                   image:
-                    "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=800&q=80",
+                    "https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=800&q=80",
+                },
+                {
+                  _id: "c3",
+                  name: "Pedicure",
+                  slug: "pedicure",
+                  description: "Revitalizing foot spa, gel pedicure, and callus care",
+                  displayOrder: 3,
+                  isActive: true,
+                  image:
+                    "https://images.unsplash.com/photo-1519415510236-718bdfcd89c8?auto=format&fit=crop&w=800&q=80",
                 },
                 {
                   _id: "c4",
-                  name: "Massage",
-                  slug: "massage",
-                  description: "Massage and relaxation services",
+                  name: "Facial",
+                  slug: "facial",
+                  description: "Rejuvenating botanicals, deep cleansing, and hydra glow",
+                  displayOrder: 4,
+                  isActive: true,
+                  image:
+                    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
+                },
+                {
+                  _id: "c5",
+                  name: "Waxing",
+                  slug: "waxing",
+                  description: "Full body, Brazilian, and precision threading",
+                  displayOrder: 5,
+                  isActive: true,
+                  image:
+                    "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=80",
+                },
+                {
+                  _id: "c6",
+                  name: "Women Salon Services",
+                  slug: "women-salon-services",
+                  description: "Relaxing Indian head and shoulder tension relief",
+                  displayOrder: 6,
+                  isActive: true,
                   image:
                     "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80",
+                },
+                {
+                  _id: "c7",
+                  name: "Nail Polish",
+                  slug: "nail-polish",
+                  description: "Express color changes, gel polish, and French tips",
+                  displayOrder: 7,
+                  isActive: true,
+                  image:
+                    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80",
                 },
               ]
             ).map((cat) => (

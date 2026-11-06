@@ -15,7 +15,237 @@ import {
   X,
   LogOut,
   Calendar,
+  ChevronRight,
+  ArrowRight,
+  Eye,
+  Scissors,
+  Sparkles,
+  Flower2,
+  Flame,
+  Heart,
+  Palette,
 } from "lucide-react";
+
+interface ServiceSubCategory {
+  title: string;
+  description: string;
+  query: string;
+}
+
+interface ServiceMenuCategory {
+  id: string;
+  name: string;
+  slug: string;
+  tagline: string;
+  icon: React.ComponentType<{ className?: string }>;
+  subcategories: ServiceSubCategory[];
+}
+
+const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
+  {
+    id: "hair-styling",
+    name: "Hair Styling",
+    slug: "hair-styling",
+    tagline: "Blow dry, curls & straightening",
+    icon: Scissors,
+    subcategories: [
+      {
+        title: "Blowdry & Curls (Short & Medium)",
+        description: "Voluminous curls and signature blowouts with heat protection",
+        query: "curls",
+      },
+      {
+        title: "Blowdry & Curls (Long & Extra Long)",
+        description: "Glamorous Hollywood waves & cascading curls with argan shine",
+        query: "long",
+      },
+      {
+        title: "Hair Straightening",
+        description: "Smooth mirror-finish keratin straightening & humidity block",
+        query: "straightening",
+      },
+      {
+        title: "Blow Dry & Waves",
+        description: "Effortless root lift, natural body & silky salon finish",
+        query: "blow dry",
+      },
+    ],
+  },
+  {
+    id: "manicure",
+    name: "Manicure",
+    slug: "manicure",
+    tagline: "Classic, gel & luxury nail care",
+    icon: Sparkles,
+    subcategories: [
+      {
+        title: "Classic & Polish Manicure",
+        description: "Nail shaping, gentle cuticle care & high-shine lacquer",
+        query: "manicure",
+      },
+      {
+        title: "Gel Polish Manicure",
+        description: "UV/LED cured chip-free wear with safe gentle removal",
+        query: "gel",
+      },
+      {
+        title: "French & Nail Art Manicure",
+        description: "Clean French tips, chic minimalist designs & bespoke art",
+        query: "french",
+      },
+      {
+        title: "Polish Free & Cut / File",
+        description: "Natural glassy nail buffing, clipping & gel removals",
+        query: "cut and file",
+      },
+    ],
+  },
+  {
+    id: "pedicure",
+    name: "Pedicure",
+    slug: "pedicure",
+    tagline: "Foot spa, callus care & gel",
+    icon: Flower2,
+    subcategories: [
+      {
+        title: "Classic & Regular Pedicure",
+        description: "Warm herbal foot soak, callus smoothing & fresh color",
+        query: "pedicure",
+      },
+      {
+        title: "Luxury Spa Pedicure",
+        description: "Exfoliating sea salt scrub, cooling foot mask & massage",
+        query: "spa",
+      },
+      {
+        title: "Gel & French Pedicure",
+        description: "Instant dry LED cure, no smudging or denting in sandals",
+        query: "gel",
+      },
+      {
+        title: "Polish Free Pedicure & Care",
+        description: "Deep heel softening, toenail cut/file & gentle gel removal",
+        query: "polish free",
+      },
+    ],
+  },
+  {
+    id: "facial",
+    name: "Facial",
+    slug: "facial",
+    tagline: "Hydra, brightening & deep cleanse",
+    icon: Eye,
+    subcategories: [
+      {
+        title: "Herbal & Soothing Facial",
+        description: "Calming antioxidant botanical extracts for sensitive skin",
+        query: "herbal",
+      },
+      {
+        title: "Hydra & Deep Cleansing",
+        description: "Hydro-dermabrasion exfoliation, extraction & deep hydration",
+        query: "hydra",
+      },
+      {
+        title: "Brightening & Glow Therapy",
+        description: "Vitamin C radiance boost, gold mask & dark spot fading",
+        query: "brightening",
+      },
+      {
+        title: "Anti-Aging & Clean Up",
+        description: "Firming collagen lifting & express pore purifying cleanse",
+        query: "anti aging",
+      },
+    ],
+  },
+  {
+    id: "waxing",
+    name: "Waxing",
+    slug: "waxing",
+    tagline: "Full body, Brazilian & threading",
+    icon: Flame,
+    subcategories: [
+      {
+        title: "Full Body & Brazilian",
+        description: "Silky head-to-toe hair removal with stripless hot wax",
+        query: "full body",
+      },
+      {
+        title: "Arms, Legs & Underarms",
+        description: "Half & full legs, full arms & soothing underarm waxing",
+        query: "waxing",
+      },
+      {
+        title: "Facial & Targeted Waxing",
+        description: "Upper lip, chin, stomach & back delicate waxing",
+        query: "lip waxing",
+      },
+      {
+        title: "Precision Threading",
+        description: "Eyebrow shaping, upper lip, chin & forehead threading",
+        query: "threading",
+      },
+    ],
+  },
+  {
+    id: "women-salon-services",
+    name: "Women Salon Services",
+    slug: "women-salon-services",
+    tagline: "Head & shoulder tension massage",
+    icon: Heart,
+    subcategories: [
+      {
+        title: "Indian Head Massage",
+        description: "Warm botanical oil scalp massage for headache & stress relief",
+        query: "head massage",
+      },
+      {
+        title: "Shoulder Tension Relief",
+        description: "Targeted kneading & acupressure for stiff shoulder blades",
+        query: "shoulder",
+      },
+      {
+        title: "Head & Shoulder Ritual",
+        description: "Combined upper body massage for restorative relaxation",
+        query: "head and shoulder",
+      },
+      {
+        title: "Neck & Back Ease",
+        description: "Deep restorative pressure for desk strain & muscle fatigue",
+        query: "tension relief",
+      },
+    ],
+  },
+  {
+    id: "nail-polish",
+    name: "Nail Polish",
+    slug: "nail-polish",
+    tagline: "Normal, gel & French color",
+    icon: Palette,
+    subcategories: [
+      {
+        title: "Normal Nail Polish",
+        description: "Vibrant high-pigment lacquer & mirror-shine protective topcoat",
+        query: "normal",
+      },
+      {
+        title: "Gel Nail Polish",
+        description: "Durable chip-free LED gel color lasting up to 3 weeks",
+        query: "gel",
+      },
+      {
+        title: "French Nail Polish",
+        description: "Timeless chic sheer base with crisp white smile tips",
+        query: "french",
+      },
+      {
+        title: "Polish Change (Hands & Feet)",
+        description: "Express 25-minute color refresh & fresh seasonal shade",
+        query: "polish change",
+      },
+    ],
+  },
+];
 
 export const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -26,6 +256,12 @@ export const Header: React.FC = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>("hair-styling");
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
+
+  const currentCategory =
+    SERVICE_MENU_CATEGORIES.find((c) => c.id === activeCategory) ||
+    SERVICE_MENU_CATEGORIES[0];
 
   // Transparent navbar on hero section initial state; changes to glass blur on scroll
   useEffect(() => {
@@ -35,6 +271,23 @@ export const Header: React.FC = () => {
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, [pathname]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
   }, [pathname]);
 
   const isHome = pathname === "/";
@@ -49,7 +302,7 @@ export const Header: React.FC = () => {
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Left: Brand Logo */}
           <div className="flex items-center">
             <BrandLogo />
@@ -60,7 +313,7 @@ export const Header: React.FC = () => {
             className="hidden md:flex items-center gap-4 lg:gap-6 xl:gap-8 font-serif font-medium text-sm lg:text-[16px] xl:text-[17px]"
             aria-label="Main Navigation"
           >
-            {/* Prominently Highlighted Services Navigation */}
+            {/* Prominently Highlighted Services Navigation with Subcategories on Hover */}
             <div
               className="relative"
               onMouseEnter={() => setServicesDropdownOpen(true)}
@@ -71,43 +324,154 @@ export const Header: React.FC = () => {
                 className="flex items-center gap-1.5 py-1 text-[#CF565D] hover:text-[#b8454c] transition-colors focus:outline-none"
                 aria-expanded={servicesDropdownOpen}
               >
-                <span>Our Services</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#CF565D]" />
+                <span className="text-[16px] lg:text-[17px] font-medium tracking-tight">Our Services</span>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#CF565D] transition-transform duration-200 ${servicesDropdownOpen ? "rotate-180" : ""
+                    }`}
+                />
               </Link>
 
               {servicesDropdownOpen && (
-                <div className="absolute top-full -left-4 w-64 pt-2 z-50">
-                  <div className="p-3 bg-white rounded-2xl shadow-xl border border-[#E8D8C8] space-y-1">
-                    <Link
-                      href="/services"
-                      className="block px-3 py-2 text-xs font-semibold text-[#CF565D] bg-[#FAF7F2] rounded-xl transition-colors"
-                    >
-                      All At-Home Ceremonies &rarr;
-                    </Link>
-                    <Link
-                      href="/services?category=face"
-                      className="block px-3 py-2 text-xs font-medium text-[#292525] hover:bg-[#FAF7F2] hover:text-[#CF565D] rounded-xl transition-colors"
-                    >
-                      Face (Lashes & Threading)
-                    </Link>
-                    <Link
-                      href="/services?category=hair"
-                      className="block px-3 py-2 text-xs font-medium text-[#292525] hover:bg-[#FAF7F2] hover:text-[#CF565D] rounded-xl transition-colors"
-                    >
-                      Hair (Blow Dry, Curls & Color)
-                    </Link>
-                    <Link
-                      href="/services?category=nail"
-                      className="block px-3 py-2 text-xs font-medium text-[#292525] hover:bg-[#FAF7F2] hover:text-[#CF565D] rounded-xl transition-colors"
-                    >
-                      Nail (Manicure, Pedicure & Gelish)
-                    </Link>
-                    <Link
-                      href="/services?category=massage"
-                      className="block px-3 py-2 text-xs font-medium text-[#292525] hover:bg-[#FAF7F2] hover:text-[#CF565D] rounded-xl transition-colors"
-                    >
-                      Massage (Full Body, Deep Tissue & Stones)
-                    </Link>
+                <div className="absolute top-full -left-8 w-[820px] pt-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="bg-white rounded-3xl shadow-2xl border border-[#E8D8C8] overflow-hidden flex divide-x divide-[#E8D8C8]/60">
+                    {/* Left Column: Categories */}
+                    <div className="w-[240px] p-2.5 bg-[#FAF7F2]/60 flex flex-col justify-between shrink-0">
+                      <div>
+                        <div className="px-2.5 pt-0.5 pb-1.5 flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#746D69]/80">
+                            Service Rituals
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {SERVICE_MENU_CATEGORIES.map((cat) => {
+                            const Icon = cat.icon;
+                            const isSelected = activeCategory === cat.id;
+                            return (
+                              <Link
+                                key={cat.id}
+                                href={`/services?category=${cat.slug}`}
+                                onMouseEnter={() => setActiveCategory(cat.id)}
+                                onClick={() => setServicesDropdownOpen(false)}
+                                className={`group flex items-center justify-between px-2.5 py-1.5 rounded-xl transition-all duration-150 ${isSelected
+                                  ? "bg-white border border-[#E8D8C8] shadow-xs"
+                                  : "hover:bg-white/70 border border-transparent"
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0 ${isSelected
+                                      ? "bg-[#CF565D] text-white shadow-2xs"
+                                      : "bg-white text-[#746D69] border border-[#E8D8C8]/60 group-hover:text-[#CF565D] group-hover:border-[#CF565D]/40"
+                                      }`}
+                                  >
+                                    <Icon className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="min-w-0 text-left">
+                                    <span
+                                      className={`block text-[14px] leading-tight transition-colors ${isSelected
+                                        ? "font-bold text-[#CF565D]"
+                                        : "font-semibold text-[#292525] group-hover:text-[#CF565D]"
+                                        }`}
+                                    >
+                                      {cat.name}
+                                    </span>
+                                    <span className="block text-[11px] text-[#746D69] truncate mt-0.5">
+                                      {cat.tagline}
+                                    </span>
+                                  </div>
+                                </div>
+                                <ChevronRight
+                                  className={`w-3.5 h-3.5 shrink-0 transition-all ${isSelected
+                                    ? "text-[#CF565D] translate-x-0 opacity-100"
+                                    : "text-[#746D69]/40 -translate-x-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-0"
+                                    }`}
+                                />
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="pt-1.5 px-1 border-t border-[#E8D8C8]/50 mt-1">
+                        <Link
+                          href="/services"
+                          onClick={() => setServicesDropdownOpen(false)}
+                          className="w-full py-1.5 px-2.5 text-[12px] font-semibold text-[#CF565D] hover:text-[#b8454c] hover:bg-white rounded-lg transition-colors flex items-center justify-between"
+                        >
+                          <span>All At-Home Ceremonies</span>
+                          <span>&rarr;</span>
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Subcategories for Hovered Category */}
+                    <div className="flex-1 p-3.5 sm:p-4 bg-white flex flex-col justify-between">
+                      <div>
+                        {/* Subcategory Header */}
+                        <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-[#E8D8C8]/50">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-[15px] font-bold text-[#292525]">
+                              {currentCategory.name}
+                            </h4>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FAF7F2] text-[#CF565D] border border-[#E8D8C8]">
+                              {currentCategory.subcategories.length} Rituals
+                            </span>
+                            <span className="hidden sm:inline text-[11px] text-[#746D69]">
+                              • Select a treatment to view details & pricing
+                            </span>
+                          </div>
+                          <Link
+                            href={`/services?category=${currentCategory.slug}`}
+                            onClick={() => setServicesDropdownOpen(false)}
+                            className="text-[12px] font-semibold text-[#CF565D] hover:text-[#b8454c] flex items-center gap-1 group/view transition-colors shrink-0"
+                          >
+                            <span>View All</span>
+                            <ArrowRight className="w-3.5 h-3.5 group-hover/view:translate-x-0.5 transition-transform" />
+                          </Link>
+                        </div>
+
+                        {/* Subcategories Grid - 2 columns, spacious horizontal width, compact vertical height */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {currentCategory.subcategories.map((sub, idx) => (
+                            <Link
+                              key={idx}
+                              href={`/services?category=${currentCategory.slug}&query=${encodeURIComponent(
+                                sub.query
+                              )}`}
+                              onClick={() => setServicesDropdownOpen(false)}
+                              className="group/sub p-2.5 rounded-xl bg-[#FAF7F2]/50 hover:bg-[#FAF7F2] border border-[#E8D8C8]/50 hover:border-[#CF565D]/40 transition-all duration-150 flex items-start justify-between gap-2"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[13.5px] font-semibold text-[#292525] group-hover/sub:text-[#CF565D] transition-colors truncate">
+                                    {sub.title}
+                                  </span>
+                                </div>
+                                <p className="text-[11.5px] text-[#746D69] truncate mt-0.5 leading-snug">
+                                  {sub.description}
+                                </p>
+                              </div>
+                              <ArrowRight className="w-3.5 h-3.5 text-[#CF565D] mt-0.5 opacity-40 group-hover/sub:opacity-100 group-hover/sub:translate-x-0.5 transition-all shrink-0" />
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Bottom Banner */}
+                      <div className="mt-2.5 pt-2 border-t border-[#E8D8C8]/50 flex items-center justify-between text-[11px] text-[#746D69]">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#CF565D]" />
+                          <span>Hospital-grade sterilisation & certified aestheticians</span>
+                        </div>
+                        <Link
+                          href="/book"
+                          onClick={() => setServicesDropdownOpen(false)}
+                          className="text-[#CF565D] font-semibold hover:underline"
+                        >
+                          Book Appointment &rarr;
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -229,7 +593,7 @@ export const Header: React.FC = () => {
               )}
             </Link>
 
-            {/* Book Now Button */}
+            {/* Book Now Button (visible on tablet and desktop; mobile uses drawer CTA) */}
             <Link
               href="/book"
               onClick={() => {
@@ -237,7 +601,7 @@ export const Header: React.FC = () => {
                   window.dispatchEvent(new CustomEvent("reset-booking-flow"));
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 lg:px-5 py-2 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 sm:px-4 lg:px-5 py-2 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 shrink-0"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Book Now</span>
@@ -260,9 +624,9 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer with Full Viewport Height and Independent Scroll */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#FAF7F2] border-t border-[#E8D8C8] px-5 py-6 space-y-4 animate-in slide-in-from-top duration-200">
+        <div className="md:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-[#FAF7F2] border-t border-[#E8D8C8] px-4 sm:px-6 py-5 overflow-y-auto space-y-4 animate-in slide-in-from-top duration-200 z-50 shadow-xl pb-12">
           {/* Quick Book CTA Button in Mobile Drawer */}
           <Link
             href="/book"
@@ -279,16 +643,64 @@ export const Header: React.FC = () => {
           </Link>
 
           <nav className="flex flex-col space-y-3">
-            <Link
-              href="/services"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#CF565D] py-1 border-b border-[#E8D8C8]/40 flex items-center justify-between"
-            >
-              <span>At-Home Services</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
-                Ceremonies
-              </span>
-            </Link>
+            {/* Mobile Services Accordion */}
+            <div className="border-b border-[#E8D8C8]/40 pb-2">
+              <button
+                type="button"
+                onClick={() => setMobileServicesOpen(!mobileServicesOpen)}
+                className="w-full text-base font-semibold text-[#CF565D] py-1 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <span>Our Services</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
+                    Rituals
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#CF565D] transition-transform duration-200 ${mobileServicesOpen ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              {mobileServicesOpen && (
+                <div className="pt-2 pb-1 space-y-3 animate-in slide-in-from-top-1 duration-150 pl-1">
+                  {SERVICE_MENU_CATEGORIES.map((cat) => (
+                    <div key={cat.id} className="space-y-1.5 p-2.5 rounded-2xl bg-white/60 border border-[#E8D8C8]/50">
+                      <Link
+                        href={`/services?category=${cat.slug}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-[15px] font-bold text-[#292525] hover:text-[#CF565D] flex items-center justify-between"
+                      >
+                        <span>{cat.name}</span>
+                        <span className="text-xs text-[#CF565D] font-medium flex items-center gap-0.5">
+                          <span>View All</span>
+                          <span>&rarr;</span>
+                        </span>
+                      </Link>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                        {cat.subcategories.map((sub, idx) => (
+                          <Link
+                            key={idx}
+                            href={`/services?category=${cat.slug}&query=${encodeURIComponent(sub.query)}`}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="text-[12px] text-[#746D69] hover:text-[#CF565D] py-1.5 px-2.5 rounded-xl bg-[#FAF7F2] border border-[#E8D8C8]/40 truncate block"
+                          >
+                            {sub.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <Link
+                    href="/services"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block text-xs font-bold text-[#CF565D] pt-1 text-center hover:underline"
+                  >
+                    View All Services & Ceremonies &rarr;
+                  </Link>
+                </div>
+              )}
+            </div>
             <Link
               href="/packages"
               onClick={() => setMobileMenuOpen(false)}

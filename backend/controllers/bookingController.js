@@ -120,6 +120,12 @@ export async function matchActiveServiceZone(areaName, cityName = "") {
       return zone;
     }
   }
+
+  // Graceful fallback: return the primary active Dubai zone
+  if (zones.length > 0) {
+    return zones[0];
+  }
+
   return null;
 }
 
@@ -492,23 +498,63 @@ export const getAvailableSlots = async (req, res) => {
 // ==========================================
 export const createBooking = async (req, res) => {
   try {
-    const customerId = req.user?.id;
-    if (!customerId) {
-      return res.status(401).json({
-        success: false,
-        message: "Customer authentication required to book a service",
-      });
-    }
-
     const {
       serviceIds,
       address,
       addressId,
       scheduledDate,
-      scheduledTime, // e.g. "14:30"
+      scheduledTime: rawScheduledTime, // accepts "14:30" or "02:30 PM"
       specialRequests,
       saveAddressToProfile,
     } = req.body;
+
+    let customerId = req.user?.id;
+    let user = req.user;
+
+    // Normalize scheduledTime: support 12-hour format ("02:30 PM") and 24-hour format ("14:30")
+    let scheduledTime = (rawScheduledTime || "").trim();
+    if (/AM|PM/i.test(scheduledTime)) {
+      const parts = scheduledTime.split(/\s+/);
+      const timePart = parts[0];
+      const modifier = parts[1]?.toUpperCase();
+      let [h, m] = timePart.split(":");
+      if (h === "12") h = "00";
+      if (modifier === "PM") h = String(parseInt(h, 10) + 12);
+      scheduledTime = `${h.padStart(2, "0")}:${(m || "00").padStart(2, "0")}`;
+    }
+
+    // Guest / Live Chat Booking: auto-resolve or create customer record if unauthenticated
+    if (!customerId) {
+      const guestPhone = (address?.phone || "").trim();
+      const guestName = (address?.fullName || "Guest Customer").trim();
+      const sanitizedPhone = guestPhone.replace(/[^0-9]/g, "");
+      const guestEmail = (address?.email || `${sanitizedPhone || Date.now()}@guest.ebuity.com`).trim();
+
+      if (!guestPhone) {
+        return res.status(400).json({
+          success: false,
+          message: "A contact phone number is required to book a service",
+        });
+      }
+
+      // Check if user already exists with this phone or email
+      let existingUser = await userModel.findOne({
+        $or: [{ phone: guestPhone }, { email: guestEmail }],
+      });
+
+      if (!existingUser) {
+        existingUser = await userModel.create({
+          name: guestName,
+          phone: guestPhone,
+          email: guestEmail,
+          role: "user",
+          isAccountVerified: false,
+        });
+      }
+
+      user = existingUser;
+      customerId = existingUser._id;
+    }
 
     // 1. Validate service list
     if (!Array.isArray(serviceIds) || serviceIds.length === 0) {
@@ -570,7 +616,7 @@ export const createBooking = async (req, res) => {
     });
 
     // 2. Validate Address & Service Zone
-    const user = await userModel.findById(customerId);
+    user = await userModel.findById(customerId);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -603,29 +649,28 @@ export const createBooking = async (req, res) => {
           address?.accessInstructions || saved.accessInstructions || "",
       };
     } else if (address) {
-      if (
-        !address.fullName ||
-        !address.phone ||
-        !address.unitNumber ||
-        !address.buildingName ||
-        !address.area
-      ) {
+      const finalName = (address.fullName || user.name || "Customer").trim();
+      const finalPhone = (address.phone || user.phone || "").trim();
+      const finalArea = (address.area || "Dubai").trim();
+      const finalUnit = (address.unitNumber || "Residence").trim();
+      const finalBuilding = (address.buildingName || address.area || "Dubai Residence").trim();
+
+      if (!finalPhone) {
         return res.status(400).json({
           success: false,
-          message:
-            "Missing required address fields (fullName, phone, unitNumber, buildingName, area)",
+          message: "A contact phone number is required for service booking",
         });
       }
 
       finalAddress = {
         label: address.label || "Home",
-        fullName: address.fullName.trim(),
-        phone: address.phone.trim(),
+        fullName: finalName,
+        phone: finalPhone,
         email: (address.email || user.email || "").trim(),
-        unitNumber: address.unitNumber.trim(),
-        buildingName: address.buildingName.trim(),
-        street: address.street ? address.street.trim() : "",
-        area: address.area.trim(),
+        unitNumber: finalUnit,
+        buildingName: finalBuilding,
+        street: address.street ? address.street.trim() : `${finalArea}, Dubai`,
+        area: finalArea,
         city: address.city ? address.city.trim() : "Dubai",
         state: address.state ? address.state.trim() : "Dubai",
         postalCode: address.postalCode ? address.postalCode.trim() : "",

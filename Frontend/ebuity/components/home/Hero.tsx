@@ -1,9 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, ChevronDown, Sparkles, BadgeCheck, Home } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  ChevronDown,
+  Sparkles,
+  BadgeCheck,
+  Home,
+  X,
+  Check,
+  Scissors,
+  Flower2,
+  Eye,
+  Flame,
+  Heart,
+  Palette,
+} from "lucide-react";
 import { serviceApi, serviceCategoryApi, serviceZoneApi } from "../../lib/api-client";
 
 // Clean initial fallbacks to prevent layout shift before database fetch resolves
@@ -19,26 +34,97 @@ const DEFAULT_AREAS = [
 ];
 
 const DEFAULT_POPULAR_SERVICES = [
-  "Face",
-  "Hair",
-  "Nail",
-  "Massage",
-  "Facial",
+  "Hair Styling",
   "Manicure",
+  "Pedicure",
+  "Facial",
 ];
 
 const DEFAULT_SERVICE_SUGGESTIONS = [
-  "Face",
-  "Hair",
-  "Nail",
-  "Massage",
+  "Hair Styling",
+  "Manicure",
+  "Pedicure",
   "Facial",
-  "HydraFacial Glow",
-  "Full Hair Color",
+  "Waxing",
+  "Blow Dry",
   "Classic Manicure",
-  "Hard Gel Overlay",
-  "Hot Stones Massage",
-  "Cupping Massage",
+  "Classic Pedicure",
+  "Herbal Facial",
+  "Brazilian Wax",
+  "Head Massage",
+];
+
+interface HeroServiceCategory {
+  id: string;
+  name: string;
+  slug: string;
+  tagline: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const HERO_SERVICE_CATEGORIES: HeroServiceCategory[] = [
+  {
+    id: "hair-styling",
+    name: "Hair Styling",
+    slug: "hair-styling",
+    tagline: "Blowouts, curls & straightening",
+    icon: Scissors,
+  },
+  {
+    id: "manicure",
+    name: "Manicure",
+    slug: "manicure",
+    tagline: "Classic, gel & luxury nail care",
+    icon: Sparkles,
+  },
+  {
+    id: "pedicure",
+    name: "Pedicure",
+    slug: "pedicure",
+    tagline: "Foot spa, callus care & gel polish",
+    icon: Flower2,
+  },
+  {
+    id: "facial",
+    name: "Facial",
+    slug: "facial",
+    tagline: "Hydra, brightening & deep cleanse",
+    icon: Eye,
+  },
+  {
+    id: "waxing",
+    name: "Waxing",
+    slug: "waxing",
+    tagline: "Full body, Brazilian & precision threading",
+    icon: Flame,
+  },
+  {
+    id: "women-salon-services",
+    name: "Women Salon Services",
+    slug: "women-salon-services",
+    tagline: "Head & shoulder tension massage",
+    icon: Heart,
+  },
+  {
+    id: "nail-polish",
+    name: "Nail Polish",
+    slug: "nail-polish",
+    tagline: "Normal, gel & French color refresh",
+    icon: Palette,
+  },
+];
+
+const POPULAR_TREATMENTS = [
+  { name: "Blowdry and Curls", categorySlug: "hair-styling" },
+  { name: "Hair Straightening", categorySlug: "hair-styling" },
+  { name: "Classic Manicure", categorySlug: "manicure" },
+  { name: "Gel Polish Manicure", categorySlug: "manicure" },
+  { name: "Spa Pedicure", categorySlug: "pedicure" },
+  { name: "Herbal Facial", categorySlug: "facial" },
+  { name: "Hydra Facial", categorySlug: "facial" },
+  { name: "Full Body Waxing with Brazilian", categorySlug: "waxing" },
+  { name: "Eyebrows Threading", categorySlug: "waxing" },
+  { name: "Head Massage", categorySlug: "women-salon-services" },
 ];
 
 function titleCase(text: string): string {
@@ -54,11 +140,40 @@ export const Hero: React.FC = () => {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [area, setArea] = useState("");
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>("");
+
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
+  const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
+  const searchBarRef = useRef<HTMLFormElement>(null);
 
   // Live database data states
   const [areas, setAreas] = useState<string[]>(DEFAULT_AREAS);
   const [popularServices, setPopularServices] = useState<string[]>(DEFAULT_POPULAR_SERVICES);
   const [serviceSuggestions, setServiceSuggestions] = useState<string[]>(DEFAULT_SERVICE_SUGGESTIONS);
+
+  // Close dropdowns on outside click or escape key
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (searchBarRef.current && !searchBarRef.current.contains(e.target as Node)) {
+        setServiceDropdownOpen(false);
+        setAreaDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setServiceDropdownOpen(false);
+        setAreaDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   // Fetch real data from MongoDB via backend API
   useEffect(() => {
@@ -130,18 +245,18 @@ export const Hero: React.FC = () => {
             }
           });
 
-          // Add featured/top services to popular quick-picks
+          // Add featured/top services to popular quick-picks (max 4)
           activeServices.forEach((s) => {
             const name = s.name?.trim();
-            if (name && s.isFeatured && dynamicPopular.length < 6 && !dynamicPopular.includes(name)) {
+            if (name && s.isFeatured && dynamicPopular.length < 4 && !dynamicPopular.includes(name)) {
               dynamicPopular.push(name);
             }
           });
 
-          // If still under 6 popular items, add other active services
+          // If still under 4 popular items, add other active services
           activeServices.forEach((s) => {
             const name = s.name?.trim();
-            if (name && dynamicPopular.length < 6 && !dynamicPopular.includes(name)) {
+            if (name && dynamicPopular.length < 4 && !dynamicPopular.includes(name)) {
               dynamicPopular.push(name);
             }
           });
@@ -166,11 +281,17 @@ export const Hero: React.FC = () => {
     };
   }, []);
 
-  // Form submission handler routing to /services with query & area params
+  // Form submission handler routing to /services with query, category & area params
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setServiceDropdownOpen(false);
+    setAreaDropdownOpen(false);
     const params = new URLSearchParams();
-    if (query.trim()) params.set("query", query.trim());
+    if (selectedCategorySlug && selectedCategorySlug !== "all") {
+      params.set("category", selectedCategorySlug);
+    } else if (query.trim()) {
+      params.set("query", query.trim());
+    }
     if (area && area !== "All Areas" && area !== "All Dubai Areas") {
       params.set("area", area.trim());
     }
@@ -180,8 +301,21 @@ export const Hero: React.FC = () => {
 
   // Chip click: search that service straight away, keeping the selected area
   const handleQuickSearch = (service: string) => {
+    setServiceDropdownOpen(false);
+    setAreaDropdownOpen(false);
+    const matchedCategory = HERO_SERVICE_CATEGORIES.find(
+      (c) => c.name.toLowerCase() === service.toLowerCase()
+    );
     const params = new URLSearchParams();
-    params.set("query", service);
+    if (matchedCategory) {
+      params.set("category", matchedCategory.slug);
+      setSelectedCategorySlug(matchedCategory.slug);
+      setQuery(matchedCategory.name);
+    } else {
+      params.set("query", service);
+      setSelectedCategorySlug("");
+      setQuery(service);
+    }
     if (area && area !== "All Areas" && area !== "All Dubai Areas") {
       params.set("area", area.trim());
     }
@@ -189,7 +323,7 @@ export const Hero: React.FC = () => {
   };
 
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#FDF7F3] via-[#FAF4EF] to-[#FBF4EF] min-h-screen pt-20 flex items-center">
+    <section className="relative w-full overflow-hidden bg-gradient-to-b from-[#FDF7F3] via-[#FAF4EF] to-[#FBF4EF] min-h-0 lg:min-h-screen pt-24 sm:pt-28 lg:pt-20 pb-10 sm:pb-14 lg:pb-0 flex items-center">
       {/* ------------------------------------------------------------------ */}
       {/* 1. BACKGROUND LAYERS                                                */}
       {/* ------------------------------------------------------------------ */}
@@ -360,105 +494,367 @@ export const Hero: React.FC = () => {
       {/* ------------------------------------------------------------------ */}
       {/* 2. MAIN TWO-COLUMN CONTENT GRID (MATCHING NAVBAR PADDING) */}
       {/* ------------------------------------------------------------------ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20 py-10 lg:py-0">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-4 items-center min-h-[calc(100vh-5rem)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-20 py-4 sm:py-8 lg:py-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-4 items-center min-h-0 lg:min-h-[calc(100vh-5rem)]">
 
           {/* LEFT COLUMN: ~50% (Eyebrow, Clean H1 on 2 lines, Premium Search Form) */}
-          <div className="lg:col-span-6 xl:col-span-6 z-20 flex flex-col justify-center space-y-6 lg:space-y-7 pr-0 lg:pr-4">
+          <div className="w-full lg:col-span-6 xl:col-span-6 z-20 flex flex-col justify-center space-y-5 sm:space-y-6 lg:space-y-7 pr-0 lg:pr-4">
 
-            {/* Small Eyebrow Label with delicate accent line */}
-
-
-            {/* Main H1: "Discover Your" and "Natural Glow" sitting on two clean lines */}
-            <h1 className="font-display text-4xl sm:text-3xl lg:text-[3rem] xl:text-[3.5rem] uppercase font-normal text-[#292525] tracking-tight leading-[0.95]">
+            {/* Main H1: "Discover Your" and "Natural Glow" */}
+            <h1 className="font-display text-3xl xs:text-4xl sm:text-5xl lg:text-[3rem] xl:text-[3.5rem] uppercase font-normal text-[#292525] tracking-tight leading-[1.05] sm:leading-[0.98]">
               Discover Your <br />
               <span className="italic font-normal text-[#C8505F]">Natural Glow</span>
             </h1>
 
             {/* Booking block: heading + search bar + quick picks */}
-            <div className="w-full max-w-[620px] pt-1 sm:pt-2 space-y-4">
-              <div className="space-y-1.5">
-                <h2 className="font-serif text-xl sm:text-2xl lg:text-[1.65rem] text-[#292525] font-medium leading-snug">
+            <div className="w-full max-w-[620px] pt-1 sm:pt-2 space-y-3.5 sm:space-y-4">
+              <div className="space-y-1 sm:space-y-1.5">
+                <h2 className="font-serif text-lg sm:text-xl lg:text-[1.65rem] text-[#292525] font-medium leading-snug">
                   Book beauty &amp; wellness at home
                 </h2>
-                <p className="text-sm text-[#746D69] leading-relaxed max-w-[480px]">
+                <p className="text-xs sm:text-sm text-[#746D69] leading-relaxed max-w-[480px]">
                   Choose a service and your area. A verified professional from our team comes to your door.
                 </p>
               </div>
 
-              {/* Search bar: two labelled fields + button in one card */}
+              {/* Search bar: pure luxury dropdown selectors + button in one elegant card */}
               <form
+                ref={searchBarRef}
                 onSubmit={handleSearch}
-                className="w-full rounded-3xl p-2 bg-white/90 backdrop-blur-md border border-[#E8D8C8]/70 shadow-[0_16px_44px_rgba(200,80,95,0.10)] flex flex-col xl:flex-row xl:items-stretch gap-1.5"
+                className="relative w-full rounded-3xl p-2 bg-white/95 backdrop-blur-md border border-[#E8D8C8]/80 shadow-[0_16px_44px_rgba(200,80,95,0.12)] flex flex-col sm:flex-row sm:items-stretch gap-1.5 z-30"
               >
-                {/* Service field */}
-                <label className="flex flex-1 items-center gap-3 rounded-2xl px-3.5 py-2.5 cursor-text hover:bg-[#FDF3F1] focus-within:bg-[#FDF3F1] transition-colors">
-                  <span className="w-10 h-10 rounded-full bg-[#F5DAD6] text-[#C8505F] flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4 stroke-[2]" />
-                  </span>
-                  <span className="flex flex-col flex-1 min-w-0">
-                    <span className="text-[11px] font-semibold text-[#746D69]">Service</span>
-                    <input
-                      type="text"
-                      list="service-suggestions"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Facial, massage, manicure…"
-                      className="w-full bg-transparent text-sm text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none"
-                    />
-                  </span>
-                  <datalist id="service-suggestions">
-                    {serviceSuggestions.map((s) => (
-                      <option key={s} value={s} />
-                    ))}
-                  </datalist>
-                </label>
+                {/* 1. Service Dropdown Field (Click to select, no typing) */}
+                <div className="relative flex-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setServiceDropdownOpen((prev) => !prev);
+                      setAreaDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 rounded-2xl px-3.5 py-2.5 transition-all text-left ${serviceDropdownOpen
+                      ? "bg-[#FDF3F1] ring-2 ring-[#C8505F]/20"
+                      : "hover:bg-[#FDF3F1]/70"
+                      }`}
+                    aria-expanded={serviceDropdownOpen}
+                    aria-haspopup="listbox"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="w-10 h-10 rounded-full bg-[#F5DAD6] text-[#C8505F] flex items-center justify-center shrink-0 shadow-2xs">
+                        <Sparkles className="w-4 h-4 stroke-[2]" />
+                      </span>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#746D69]/90">
+                          Service
+                        </span>
+                        <span
+                          className={`text-sm truncate font-medium ${query
+                            ? "text-[#292525] font-semibold"
+                            : "text-[#746D69]/70"
+                            }`}
+                        >
+                          {query || "Select service or ritual"}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="hidden xl:block w-px bg-[#E8D8C8] my-3" />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {query && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuery("");
+                            setSelectedCategorySlug("");
+                          }}
+                          className="p-1 rounded-full text-[#746D69]/60 hover:text-[#C8505F] hover:bg-white transition-colors"
+                          title="Clear service"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                      <ChevronDown
+                        className={`w-4 h-4 text-[#746D69] transition-transform duration-200 ${serviceDropdownOpen ? "rotate-180 text-[#C8505F]" : ""
+                          }`}
+                      />
+                    </div>
+                  </button>
 
-                {/* Area field */}
-                <label className="relative flex flex-1 items-center gap-3 rounded-2xl px-3.5 py-2.5 cursor-pointer hover:bg-[#FDF3F1] focus-within:bg-[#FDF3F1] transition-colors">
-                  <span className="w-10 h-10 rounded-full bg-[#F5DAD6] text-[#C8505F] flex items-center justify-center shrink-0">
-                    <MapPin className="w-4 h-4 stroke-[2]" />
-                  </span>
-                  <span className="flex flex-col flex-1 min-w-0">
-                    <span className="text-[11px] font-semibold text-[#746D69]">Your area</span>
-                    <select
-                      value={area}
-                      onChange={(e) => setArea(e.target.value)}
-                      className="w-full bg-transparent text-sm text-[#292525] pr-6 focus:outline-none cursor-pointer appearance-none truncate"
-                    >
-                      <option value="">Select area</option>
-                      <option value="All Areas">All Areas</option>
-                      {areas.map((a) => (
-                        <option key={a} value={a}>
-                          {a}
-                        </option>
-                      ))}
-                    </select>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-[#746D69] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </label>
+                  {/* Luxury Service Dropdown Panel */}
+                  {serviceDropdownOpen && (
+                    <div className="absolute top-[calc(100%+8px)] left-0 w-full sm:w-[420px] max-w-[calc(100vw-2rem)] z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="bg-white rounded-2xl border border-[#E8D8C8] shadow-[0_20px_50px_rgba(200,80,95,0.18)] p-2.5 space-y-2 max-h-[420px] overflow-y-auto">
+                        {/* Option: All Services & Rituals */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuery("");
+                            setSelectedCategorySlug("");
+                            setServiceDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left ${!query && !selectedCategorySlug
+                            ? "bg-[#FDF3F1] text-[#C8505F] font-semibold"
+                            : "hover:bg-[#FAF7F2] text-[#292525]"
+                            }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-7 h-7 rounded-lg bg-[#F5DAD6]/70 text-[#C8505F] flex items-center justify-center shrink-0">
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </span>
+                            <div>
+                              <span className="block text-sm leading-tight">All Services & Rituals</span>
+                              <span className="block text-[11px] text-[#746D69]">Browse complete catalog</span>
+                            </div>
+                          </div>
+                          {!query && !selectedCategorySlug && (
+                            <Check className="w-4 h-4 text-[#C8505F] shrink-0" />
+                          )}
+                        </button>
+
+                        <div className="h-px bg-[#E8D8C8]/60 my-1" />
+
+                        {/* Categories List */}
+                        <div className="px-2 pt-0.5 pb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#746D69]/80">
+                            Service Categories
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1">
+                          {HERO_SERVICE_CATEGORIES.map((cat) => {
+                            const Icon = cat.icon;
+                            const isSelected =
+                              selectedCategorySlug === cat.slug ||
+                              query.toLowerCase() === cat.name.toLowerCase();
+                            return (
+                              <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCategorySlug(cat.slug);
+                                  setQuery(cat.name);
+                                  setServiceDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left ${isSelected
+                                  ? "bg-[#FDF3F1] text-[#C8505F] font-semibold"
+                                  : "hover:bg-[#FAF7F2] text-[#292525]"
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isSelected
+                                      ? "bg-[#C8505F] text-white"
+                                      : "bg-[#FAF7F2] text-[#746D69] border border-[#E8D8C8]/50"
+                                      }`}
+                                  >
+                                    <Icon className="w-3.5 h-3.5" />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <span className="block text-sm font-semibold truncate leading-tight">
+                                      {cat.name}
+                                    </span>
+                                    <span className="block text-[11px] text-[#746D69] truncate">
+                                      {cat.tagline}
+                                    </span>
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-[#C8505F] shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="h-px bg-[#E8D8C8]/60 my-1" />
+
+                        {/* Popular Treatments Section */}
+                        <div className="px-2 pt-0.5 pb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#746D69]/80">
+                            Popular Treatments
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 px-1 pb-1">
+                          {POPULAR_TREATMENTS.map((treatment) => {
+                            const isSelected =
+                              query.toLowerCase() === treatment.name.toLowerCase();
+                            return (
+                              <button
+                                key={treatment.name}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCategorySlug(treatment.categorySlug);
+                                  setQuery(treatment.name);
+                                  setServiceDropdownOpen(false);
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-xs transition-all ${isSelected
+                                  ? "bg-[#C8505F] text-white font-medium shadow-2xs"
+                                  : "bg-[#FAF7F2] hover:bg-[#FDF3F1] text-[#292525] border border-[#E8D8C8]/70 hover:border-[#C8505F]/40"
+                                  }`}
+                              >
+                                {treatment.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="hidden sm:block w-px bg-[#E8D8C8] my-3 self-stretch" />
+
+                {/* 2. Area Dropdown Field (Click to select, no typing) */}
+                <div className="relative flex-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAreaDropdownOpen((prev) => !prev);
+                      setServiceDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 rounded-2xl px-3.5 py-2.5 transition-all text-left ${areaDropdownOpen
+                      ? "bg-[#FDF3F1] ring-2 ring-[#C8505F]/20"
+                      : "hover:bg-[#FDF3F1]/70"
+                      }`}
+                    aria-expanded={areaDropdownOpen}
+                    aria-haspopup="listbox"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="w-10 h-10 rounded-full bg-[#F5DAD6] text-[#C8505F] flex items-center justify-center shrink-0 shadow-2xs">
+                        <MapPin className="w-4 h-4 stroke-[2]" />
+                      </span>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#746D69]/90">
+                          Your area
+                        </span>
+                        <span
+                          className={`text-sm truncate font-medium ${area && area !== "All Areas" && area !== "All Dubai Areas"
+                            ? "text-[#292525] font-semibold"
+                            : "text-[#746D69]/70"
+                            }`}
+                        >
+                          {area && area !== "All Areas" && area !== "All Dubai Areas"
+                            ? area
+                            : "Select area"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {area && area !== "All Areas" && area !== "All Dubai Areas" && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setArea("");
+                          }}
+                          className="p-1 rounded-full text-[#746D69]/60 hover:text-[#C8505F] hover:bg-white transition-colors"
+                          title="Clear area"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                      <ChevronDown
+                        className={`w-4 h-4 text-[#746D69] transition-transform duration-200 ${areaDropdownOpen ? "rotate-180 text-[#C8505F]" : ""
+                          }`}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Luxury Area Dropdown Panel */}
+                  {areaDropdownOpen && (
+                    <div className="absolute top-[calc(100%+8px)] left-0 xl:left-auto xl:right-0 w-full sm:w-[340px] max-w-[calc(100vw-2rem)] z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="bg-white rounded-2xl border border-[#E8D8C8] shadow-[0_20px_50px_rgba(200,80,95,0.18)] p-2.5 space-y-1.5 max-h-[380px] overflow-y-auto">
+                        {/* Option: All Dubai Areas */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setArea("");
+                            setAreaDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all text-left ${!area || area === "All Areas" || area === "All Dubai Areas"
+                            ? "bg-[#FDF3F1] text-[#C8505F] font-semibold"
+                            : "hover:bg-[#FAF7F2] text-[#292525]"
+                            }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-7 h-7 rounded-lg bg-[#F5DAD6]/70 text-[#C8505F] flex items-center justify-center shrink-0">
+                              <MapPin className="w-3.5 h-3.5" />
+                            </span>
+                            <div>
+                              <span className="block text-sm leading-tight">All Dubai Areas</span>
+                              <span className="block text-[11px] text-[#746D69]">Available across all emirates</span>
+                            </div>
+                          </div>
+                          {(!area || area === "All Areas" || area === "All Dubai Areas") && (
+                            <Check className="w-4 h-4 text-[#C8505F] shrink-0" />
+                          )}
+                        </button>
+
+                        <div className="h-px bg-[#E8D8C8]/60 my-1" />
+
+                        {/* Header */}
+                        <div className="px-2 pt-0.5 pb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#746D69]/80">
+                            Dubai Neighborhoods & Districts
+                          </span>
+                        </div>
+
+                        {/* Neighborhoods list */}
+                        <div className="space-y-0.5">
+                          {areas.map((a) => {
+                            const isSelected = area === a;
+                            return (
+                              <button
+                                key={a}
+                                type="button"
+                                onClick={() => {
+                                  setArea(a);
+                                  setAreaDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left text-sm ${isSelected
+                                  ? "bg-[#FDF3F1] text-[#C8505F] font-semibold"
+                                  : "hover:bg-[#FAF7F2] text-[#292525]"
+                                  }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span
+                                    className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? "bg-[#C8505F]" : "bg-[#E8D8C8]"
+                                      }`}
+                                  />
+                                  <span className="truncate">{a}</span>
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-[#C8505F] shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Submit */}
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-[#C8505F] hover:bg-[#B34351] text-white text-sm font-semibold tracking-wide shadow-md shadow-[#C8505F]/25 transition-all duration-200 shrink-0 hover:shadow-lg active:scale-[0.98]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3 sm:py-3.5 rounded-2xl bg-[#C8505F] hover:bg-[#B34351] text-white text-sm font-semibold tracking-wide shadow-md shadow-[#C8505F]/25 transition-all duration-200 shrink-0 hover:shadow-lg active:scale-[0.98]"
                 >
                   <Search className="w-4 h-4 stroke-[2.2]" />
                   <span>Search</span>
                 </button>
               </form>
 
-              {/* Quick picks */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-[#746D69] mr-1">Popular:</span>
-                {popularServices.map((service) => (
+              {/* Quick picks - only 4 popular service bubbles */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="text-[11px] sm:text-xs font-medium text-[#746D69] mr-1">Popular:</span>
+                {popularServices.slice(0, 4).map((service) => (
                   <button
                     key={service}
                     type="button"
                     onClick={() => handleQuickSearch(service)}
-                    className="px-3.5 py-1.5 rounded-full bg-white/70 border border-[#E8D8C8] text-xs font-medium text-[#292525] hover:border-[#C8505F] hover:text-[#C8505F] hover:bg-white transition-colors"
+                    className="px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-white/80 border border-[#E8D8C8] text-[11px] sm:text-xs font-medium text-[#292525] hover:border-[#C8505F] hover:text-[#C8505F] hover:bg-white transition-colors shadow-2xs"
                   >
                     {service}
                   </button>
@@ -466,13 +862,13 @@ export const Hero: React.FC = () => {
               </div>
 
               {/* Trust points */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-xs text-[#746D69]">
+              <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2 pt-1 text-[11px] sm:text-xs text-[#746D69]">
                 <span className="inline-flex items-center gap-1.5">
-                  <Home className="w-4 h-4 text-[#C8505F]" />
+                  <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C8505F]" />
                   We come to your home
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <BadgeCheck className="w-4 h-4 text-[#C8505F]" />
+                  <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C8505F]" />
                   Verified, trained professionals
                 </span>
               </div>
@@ -480,12 +876,10 @@ export const Hero: React.FC = () => {
 
           </div>
 
-          {/* RIGHT COLUMN: ~50% (Woman holding rose, bleeding off bottom-right edge) */}
-          <div className="lg:col-span-6 xl:col-span-6 relative flex items-end justify-center lg:justify-end h-full min-h-[460px] sm:min-h-[560px] lg:min-h-[calc(100vh-5rem)]">
+          {/* RIGHT COLUMN: ~50% (Woman holding rose - HIDDEN ON MOBILE / TABLET) */}
+          <div className="hidden lg:flex lg:col-span-6 xl:col-span-6 relative items-end justify-center lg:justify-end h-full min-h-[calc(100vh-5rem)]">
 
-            {/* ------------------------------------------------------------- */}
-            {/* WOMAN HOLDING PINK ROSE: TRANSPARENT CUTOUT, FILLING HEIGHT   */}
-            {/* ------------------------------------------------------------- */}
+            {/* WOMAN HOLDING PINK ROSE: TRANSPARENT CUTOUT, FILLING HEIGHT */}
             <div className="relative z-10 w-full flex items-end justify-center lg:justify-end h-full">
               <Image
                 src="/dreamy-rose-beauty.png"

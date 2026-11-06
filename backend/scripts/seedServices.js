@@ -7,355 +7,191 @@ import ServiceZone from "../models/ServiceZone.js";
 import Category from "../models/Category.js";
 import Product from "../models/Product.js";
 
-const serviceCategoriesData = [
-  {
-    name: "Face",
-    slug: "face",
-    description: "Facial and face grooming services",
-    image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
-    sortOrder: 1,
-    displayOrder: 1,
-    active: true,
-    isActive: true,
-  },
-  {
-    name: "Hair",
-    slug: "hair",
-    description: "Hair styling and care services",
-    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80",
-    sortOrder: 2,
-    displayOrder: 2,
-    active: true,
-    isActive: true,
-  },
-  {
-    name: "Nail",
-    slug: "nail",
-    description: "Manicure, pedicure and nail services",
-    image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=800&q=80",
-    sortOrder: 3,
-    displayOrder: 3,
-    active: true,
-    isActive: true,
-  },
-  {
-    name: "Massage",
-    slug: "massage",
-    description: "Massage and relaxation services",
-    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80",
-    sortOrder: 4,
-    displayOrder: 4,
-    active: true,
-    isActive: true,
-  },
-];
+/* ------------------------------------------------------------------ */
+/* IMAGES                                                              */
+/* U()  -> images.unsplash.com/photo-<id>   (IDs already used in your file)
+/* UP() -> unsplash.com/photos/<slug-id>/download  (new picks: henna)   */
+/* Add both hosts to next.config.js images.remotePatterns              */
+/* ------------------------------------------------------------------ */
+const U = (id, w = 1200) =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=85`;
+const UP = (id, w = 1200) =>
+  `https://unsplash.com/photos/${id}/download?force=true&w=${w}`;
 
-const categoryImageMap = {
-  Face: [
-    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1512290900672-1f5be634358a?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=85",
-  ],
-  Hair: [
-    "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1200&q=85",
-  ],
-  Nail: [
-    "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=1200&q=85",
-  ],
-  Massage: [
-    "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=1200&q=85",
-    "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&w=1200&q=85",
-  ],
+const IMG = {
+  hair: [U("1560066984-138dadb4c035"), U("1562322140-8baeececf3df"), U("1527799820374-dcf8d9d4a388"), U("1522337360788-8b13dee7a37e")],
+  mani: [U("1632345031435-8727f6897d53"), U("1604654894610-df63bc536371"), U("1519014816548-bf5fe059798b")],
+  polish: [U("1604654894610-df63bc536371"), U("1519014816548-bf5fe059798b"), U("1632345031435-8727f6897d53")],
+  pedi: [U("1519415510236-718bdfcd89c8"), U("1516975080664-ed2fc6a32937"), U("1599305445671-ac291c95aaa9")],
+  facial: [U("1570172619644-dfd03ed5d881"), U("1512290900672-1f5be634358a"), U("1508214751196-bcfd4ca60f91")],
+  wax: [U("1560750588-73207b1ef5b8"), U("1515377905703-c4788e51af15"), U("1540555700478-4be289fbecef")],
+  thread: [U("1512290900672-1f5be634358a"), U("1508214751196-bcfd4ca60f91"), U("1570172619644-dfd03ed5d881")],
+  massage: [U("1544161515-4ab6ce6db874"), U("1519823551278-64ac92734fb1"), U("1600334089648-b0d9d3028eb2")],
+  combo: [U("1632345031435-8727f6897d53"), U("1519415510236-718bdfcd89c8"), U("1604654894610-df63bc536371"), U("1516975080664-ed2fc6a32937")],
+  henna: [UP("hqyBHpLzENo"), UP("o82pO3KIl2E")],
+};
+const counters = {};
+const pick = (key) => {
+  const arr = IMG[key];
+  const i = counters[key] || 0;
+  counters[key] = i + 1;
+  return arr[i % arr.length];
 };
 
-const servicesRawData = [
-  {
-    category: "Face",
-    name: "3D Lash Extension – Volume",
-    price: 300,
-    durationMinutes: 45,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "3d-lash-extension-volume",
-    shortDescription: "Ultra-lightweight multi-lash volume fan application creating an alluring, fluttery look with premium silk fibers.",
-    fullDescription: "Our specialized lash artist arrives at your residence with sterile, hospital-grade tools and premium silk lash clusters. Each natural lash is delicately enhanced with 3 featherlight extensions for dramatic depth, curl, and volume without damaging your natural lash line.",
-    benefits: ["Customized mapping to complement your eye shape", "Lightweight synthetic silk with zero eye-strain", "Water-resistant medical grade adhesive", "Complimentary aftercare lash brush"],
-  },
-  {
-    category: "Face",
-    name: "4D Lash Extension",
-    price: 300,
-    durationMinutes: 5,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "4d-lash-extension",
-    shortDescription: "Maximum fullness and velvety density featuring quadruple-fan volume lash placement.",
-    fullDescription: "For maximum glamour and volume. 4 ultra-fine lash extensions per natural lash provide luxurious multidimensional fullness. Ideal for special occasions, photo sessions, or those who adore full, dark, dramatic lashes.",
-    benefits: ["Extreme volume and deep velvety black finish", "Seamless, clump-free isolation technique", "Hypoallergenic, formaldehyde-free adhesive"],
-  },
-  {
-    category: "Face",
-    name: "Upper Lip Threading",
-    price: 25,
-    durationMinutes: 15,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "upper-lip-threading",
-    shortDescription: "Precise, hygienic upper lip hair removal using organic anti-bacterial cotton thread.",
-    fullDescription: "A gentle and quick facial hair removal technique. Using 100% organic cotton thread, fine hairs are lifted directly from the root for smooth, hair-free skin lasting up to 3 to 4 weeks. Concludes with a soothing rosewater aloe vera cool compress.",
-    benefits: ["No chemicals or hot wax irritation", "Gentle on sensitive skin barriers", "Long-lasting smoothness for up to 4 weeks"],
-  },
-  {
-    category: "Face",
-    name: "Eyebrow Threading",
-    price: 60,
-    durationMinutes: 20,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "eyebrow-threading",
-    shortDescription: "Expert eyebrow sculpting and precise definition crafted to balance your natural facial symmetry.",
-    fullDescription: "Achieve impeccably defined brows without harsh waxing chemicals. Our brow specialist analyzes your bone structure, marks your golden-ratio arch points, and removes unwanted hairs for razor-sharp, clean brow lines.",
-    benefits: ["Pinpoint precision for arches and tails", "Clean skin surface for flawless makeup application", "Soothing organic rose hydrosol finish"],
-  },
-  {
-    category: "Face",
-    name: "Eyebrows Shaving",
-    price: 50,
-    durationMinutes: 15,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "eyebrows-shaving",
-    shortDescription: "Pain-free eyebrow shaping and peach-fuzz dermaplaning using single-use sterilized precision blades.",
-    fullDescription: "A completely painless brow contouring alternative. Using a brand-new, sterile single-use dermaplaning micro-blade, our aesthetician trims, grooms, and shapes your brows while gently buffing away dead skin and fine vellus hair.",
-    benefits: ["100% painless grooming experience", "Removes dead stratum corneum cells", "Leaves skin silky smooth for immediate makeup"],
-  },
-  {
-    category: "Hair",
-    name: "Curly Or Wavy",
-    price: 100,
-    durationMinutes: 30,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "curly-or-wavy",
-    shortDescription: "Professional salon hot-tool styling creating bouncy beach waves or romantic cascading curls.",
-    fullDescription: "Our hairstylist brings professional tourmaline ionic styling wands and heat protection elixirs to your home. We craft bouncy, voluminous waves or polished romantic curls that hold their shape and shine all day and evening.",
-    benefits: ["Zero-frizz tourmaline heat application", "Rose elixir heat protectant shield", "Long-lasting flexible hold without crunchiness"],
-  },
-  {
-    category: "Hair",
-    name: "Hair Extension Refill(Per Piece)",
-    price: 20,
-    durationMinutes: 30,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "hair-extension-refillper-piece",
-    shortDescription: "Tape-in or micro-ring extension maintenance, repositioning, and secure re-bonding per piece.",
-    fullDescription: "Maintain the seamless blend of your hair extensions. Your stylist inspects individual bonds, removes grown-out pieces with gentle organic solvent, applies fresh medical-grade tape or beads, and re-secures them close to the scalp.",
-    benefits: ["Protects natural hair integrity", "Undetectable seamless repositioning", "Priced transparently per individual extension piece"],
-  },
-  {
-    category: "Hair",
-    name: "Hair Trim",
-    price: 80,
-    durationMinutes: 20,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "hair-trim",
-    shortDescription: "Split-end dusting and perimeter haircut to maintain length, shape, and healthy hair density.",
-    fullDescription: "Keep your locks healthy, vibrant, and split-end free. Your stylist cleanses perimeter lines, snips away damaged split ends with Japanese cobalt steel shears, and refreshes face-framing layers.",
-    benefits: ["Prevents split ends from traveling up hair shaft", "Preserves length while revitalizing volume", "Clean, sanitary styling cape and tools"],
-  },
-  {
-    category: "Hair",
-    name: "Blow Dry",
-    price: 150,
-    durationMinutes: 40,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "blow-dry",
-    shortDescription: "Signature salon blowout for sleek silkiness, bouncy volume, or smooth polished texture.",
-    fullDescription: "The ultimate red-carpet blowout in the comfort of your room. Using ionic salon dryers and round ceramic boar-bristle brushes, we infuse body, shine, and silky movement into your hair.",
-    benefits: ["Mirror-like shine and humidity resistance", "Customized volume at the crown", "Includes thermal shield and rose finishing serum"],
-  },
-  {
-    category: "Hair",
-    name: "Full Hair Color Long",
-    price: 350,
-    durationMinutes: 75,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "full-hair-color-long",
-    shortDescription: "All-over rich hair color transformation from roots to tips formulated with nourishing botanicals.",
-    fullDescription: "Full coverage permanent or semi-permanent hair color applied by an experienced colorist. Provides rich, dimensional pigmentation and 100% grey coverage while conditioning hair with botanical oils and keratin protection.",
-    benefits: ["Complete root-to-tip uniform color saturation", "100% resistant grey hair coverage", "Ammonia-reduced formula gentle on scalp"],
-  },
-  {
-    category: "Nail",
-    name: "Hard Gel Overlay",
-    price: 262.5,
-    durationMinutes: 60,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "hard-gel-overlay",
-    shortDescription: "Protective builder gel overlay strengthening natural nails with an unbreakable, glossy shield.",
-    fullDescription: "Ideal for clients wanting strong, chip-resistant natural nails that grow without breaking. A crystal-clear or nude hard gel layer is cured under a portable LED lamp, creating a resilient architectural apex.",
-    benefits: ["Shields weak, brittle nails from cracking", "Glass-like high gloss lasting 3 to 4 weeks", "Allows natural nails to reach desired length safely"],
-  },
-  {
-    category: "Nail",
-    name: "Ombre Nails",
-    price: 63,
-    durationMinutes: 45,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "ombre-nails",
-    shortDescription: "Seamless gradient nail art blending soft rose blush, milky white, or custom tones.",
-    fullDescription: "An elegant French ombre baby-boomer style or dual-tone gradient airbrushed across your manicured nails. Hand-finished with a protective diamond top coat.",
-    benefits: ["Modern, chic bridal or everyday luxury look", "Seamless color transition without harsh lines", "UV cured for extended wear"],
-  },
-  {
-    category: "Nail",
-    name: "Classic Manicure",
-    price: 70,
-    durationMinutes: 60,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "classic-manicure",
-    shortDescription: "Essential nail grooming, cuticle conditioning, hydrating hand massage, and breathable polish.",
-    fullDescription: "A soothing hand ceremony. Features nail shaping, gentle cuticle pushback, rose sugar scrub exfoliation, a relaxing hand massage, and application of premium breathable lacquer.",
-    benefits: ["Autoclaved single-use hygiene pouch", "Revitalizes dry cuticles and hand skin", "Wide selection of timeless nude and red lacquers"],
-  },
-  {
-    category: "Nail",
-    name: "Classic Pedicure",
-    price: 80,
-    durationMinutes: 75,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "classic-pedicure",
-    shortDescription: "Warm foot soak, callus smoothing, nail clipping, cuticle care, and professional polish.",
-    fullDescription: "Relax in your armchair while your nail technician sets up a hygienic portable foot basin with disposable liner. Includes nail trimming, callus filing, foot scrub, relaxing massage, and flawless polish.",
-    benefits: ["Single-use hygienic basin liner guarantee", "Deep smoothing of dry heel calluses", "Relaxing foot and calf acupressure massage"],
-  },
-  {
-    category: "Nail",
-    name: "Gelish Manicure",
-    price: 120,
-    durationMinutes: 60,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "gelish-manicure",
-    shortDescription: "Flawless gel polish manicure cured instantly under LED light, chip-free for up to 3 weeks.",
-    fullDescription: "Full manicure grooming followed by base coat, two coats of high-pigment Gelish color, and a durable gloss top coat. Dries in 60 seconds with no smudge risk.",
-    benefits: ["Zero drying wait time", "High-shine mirror reflection for 21 days", "Protects nails from daily chores and water"],
-  },
-  {
-    category: "Massage",
-    name: "Head, Neck & Shoulders Massage",
-    price: 90,
-    durationMinutes: 30,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "head-neck-&-shoulders-massage",
-    shortDescription: "Focused acupressure and tension release for upper back, traps, neck, and scalp.",
-    fullDescription: "Fast, effective relief from desk fatigue and computer posture strain. Your therapist targets the occipital ridge, trapezius, and shoulder blades with warm aromatic botanical oils.",
-    benefits: ["Dissolves tension headaches and stiff neck", "Improves blood flow to the brain and scalp", "Can be performed seated or on portable table"],
-  },
-  {
-    category: "Massage",
-    name: "Full Body Massage Oil Massage",
-    price: 200,
-    durationMinutes: 60,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "full-body-massage-oil-massage",
-    shortDescription: "Holistic full-body Swedish massage with warm organic rose-infused botanical oil.",
-    fullDescription: "Our signature in-home full-body massage. Your therapist brings a heated orthopedic massage table and soft linens to your sanctuary. Flowing effleurage strokes and kneading soothe every major muscle group.",
-    benefits: ["Deep nervous system calming", "Nourishes dry skin with pure botanical lipids", "Improves lymphatic fluid circulation"],
-  },
-  {
-    category: "Massage",
-    name: "Hot Stones Massage",
-    price: 250,
-    durationMinutes: 60,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "hot-stones-massage",
-    shortDescription: "Therapeutic heated volcanic basalt stones melting deep muscle tightness and fatigue.",
-    fullDescription: "Warm basalt river stones heated to an optimal 54°C are placed along spinal energy meridians and used to glide across tight muscle fibers. The penetrating heat melts away persistent tension effortlessly.",
-    benefits: ["Thermal heat penetrates 3x deeper into muscle tissues", "Accelerates deep relaxation and sleep quality", "Eases joint stiffness and chronic aches"],
-  },
-  {
-    category: "Massage",
-    name: "Full Body Cupping Massage",
-    price: 250,
-    durationMinutes: 60,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "full-body-cupping-massage",
-    shortDescription: "Ancient therapeutic suction cupping promoting deep myofascial release and detoxification.",
-    fullDescription: "Negative pressure silicone and glass vacuum cups glide along fascia pathways to decompress tissue, draw stagnant toxins to the surface, and stimulate rapid cellular oxygenation.",
-    benefits: ["Decompresses tight connective fascia tissue", "Flushes metabolic waste and lactic acid", "Deep athletic recovery and flexibility enhancement"],
-  },
-  {
-    category: "Massage",
-    name: "Deep Tissue Massage (Hard)",
-    price: 300,
-    durationMinutes: 60,
-    currency: "AED",
-    active: true,
-    serviceType: "home",
-    womenOnly: true,
-    slug: "deep-tissue-massage-hard",
-    shortDescription: "Firm, targeted neuromuscular pressure breaking down stubborn chronic adhesions and knots.",
-    fullDescription: "Designed for those who crave intense, therapeutic pressure. Your certified therapist utilizes forearms, elbows, and focused thumb pressure along deep muscle bands to eliminate stubborn trigger points.",
-    benefits: ["Breaks up chronic scar tissue and adhesions", "Restores joint mobility and postural alignment", "Ideal for athletes and severe tension sufferers"],
-  },
+const slugify = (s) =>
+  s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+/* ------------------------------------------------------------------ */
+/* CATEGORIES (9)                                                      */
+/* ------------------------------------------------------------------ */
+const cat = (name, description, image, order) => ({
+  name, slug: slugify(name), description, image, sortOrder: order, displayOrder: order, active: true, isActive: true,
+});
+
+const serviceCategoriesData = [
+  cat("Hair Styling", "Professional blowouts, waves, curls, and hair straightening services", IMG.hair[0], 1),
+  cat("Manicure", "Luxury manicures, gel polish, cut & file, and hand beauty care", IMG.mani[0], 2),
+  cat("Pedicure", "Revitalizing foot spa, gel pedicure, cut & file, and foot pampering", IMG.pedi[0], 3),
+  cat("Facial", "Rejuvenating facials, deep cleansing, hydra treatments, and glowing therapies", IMG.facial[0], 4),
+  cat("Waxing", "Full body waxing, Brazilian waxing, smooth hair removal, and precision threading", IMG.wax[0], 5),
+  cat("Women Salon Services", "In-home relaxation head, foot, palm and shoulder massages", IMG.massage[0], 6),
+  cat("Nail Polish", "Express color changes, gel polish and French polish finishes", IMG.polish[0], 7),
+  cat("Combo Deals", "Mani-pedi combo packages - select multiple services and save", IMG.combo[0], 8),
+  cat("Henna", "Cone henna designs for fingers, palms, hands, arms and feet", IMG.henna[0], 9),
 ];
 
+/* ------------------------------------------------------------------ */
+/* SERVICES                                                            */
+/* s(category, name, priceAED, minutes, imageKey, shortDescription,    */
+/*   benefits[], priceFromList = true)                                 */
+/* priceFromList=false -> item is in your list but has NO price/time   */
+/*   there, so the value below is a PLACEHOLDER. Confirm it.           */
+/* ------------------------------------------------------------------ */
+const s = (category, name, price, mins, img, shortDescription, benefits, confirmed = true) => ({
+  category, name, price, mins, img, shortDescription, benefits, confirmed,
+});
+
+const servicesRawData = [
+  // ---------------- HAIR STYLING ----------------
+  s("Hair Styling", "Blow Dry", 150, 45, "hair", "Classic voluminous blowout for an effortlessly polished, salon-fresh look.", ["Weightless root lift", "Velvety smooth texture"]),
+  s("Hair Styling", "Blow Dry with Curls", 200, 60, "hair", "Deluxe blow dry with elegant defined curls and lasting bounce.", ["Defined curls with movement", "Long-lasting hold"]),
+  s("Hair Styling", "Blowdry and Curls for Short and Medium Hair", 109, 65, "hair", "Signature blowout and curls tailored for short to medium length hair.", ["Long-lasting volume", "Heat protection serum"]),
+  s("Hair Styling", "Blowdry and Curls for Long Hair", 129, 85, "hair", "Full blowout and glamorous curls for long hair.", ["Sculpted glossy curls", "Frizz-taming finish"]),
+  s("Hair Styling", "Blowdry and Curls for Extra Long Hair", 149, 85, "hair", "Complete blowout and cascading curls for extra-long, thick hair.", ["Section-by-section styling", "Weightless shine hold"]),
+  s("Hair Styling", "Hair Straightening (Short to Medium Hair)", 169, 65, "hair", "Smooth glass-like straightening for short to medium hair.", ["Pin-straight mirror finish", "Humidity-resistant shield"]),
+  s("Hair Styling", "Hair Straightening for Long Hair", 189, 85, "hair", "Silky sleek straightening for long, dense hair.", ["Flawless cuticle sealing", "Anti-frizz finish"]),
+  // WAS MISSING
+  s("Hair Styling", "Hair Straightening for Extra Long Hair", 199, 85, "hair", "Ultra-sleek straightening for extra-long hair.", ["Even sleek finish", "Anti-frizz shine"]),
+
+  // ---------------- MANICURE ----------------
+  // NOTE: first list says Classic Manicure AED 100, detailed list says AED 110 (50 mins). Using 110.
+  s("Manicure", "Classic Manicure", 110, 50, "mani", "Nail shaping, cuticle care, light hand massage and regular polish.", ["Nail shaping and cuticle care", "Hydrating hand massage"]),
+  s("Manicure", "Polish Manicure", 200, 50, "mani", "Premium manicure with deep cuticle hydration and dual-coat polish.", ["Exfoliating hand scrub", "Long-wear high-shine lacquer"]),
+  s("Manicure", "Gel Manicure", 180, 60, "mani", "Signature manicure finished with durable mirror-shine gel polish.", ["Zero dry time", "Scratch-resistant shine"], false),
+  s("Manicure", "French Manicure", 150, 60, "mani", "Timeless manicure with sheer pink base and crisp white tips.", ["Clean elegant tips", "Precise smile lines"], false),
+  s("Manicure", "Nail Art Manicure", 175, 65, "mani", "Artistic manicure with custom accent nail art.", ["Custom designs", "Protective topcoat"], false),
+  s("Manicure", "Gel Polish Manicure with or without Removal", 199, 70, "mani", "Full manicure with gel polish, including gentle gel removal if needed.", ["Safe gel removal included", "Chip-free up to 3 weeks"]),
+  s("Manicure", "Polish Free Manicure", 109, 50, "mani", "Natural grooming manicure with shaping, cuticle care and buffing.", ["Natural glassy buff", "Chemical-free glow"]),
+  s("Manicure", "Polish Free Mani-Pedi", 229, 80, "combo", "Complete natural grooming for hands and feet with scrub and buffing.", ["Hands and feet in one visit", "Exfoliating scrubs"]),
+  s("Manicure", "Classic Polish Change (Hands)", 59, 25, "mani", "Quick removal of old polish and a fresh classic coat.", ["Quick 25-minute refresh", "Fast-drying finish"]),
+  s("Manicure", "Gel French Polish Change (Hand)", 99, 35, "mani", "Express gel polish switch with French tip styling.", ["Long-lasting gel", "Instant UV dry"]),
+  s("Manicure", "Cut and File (Hands)", 65, 20, "mani", "Quick clipping, filing and edge smoothing for neat hands.", ["Quick grooming", "Prevents snagging"]),
+  s("Manicure", "Gel Polish Removal (Hands)", 65, 25, "mani", "Safe, non-damaging gel polish removal with conditioning oil.", ["No drill damage", "Nourishing nail soak"]),
+
+  // ---------------- PEDICURE ----------------
+  s("Pedicure", "Classic Pedicure", 130, 60, "pedi", "Warm foot soak, heel buffing, toenail shaping, cuticle care and polish.", ["Soothing foot bath", "Callus buffing"]),
+  s("Pedicure", "Regular Pedicure", 120, 50, "pedi", "Essential foot grooming: soak, trim, filing, light buff and polish.", ["Refreshed feet", "Neat cuticles"], false),
+  s("Pedicure", "Spa Pedicure", 160, 75, "pedi", "Luxurious foot spa ritual with scrub, mask and massage.", ["Mineral foot soak", "Calf and foot massage"], false),
+  s("Pedicure", "Gel Pedicure", 175, 70, "pedi", "Full pedicure finished with smudge-proof gel polish.", ["Zero drying wait", "High-gloss colour"], false),
+  s("Pedicure", "French Pedicure", 150, 65, "pedi", "Elegant French tips pedicure with cuticle balm and foot massage.", ["Timeless French tips", "Foot hydration"], false),
+  s("Pedicure", "Gel Polish Pedicure with or without Removal", 189, 80, "pedi", "Complete pedicure with gel polish, including gentle removal if needed.", ["Instant dry", "Gel removal included"]),
+  s("Pedicure", "Polish Free Pedicure", 139, 60, "pedi", "Natural restorative pedicure with deep heel smoothing and buffing.", ["Callus softening", "Chemical-free shine"]),
+  s("Pedicure", "Classic Polish Change (Feet)", 59, 25, "pedi", "Quick toenail polish removal, light filing and fresh coat.", ["Express service", "Fresh shade"]),
+  s("Pedicure", "Gel French Polish Change (Feet)", 99, 35, "pedi", "Express gel change for feet with French tips and LED cure.", ["Instant cure", "Smudge-proof"]),
+  s("Pedicure", "Cut and File (Feet)", 65, 20, "pedi", "Hygienic toenail trimming and precision filing.", ["Prevents ingrown nails", "Sanitized tools"]),
+  s("Pedicure", "Gel Polish Removal (Feet)", 65, 25, "pedi", "Gentle gel polish removal without scraping the nail bed.", ["Protects natural nails", "Conditioning oil finish"]),
+
+  // ---------------- FACIAL ----------------
+  s("Facial", "Herbal Facial", 199, 65, "facial", "All-natural botanical facial with antioxidant herbs and floral extracts.", ["Calms sensitive skin", "Detoxifies pores"]),
+  s("Facial", "Face Cleansing / Clean Up", 150, 35, "facial", "Express deep pore cleanse, light exfoliation and toner.", ["Removes oil and impurities", "Refreshed skin"]),
+  s("Facial", "Soothing Brightening and Glowing Facial", 359, 65, "facial", "Intensive radiance facial with vitamin C and soothing aloe vera.", ["Fades dark spots", "Luminous glow"]),
+  s("Facial", "Hydra Facial", 299, 60, "facial", "Multi-step hydrating facial with moisture, peptides and antioxidants.", ["Deep exfoliation", "Hyaluronic infusion"], false),
+  s("Facial", "Brightening Facial", 249, 50, "facial", "Complexion-evening facial for dull or tired skin.", ["Evens skin tone", "Radiant finish"], false),
+  s("Facial", "Brightening & Glowing Facial", 279, 60, "facial", "Brightening serums with firming facial massage.", ["Boosts circulation", "Dewy radiance"], false),
+  s("Facial", "Deep Cleaning Facial", 220, 60, "facial", "Clarifying facial for congested skin and blackheads.", ["Steam and extraction", "Purifying clay mask"], false),
+  s("Facial", "Anti Aging Facial", 320, 70, "facial", "Collagen-boosting facial to firm and diminish fine lines.", ["Peptide infusion", "Lifting massage"], false),
+
+  // ---------------- WAXING & THREADING ----------------
+  s("Waxing", "Full Body Waxing with Brazilian", 570, 140, "wax", "Full body hair removal including Brazilian, legs, arms and underarms.", ["Smooth from head to toe", "Gentle on sensitive zones"]),
+  s("Waxing", "Full Body Waxing without Brazilian", 440, 110, "wax", "Full body waxing excluding the bikini area.", ["Thorough coverage", "Post-wax soothing lotion"]),
+  s("Waxing", "Brazilian Wax", 180, 40, "wax", "Discreet, hygienic Brazilian waxing with gentle hot wax.", ["Peelable hot wax", "Long-lasting results"], false),
+  s("Waxing", "Full Leg, Full Arm plus Underarms Waxing", 179, 65, "wax", "Popular trio: full legs, full arms and underarms.", ["Best value combo", "Fast and hygienic"]),
+  s("Waxing", "Full Arms with Underarms Waxing", 110, 35, "wax", "Full arms and underarms hair removal.", ["Smooth soft arms", "Gentle underarm wax"]),
+  s("Waxing", "Full Arm Waxing", 95, 30, "wax", "Hair removal from shoulders to fingertips.", ["Silky arms", "Quick service"], false),
+  s("Waxing", "Full Leg Waxing", 139, 35, "wax", "Complete hair removal from upper thighs to toes.", ["No stubble", "Lasts 3-4 weeks"]),
+  s("Waxing", "Half Leg Waxing", 99, 25, "wax", "Waxing from above the knees down to ankles.", ["Quick session", "Easy maintenance"]),
+  s("Waxing", "Underarm Waxing", 79, 20, "wax", "Fast, gentle underarm waxing.", ["Prevents razor shadow", "Soft underarms"]),
+  s("Waxing", "Stomach Waxing", 99, 25, "wax", "Smooth hair removal across the abdomen.", ["Even hairless skin", "Calming lotion"]),
+  s("Waxing", "Back Waxing", 109, 35, "wax", "Full back hair removal from shoulders to waistline.", ["Clean smooth back", "Non-irritating wax"]),
+  s("Waxing", "Upper Lip Waxing", 59, 25, "wax", "Delicate upper lip waxing with temperature-controlled wax.", ["Precise removal", "Cooling aloe gel"]),
+  s("Waxing", "Lower Lip Waxing", 49, 15, "wax", "Targeted waxing for lower lip area.", ["Quick touch-up", "Gentle and hygienic"], false),
+  s("Waxing", "Chin Waxing", 49, 15, "wax", "Clean removal of chin and jawline hairs.", ["Pulls from root", "Rosewater finish"], false),
+  s("Waxing", "Eyebrows Threading", 79, 20, "thread", "Artistic brow shaping with organic cotton thread.", ["Precise brow contour", "Chemical-free"]),
+  s("Waxing", "Upper Lip Threading", 79, 15, "thread", "Gentle cotton thread hair removal for the upper lip.", ["Quick and precise", "Safe for sensitive skin"]),
+  s("Waxing", "Chin and Jawline Threading", 69, 15, "thread", "Threading for stray hairs along chin and jawline.", ["Defined jawline", "Zero chemical irritation"]),
+  s("Waxing", "Chin Threading", 59, 15, "thread", "Fast precision threading for the chin area.", ["Removes stubborn hairs", "Single-use thread"], false),
+  s("Waxing", "Lower Lips Threading", 59, 15, "thread", "Delicate threading for the lower lip area.", ["Smooth texture", "No waxing irritation"], false),
+  s("Waxing", "Forehead Threading", 69, 20, "thread", "Hairline clean-up and forehead peach fuzz threading.", ["Crisp hairline", "Flawless makeup base"]),
+
+  // ---------------- WOMEN SALON SERVICES (MASSAGES) ----------------
+  // WAS MISSING: Foot Massage, Palm Massage, Head Massage without oil
+  s("Women Salon Services", "Foot Massage", 79, 25, "massage", "Relaxing foot massage to relieve tired feet.", ["Eases foot fatigue", "Improves circulation"]),
+  s("Women Salon Services", "Head Massage without Oil", 79, 25, "massage", "Dry head and scalp massage to release tension.", ["Relieves stress", "No oil, no mess"]),
+  s("Women Salon Services", "Oil Massage Head and Scalp", 99, 25, "massage", "Warm oil head and scalp massage to nourish and relax.", ["Nourishes scalp", "Deep relaxation"]),
+  s("Women Salon Services", "Palm Massage", 65, 20, "massage", "Soothing palm and hand massage.", ["Relieves hand tension", "Hydrating"]),
+  s("Women Salon Services", "Shoulder Massage", 89, 30, "massage", "Kneading massage for tired, stiff shoulders.", ["Dissolves knots", "Rapid tension relief"], false),
+
+  // ---------------- NAIL POLISH ----------------
+  // (duplicate polish-change items removed - they already live under Manicure / Pedicure)
+  s("Nail Polish", "Normal Nail Polish", 49, 20, "polish", "Classic polish with base coat, two colour coats and gloss topcoat.", ["Quick application", "Rich pigment"], false),
+  s("Nail Polish", "Gel Nail Polish", 89, 30, "polish", "Long-lasting gel colour cured under LED light.", ["Instant curing", "Chip-free 2-3 weeks"], false),
+  s("Nail Polish", "French Nail Polish", 99, 35, "polish", "Sheer base topped with crisp white French tips.", ["Timeless styling", "Clean smile lines"], false),
+
+  // ---------------- COMBO DEALS (WAS MISSING) ----------------
+  s("Combo Deals", "Classic Mani-Pedi Combo", 220, 95, "combo", "Classic manicure and classic pedicure together.", ["Save vs booking separately", "One visit"]),
+  s("Combo Deals", "Classic Mani-Pedi and Foot Massage", 269, 115, "combo", "Classic mani-pedi with a relaxing foot massage.", ["Full pamper package", "Foot massage included"]),
+  s("Combo Deals", "Gel Polish Mani-Pedi Combo", 289, 135, "combo", "Gel polish manicure and pedicure together.", ["Long-lasting colour", "Hands and feet"]),
+  s("Combo Deals", "Gel Mani-Pedi and Foot Massage", 359, 155, "combo", "Gel mani-pedi with foot massage.", ["Premium package", "Foot massage included"]),
+  s("Combo Deals", "Gel Mani and Classic Pedi", 239, 115, "combo", "Gel manicure paired with a classic pedicure.", ["Mix and match", "Great value"]),
+  // NOTE: list also has "Polish free mani-pedi" at AED 229 / 80 mins under Nails and AED 199 / 75 mins under Combos. Both kept (different slugs).
+  s("Combo Deals", "Polish Free Mani-Pedi Combo", 199, 75, "combo", "Natural polish-free manicure and pedicure combo.", ["Chemical-free", "Natural shine"]),
+
+  // ---------------- HENNA (WAS MISSING) ----------------
+  s("Henna", "Henna - Per Finger", 30, 5, "henna", "Cone henna design on a single finger.", ["Quick add-on", "Natural henna"]),
+  s("Henna", "Henna - Palm", 75, 10, "henna", "Cone henna design on the palm.", ["Elegant palm design", "Natural henna"]),
+  s("Henna", "Henna - Front Hand Till Wrist (Basic Design)", 99, 15, "henna", "Basic design on the front of the hand up to the wrist.", ["Simple and elegant", "Quick session"]),
+  s("Henna", "Henna - Front Hand Till Wrist (Heavy Design)", 179, 25, "henna", "Heavy detailed design on the front of the hand up to the wrist.", ["Intricate detailing", "Occasion-ready"]),
+  s("Henna", "Henna - Front Hand Till Mid-Arm", 209, 40, "henna", "Front hand design extending to mid-arm.", ["Extended design", "Bridal and festive"]),
+  s("Henna", "Henna - Front Hand Till Elbow", 299, 60, "henna", "Front hand design extending to the elbow.", ["Full-length design", "Bridal and festive"]),
+  s("Henna", "Henna - Back Hand Till Wrist (Basic Design)", 99, 15, "henna", "Basic design on the back of the hand up to the wrist.", ["Simple and elegant", "Quick session"]),
+  s("Henna", "Henna - Back Hand Till Wrist (Heavy Design)", 179, 25, "henna", "Heavy detailed design on the back of the hand up to the wrist.", ["Intricate detailing", "Occasion-ready"]),
+  s("Henna", "Henna - Back Hand Till Mid-Arm", 209, 40, "henna", "Back hand design extending to mid-arm.", ["Extended design", "Bridal and festive"]),
+  s("Henna", "Henna - Back Hand Till Elbow", 299, 60, "henna", "Back hand design extending to the elbow.", ["Full-length design", "Bridal and festive"]),
+  s("Henna", "Henna - Both Front Hands Till Wrist (Basic Design)", 195, 30, "henna", "Basic design on both front hands up to the wrist.", ["Both hands", "Simple and elegant"]),
+  s("Henna", "Henna - Both Front Hands Till Wrist (Heavy Design)", 355, 50, "henna", "Heavy design on both front hands up to the wrist.", ["Both hands", "Intricate detailing"]),
+  s("Henna", "Henna - Both Front Hands Till Mid-Arm", 415, 80, "henna", "Both front hands with design to mid-arm.", ["Both hands", "Bridal and festive"]),
+  s("Henna", "Henna - Both Front Hands Till Elbow", 596, 120, "henna", "Both front hands with design to the elbow.", ["Both hands", "Full-length design"]),
+  s("Henna", "Henna - Both Back Hands Till Wrist (Basic Design)", 195, 30, "henna", "Basic design on both back hands up to the wrist.", ["Both hands", "Simple and elegant"]),
+  s("Henna", "Henna - Both Back Hands Till Wrist (Heavy Design)", 355, 50, "henna", "Heavy design on both back hands up to the wrist.", ["Both hands", "Intricate detailing"]),
+  s("Henna", "Henna - Both Back Hands Till Mid-Arm", 415, 80, "henna", "Both back hands with design to mid-arm.", ["Both hands", "Bridal and festive"]),
+  s("Henna", "Henna - Both Back Hands Till Elbow", 596, 120, "henna", "Both back hands with design to the elbow.", ["Both hands", "Full-length design"]),
+  s("Henna", "Henna - Simple Feet Design Till Ankle (Both Legs)", 349, 30, "henna", "Simple henna design on both feet up to the ankle.", ["Both feet", "Clean elegant look"]),
+  s("Henna", "Henna - Heavy Feet Design Till Ankle (Both Legs)", 649, 60, "henna", "Heavy detailed henna design on both feet up to the ankle.", ["Both feet", "Intricate detailing"]),
+];
+
+/* ------------------------------------------------------------------ */
+/* ZONES (unchanged)                                                   */
+/* ------------------------------------------------------------------ */
 const sampleZones = [
   {
     name: "Downtown & Central District",
@@ -383,270 +219,100 @@ const sampleZones = [
   },
 ];
 
+/* ------------------------------------------------------------------ */
+/* PRODUCTS (unchanged - not part of the price list)                   */
+/* ------------------------------------------------------------------ */
 const productCategoriesData = [
-  {
-    name: "Skincare",
-    slug: "skincare",
-    label: "Skincare",
-    description: "Organic Rosa Damascena skincare rituals",
-    position: 1,
-    active: true,
-  },
-  {
-    name: "Wellness",
-    slug: "wellness",
-    label: "Wellness",
-    description: "Holistic at-home spa and relaxation accessories",
-    position: 2,
-    active: true,
-  },
+  { name: "Skincare", slug: "skincare", label: "Skincare", description: "Organic Rosa Damascena skincare rituals", position: 1, active: true },
+  { name: "Wellness", slug: "wellness", label: "Wellness", description: "Holistic at-home spa and relaxation accessories", position: 2, active: true },
 ];
+
+const p = (categoryName, name, price, size, stock, sku, description, image) => ({
+  categoryName, name, brand: "Rose Essence", price, currency: "AED", description, size, stock, sku,
+  active: true, slug: slugify(name), images: [image],
+});
+const PU = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=800&q=80`;
 
 const productsData = [
-  {
-    categoryName: "Skincare",
-    name: "Gentle Hydrating Facial Cleanser",
-    brand: "Rose Essence",
-    price: 45,
-    currency: "AED",
-    description: "Gentle daily cleanser for removing dirt, oil and makeup.",
-    size: "150 ml",
-    stock: 50,
-    sku: "RE-SKIN-001",
-    active: true,
-    slug: "gentle-hydrating-facial-cleanser",
-    images: ["https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Skincare",
-    name: "Hyaluronic Acid Hydrating Serum",
-    brand: "Rose Essence",
-    price: 75,
-    currency: "AED",
-    description: "Lightweight hydrating serum for a plump, moisturised feel.",
-    size: "30 ml",
-    stock: 40,
-    sku: "RE-SKIN-002",
-    active: true,
-    slug: "hyaluronic-acid-hydrating-serum",
-    images: ["https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Skincare",
-    name: "Vitamin C Brightening Serum",
-    brand: "Rose Essence",
-    price: 89,
-    currency: "AED",
-    description: "Daily antioxidant serum to help improve the appearance of dull skin.",
-    size: "30 ml",
-    stock: 35,
-    sku: "RE-SKIN-003",
-    active: true,
-    slug: "vitamin-c-brightening-serum",
-    images: ["https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Skincare",
-    name: "Daily Moisturising Cream",
-    brand: "Rose Essence",
-    price: 59,
-    currency: "AED",
-    description: "Everyday face moisturiser for soft, comfortable skin.",
-    size: "50 ml",
-    stock: 45,
-    sku: "RE-SKIN-004",
-    active: true,
-    slug: "daily-moisturising-cream",
-    images: ["https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Skincare",
-    name: "Broad Spectrum SPF 50 Sunscreen",
-    brand: "Rose Essence",
-    price: 65,
-    currency: "AED",
-    description: "Daily sun protection for the face and neck. Follow label directions.",
-    size: "50 ml",
-    stock: 60,
-    sku: "RE-SKIN-005",
-    active: true,
-    slug: "broad-spectrum-spf-50-sunscreen",
-    images: ["https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Skincare",
-    name: "Nourishing Rose Face Mask",
-    brand: "Rose Essence",
-    price: 39,
-    currency: "AED",
-    description: "Wash-off face mask for a refreshed skincare routine.",
-    size: "100 ml",
-    stock: 30,
-    sku: "RE-SKIN-006",
-    active: true,
-    slug: "nourishing-rose-face-mask",
-    images: ["https://images.unsplash.com/photo-1608248597359-009187ec9c79?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Wellness",
-    name: "Aromatherapy Essential Oil Blend",
-    brand: "Rose Essence",
-    price: 55,
-    currency: "AED",
-    description: "Aromatic oil blend for use according to product label directions.",
-    size: "15 ml",
-    stock: 25,
-    sku: "RE-WELL-001",
-    active: true,
-    slug: "aromatherapy-essential-oil-blend",
-    images: ["https://images.unsplash.com/photo-1608248597359-009187ec9c79?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Wellness",
-    name: "Relaxation Massage Oil",
-    brand: "Rose Essence",
-    price: 69,
-    currency: "AED",
-    description: "Massage oil for body care and relaxation routines.",
-    size: "200 ml",
-    stock: 30,
-    sku: "RE-WELL-002",
-    active: true,
-    slug: "relaxation-massage-oil",
-    images: ["https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Wellness",
-    name: "Epsom Bath Salt",
-    brand: "Rose Essence",
-    price: 35,
-    currency: "AED",
-    description: "Bath salt for a relaxing bath routine.",
-    size: "500 g",
-    stock: 40,
-    sku: "RE-WELL-003",
-    active: true,
-    slug: "epsom-bath-salt",
-    images: ["https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Wellness",
-    name: "Silk Sleep Eye Mask",
-    brand: "Rose Essence",
-    price: 49,
-    currency: "AED",
-    description: "Soft eye mask accessory for rest and travel.",
-    size: "1 piece",
-    stock: 35,
-    sku: "RE-WELL-004",
-    active: true,
-    slug: "silk-sleep-eye-mask",
-    images: ["https://images.unsplash.com/photo-1590439471364-192aa70c0b53?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Wellness",
-    name: "Jade Facial Roller",
-    brand: "Rose Essence",
-    price: 42,
-    currency: "AED",
-    description: "Reusable facial massage tool for a skincare routine.",
-    size: "1 piece",
-    stock: 25,
-    sku: "RE-WELL-005",
-    active: true,
-    slug: "jade-facial-roller",
-    images: ["https://images.unsplash.com/photo-1590439471364-192aa70c0b53?auto=format&fit=crop&w=800&q=80"],
-  },
-  {
-    categoryName: "Wellness",
-    name: "Body Exfoliating Scrub",
-    brand: "Rose Essence",
-    price: 52,
-    currency: "AED",
-    description: "Body scrub for exfoliation; use as directed on the product label.",
-    size: "250 g",
-    stock: 30,
-    sku: "RE-WELL-006",
-    active: true,
-    slug: "body-exfoliating-scrub",
-    images: ["https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80"],
-  },
+  p("Skincare", "Gentle Hydrating Facial Cleanser", 45, "150 ml", 50, "RE-SKIN-001", "Gentle daily cleanser for removing dirt, oil and makeup.", PU("1571781926291-c477ebfd024b")),
+  p("Skincare", "Hyaluronic Acid Hydrating Serum", 75, "30 ml", 40, "RE-SKIN-002", "Lightweight hydrating serum for a plump, moisturised feel.", PU("1620916566398-39f1143ab7be")),
+  p("Skincare", "Vitamin C Brightening Serum", 89, "30 ml", 35, "RE-SKIN-003", "Daily antioxidant serum to help improve the appearance of dull skin.", PU("1601049541289-9b1b7bbbfe19")),
+  p("Skincare", "Daily Moisturising Cream", 59, "50 ml", 45, "RE-SKIN-004", "Everyday face moisturiser for soft, comfortable skin.", PU("1556228720-195a672e8a03")),
+  p("Skincare", "Broad Spectrum SPF 50 Sunscreen", 65, "50 ml", 60, "RE-SKIN-005", "Daily sun protection for the face and neck. Follow label directions.", PU("1598440947619-2c35fc9aa908")),
+  p("Skincare", "Nourishing Rose Face Mask", 39, "100 ml", 30, "RE-SKIN-006", "Wash-off face mask for a refreshed skincare routine.", PU("1608248597359-009187ec9c79")),
+  p("Wellness", "Aromatherapy Essential Oil Blend", 55, "15 ml", 25, "RE-WELL-001", "Aromatic oil blend for use according to product label directions.", PU("1608248597359-009187ec9c79")),
+  p("Wellness", "Relaxation Massage Oil", 69, "200 ml", 30, "RE-WELL-002", "Massage oil for body care and relaxation routines.", PU("1620916566398-39f1143ab7be")),
+  p("Wellness", "Epsom Bath Salt", 35, "500 g", 40, "RE-WELL-003", "Bath salt for a relaxing bath routine.", PU("1519823551278-64ac92734fb1")),
+  p("Wellness", "Silk Sleep Eye Mask", 49, "1 piece", 35, "RE-WELL-004", "Soft eye mask accessory for rest and travel.", PU("1590439471364-192aa70c0b53")),
+  p("Wellness", "Jade Facial Roller", 42, "1 piece", 25, "RE-WELL-005", "Reusable facial massage tool for a skincare routine.", PU("1590439471364-192aa70c0b53")),
+  p("Wellness", "Body Exfoliating Scrub", 52, "250 g", 30, "RE-WELL-006", "Body scrub for exfoliation; use as directed on the product label.", PU("1556228720-195a672e8a03")),
 ];
 
+/* ------------------------------------------------------------------ */
 async function seed() {
-  console.log("🌱 Resetting and Seeding Rose Essence Real Service & Product Catalog...");
+  console.log("🌱 Resetting and seeding Rose Essence service & product catalog...");
 
   try {
     await connectDB();
     console.log("✅ Connected to MongoDB");
 
-    // 1. Remove old service and service category records completely as requested
     console.log("🧹 Clearing old service records...");
     await Service.deleteMany({});
     await ServiceCategory.deleteMany({});
 
-    // 2. Insert the 4 Service Categories
-    console.log("📁 Seeding 4 Service Categories (Face, Hair, Nail, Massage)...");
+    console.log(`📁 Seeding ${serviceCategoriesData.length} service categories...`);
     const categoryMap = new Map();
     for (const catData of serviceCategoriesData) {
-      const cat = await ServiceCategory.create(catData);
-      categoryMap.set(cat.name, cat._id);
-      categoryMap.set(cat.slug, cat._id);
-      console.log(`  ✓ Created Category: ${cat.name} (slug: ${cat.slug})`);
+      const created = await ServiceCategory.create(catData);
+      categoryMap.set(created.name, created._id);
+      console.log(`  ✓ ${created.name} (${created.slug})`);
     }
 
-    // 3. Insert the 20 Services
-    console.log("💆 Seeding 20 Services with time, currency (AED), womenOnly, and serviceType...");
-    let servOrder = 1;
+    console.log(`💆 Seeding ${servicesRawData.length} services...`);
+    let order = 1;
+    const placeholders = [];
     for (const serv of servicesRawData) {
       const categoryId = categoryMap.get(serv.category);
       if (!categoryId) {
-        console.warn(`  ⚠️ Category '${serv.category}' not found!`);
+        console.warn(`  ⚠️ Category '${serv.category}' not found for '${serv.name}'`);
         continue;
       }
 
-      const categoryImages = categoryImageMap[serv.category] || [];
-      const imageIndex = (servOrder - 1) % categoryImages.length;
-      const images = [categoryImages[imageIndex]];
-
-      const created = await Service.create({
+      await Service.create({
         name: serv.name,
-        slug: serv.slug,
+        slug: slugify(serv.name),
         category: categoryId,
         price: serv.price,
-        duration: serv.durationMinutes,
-        durationMinutes: serv.durationMinutes,
-        currency: serv.currency || "AED",
-        active: serv.active,
-        isActive: serv.active,
-        serviceType: serv.serviceType || "home",
-        womenOnly: Boolean(serv.womenOnly),
+        duration: serv.mins,
+        durationMinutes: serv.mins,
+        currency: "AED",
+        active: true,
+        isActive: true,
+        serviceType: "home",
+        womenOnly: true,
         shortDescription: serv.shortDescription,
-        fullDescription: serv.fullDescription,
-        benefits: serv.benefits || [],
-        images,
-        displayOrder: servOrder++,
-        isFeatured: serv.price >= 200,
+        fullDescription: `${serv.shortDescription} Performed at your home by our trained professional using premium products.`,
+        benefits: serv.benefits,
+        images: [pick(serv.img)],
+        displayOrder: order++,
+        isFeatured: serv.price >= 150,
       });
 
-      console.log(
-        `  ✓ [${serv.category}] ${created.name} | AED ${created.price} | ${created.durationMinutes} mins | ${created.womenOnly ? "Women Only" : "All"}`
-      );
+      if (!serv.confirmed) placeholders.push(`${serv.category} > ${serv.name} (AED ${serv.price}, ${serv.mins} min)`);
+      console.log(`  ✓ [${serv.category}] ${serv.name} | AED ${serv.price} | ${serv.mins} mins`);
     }
 
-    // 4. Update / Upsert Service Zones
-    console.log("📍 Seeding Service Zones...");
+    console.log("📍 Seeding service zones...");
     for (const zoneData of sampleZones) {
       await ServiceZone.findOneAndUpdate(
         { slug: zoneData.slug },
         { $set: zoneData },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-      console.log(`  ✓ Seeded Service Zone: ${zoneData.name}`);
+      console.log(`  ✓ ${zoneData.name}`);
     }
 
-    // 5. Seed Real Product Categories and 12 Products
-    console.log("🛍️ Seeding Product Categories & 12 Real Products...");
+    console.log("🛍️ Seeding product categories & products...");
     const prodCategoryMap = new Map();
     for (const pCat of productCategoriesData) {
       const created = await Category.findOneAndUpdate(
@@ -655,7 +321,7 @@ async function seed() {
         { upsert: true, new: true }
       );
       prodCategoryMap.set(pCat.name, created._id);
-      console.log(`  ✓ Seeded Product Category: ${pCat.name}`);
+      console.log(`  ✓ ${pCat.name}`);
     }
 
     for (const prod of productsData) {
@@ -683,12 +349,17 @@ async function seed() {
         },
         { upsert: true, new: true }
       );
-      console.log(`  ✓ Seeded Product: ${prod.name} (AED ${prod.price}, ${prod.size})`);
+      console.log(`  ✓ ${prod.name} (AED ${prod.price}, ${prod.size})`);
     }
 
-    console.log("🎉 Complete Rose Essence Service & Product Database seeded successfully!");
+    console.log("🎉 Seeded successfully!");
+    if (placeholders.length) {
+      console.warn(`\n⚠️ ${placeholders.length} services have PLACEHOLDER price/time (not in your price list). Confirm these:`);
+      placeholders.forEach((x) => console.warn("   - " + x));
+    }
   } catch (err) {
     console.error("❌ Seeding failed:", err);
+    process.exitCode = 1;
   } finally {
     await mongoose.disconnect();
     console.log("👋 Disconnected from MongoDB");

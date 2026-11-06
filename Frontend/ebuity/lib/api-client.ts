@@ -288,6 +288,12 @@ export const adminProductApi = {
   },
 
   async uploadImages(files: File[]): Promise<{ urls: string[] }> {
+    return uploadApi.uploadImages(files);
+  },
+};
+
+export const uploadApi = {
+  async uploadImages(files: File[]): Promise<{ urls: string[] }> {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append("images", file);
@@ -296,6 +302,20 @@ export const adminProductApi = {
       method: "POST",
       body: formData,
     });
+  },
+
+  async uploadImage(file: File): Promise<{ url: string; urls: string[] }> {
+    const formData = new FormData();
+    formData.append("images", file);
+    const res = await request<{ urls: string[]; url?: string }>("/upload/images", {
+      method: "POST",
+      body: formData,
+    });
+    const url = res.url || (res.urls && res.urls[0]) || "";
+    return {
+      url,
+      urls: res.urls || (url ? [url] : []),
+    };
   },
 };
 
@@ -1364,6 +1384,14 @@ export const adminServiceApi = {
         body: JSON.stringify({ isActive }),
       }
     );
+  },
+
+  async uploadImage(file: File): Promise<{ url: string; urls: string[] }> {
+    return uploadApi.uploadImage(file);
+  },
+
+  async uploadImages(files: File[]): Promise<{ urls: string[] }> {
+    return uploadApi.uploadImages(files);
   },
 };
 

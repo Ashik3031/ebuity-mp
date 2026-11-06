@@ -10,11 +10,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "res.cloudinary.com",
+        hostname: "**",
       },
       {
-        protocol: "https",
-        hostname: "images.unsplash.com",
+        protocol: "http",
+        hostname: "localhost",
+      },
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
       },
     ],
   },
@@ -31,6 +35,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/:path*",
         destination: "http://localhost:4000/api/:path*",
+      },
+      {
+        source: "/uploads/:path*",
+        destination: "http://localhost:4000/uploads/:path*",
       },
     ];
   },

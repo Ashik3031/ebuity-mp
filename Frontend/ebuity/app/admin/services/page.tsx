@@ -8,6 +8,7 @@ import {
   adminServiceCategoryApi,
   serviceApi,
   serviceCategoryApi,
+  uploadApi,
   Service,
   ServiceCategory,
 } from "../../../lib/api-client";
@@ -39,6 +40,7 @@ import {
   FileText,
   Info,
   Zap,
+  Upload,
 } from "lucide-react";
 
 function AdminServicesManagementContent() {
@@ -115,6 +117,44 @@ function AdminServicesManagementContent() {
   });
   const [savingDeal, setSavingDeal] = useState(false);
 
+  // Service Image Upload & URL State
+  const [uploadingServiceImage, setUploadingServiceImage] = useState(false);
+  const [serviceImageMode, setServiceImageMode] = useState<"upload" | "url">("upload");
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+
+  const handleServiceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingServiceImage(true);
+      setImageUploadError(null);
+      const res = await uploadApi.uploadImage(file);
+      if (res && res.url) {
+        setFormData((prev) => ({
+          ...prev,
+          imageUrlInput: res.url,
+          images: [res.url],
+        }));
+      }
+    } catch (err: unknown) {
+      console.error("Service image upload failed:", err);
+      setImageUploadError(err instanceof Error ? err.message : "Failed to upload image.");
+    } finally {
+      setUploadingServiceImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveServiceImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      imageUrlInput: "",
+      images: [],
+    }));
+    setImageUploadError(null);
+  };
+
   // Load Data
   const loadData = useCallback(async () => {
     try {
@@ -177,6 +217,9 @@ function AdminServicesManagementContent() {
       dealEndsAt: "",
       displayOrder: services.length + 1,
     });
+    setUploadingServiceImage(false);
+    setServiceImageMode("upload");
+    setImageUploadError(null);
     setMessage(null);
     setIsFormModalOpen(true);
   };
@@ -211,6 +254,9 @@ function AdminServicesManagementContent() {
       dealEndsAt: s.dealEndsAt ? new Date(s.dealEndsAt).toISOString().slice(0, 16) : "",
       displayOrder: s.displayOrder || 0,
     });
+    setUploadingServiceImage(false);
+    setServiceImageMode(s.images?.[0]?.startsWith("http") ? "url" : "upload");
+    setImageUploadError(null);
     setMessage(null);
     setIsFormModalOpen(true);
   };
@@ -1037,21 +1083,148 @@ function AdminServicesManagementContent() {
                 />
               </div>
 
-              {/* Image URL */}
-              <div>
-                <label className="block font-semibold text-[#292525] mb-1">
-                  Service Showcase Image URL
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/photo-..."
-                  value={formData.imageUrlInput}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, imageUrlInput: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-[#FAF7F2] border border-[#E8D8C8] rounded-xl text-[#292525] focus:outline-none focus:border-[#CF565D]"
-                />
-                {formData.imageUrlInput && (
-                  <div className="mt-2 w-full h-28 rounded-xl overflow-hidden border border-[#E8D8C8]">
-                    <img src={formData.imageUrlInput} alt="Preview" className="w-full h-full object-cover" />
+              {/* Service Showcase Image (Upload file OR provide URL) */}
+              <div className="space-y-3 bg-[#FAF7F2]/60 p-4 rounded-2xl border border-[#E8D8C8]/80">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-[#292525] uppercase tracking-wider">
+                      Service Showcase Image
+                    </label>
+                    <p className="text-[11px] text-[#746D69] mt-0.5">
+                      Upload an image file from your device or paste an external image URL.
+                    </p>
+                  </div>
+
+                  {/* Mode Toggle Pills */}
+                  <div className="flex items-center p-1 bg-white rounded-xl border border-[#E8D8C8] text-xs shadow-2xs self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setServiceImageMode("upload")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                        serviceImageMode === "upload"
+                          ? "bg-[#CF565D] text-white shadow-xs"
+                          : "text-[#746D69] hover:text-[#292525]"
+                      }`}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload File</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setServiceImageMode("url")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                        serviceImageMode === "url"
+                          ? "bg-[#CF565D] text-white shadow-xs"
+                          : "text-[#746D69] hover:text-[#292525]"
+                      }`}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Image URL</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Upload File Input Tab */}
+                {serviceImageMode === "upload" && (
+                  <div>
+                    <label
+                      className={`relative flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-2xl bg-white hover:bg-[#FDF3F1]/40 border-[#E8D8C8] hover:border-[#CF565D] transition-all cursor-pointer text-center ${
+                        uploadingServiceImage ? "opacity-60 pointer-events-none" : ""
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleServiceImageUpload}
+                        className="sr-only"
+                        disabled={uploadingServiceImage}
+                      />
+                      {uploadingServiceImage ? (
+                        <div className="flex flex-col items-center gap-2 py-2">
+                          <Loader2 className="w-6 h-6 animate-spin text-[#CF565D]" />
+                          <span className="text-xs font-semibold text-[#292525]">
+                            Uploading image to server...
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1.5 py-1">
+                          <div className="w-10 h-10 rounded-xl bg-[#F5DAD6]/60 text-[#CF565D] flex items-center justify-center mb-1">
+                            <Upload className="w-5 h-5 stroke-[2]" />
+                          </div>
+                          <span className="text-xs font-bold text-[#292525]">
+                            Click or drag image file here
+                          </span>
+                          <span className="text-[11px] text-[#746D69]">
+                            PNG, JPG, WEBP, AVIF, SVG up to 15MB
+                          </span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                )}
+
+                {/* URL Input Tab */}
+                {serviceImageMode === "url" && (
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/photo-... or /uploads/..."
+                        value={formData.imageUrlInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            imageUrlInput: val,
+                            images: val.trim() ? [val.trim()] : [],
+                          }));
+                        }}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#E8D8C8] rounded-xl text-xs text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-2 focus:ring-[#CF565D]/10"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Error Alert */}
+                {imageUploadError && (
+                  <p className="text-xs text-rose-600 flex items-center gap-1 mt-1">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{imageUploadError}</span>
+                  </p>
+                )}
+
+                {/* Image Preview & Details */}
+                {(formData.imageUrlInput || formData.images[0]) && (
+                  <div className="relative flex items-center gap-3 p-3 rounded-xl bg-white border border-[#E8D8C8] shadow-2xs">
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#E8D8C8] shrink-0 bg-[#FAF7F2]">
+                      <img
+                        src={formData.imageUrlInput || formData.images[0]}
+                        alt="Service showcase preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-xs font-bold text-[#292525] truncate">
+                        Selected Image
+                      </span>
+                      <span className="block text-[11px] text-[#746D69] truncate">
+                        {formData.imageUrlInput || formData.images[0]}
+                      </span>
+                      <span className="inline-block mt-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Ready to save
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveServiceImage}
+                      title="Remove image"
+                      className="p-2 text-[#746D69] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
               </div>

@@ -18,7 +18,7 @@ import {
   getNotificationLogs,
   retryNotificationAction,
 } from "../controllers/bookingController.js";
-import userAuth from "../middlewares/userAuth.js";
+import userAuth, { optionalUserAuth } from "../middlewares/userAuth.js";
 import adminAuth from "../middlewares/adminAuth.middleware.js";
 
 const router = express.Router();
@@ -27,8 +27,8 @@ const router = express.Router();
 router.get("/availability", getAvailableSlots);
 router.post("/validate-zone", validateAddressZone);
 
-// Customer-protected booking routes
-router.post("/", userAuth, createBooking);
+// Booking creation route (supports both logged-in users and live chat / guest booking)
+router.post("/", optionalUserAuth, createBooking);
 router.get("/my-bookings", userAuth, getMyBookings);
 router.get("/:id", userAuth, getBookingById);
 router.patch("/:id/cancel", userAuth, cancelBooking);

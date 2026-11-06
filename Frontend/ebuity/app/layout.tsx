@@ -1,27 +1,13 @@
 import type { Metadata } from "next";
-import { Bodoni_Moda, Cormorant_Garamond, Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../lib/auth-context";
 import { CartProvider } from "../lib/cart-context";
+import { BookingChatWidget } from "../components/chat/BookingChatWidget";
 
-const bodoni = Bodoni_Moda({
-  variable: "--font-display",
+const manrope = Manrope({
   subsets: ["latin"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const cormorant = Cormorant_Garamond({
-  variable: "--font-serif-soft",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+  variable: "--font-manrope",
   display: "swap",
 });
 
@@ -39,11 +25,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bodoni.variable} ${cormorant.variable} ${inter.variable} h-full antialiased scroll-smooth`}
+      className={`${manrope.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col bg-[#FAF7F2] text-[#746D69] font-sans selection:bg-[#F5DAD6] selection:text-[#CF565D]">
         <AuthProvider>
-          <CartProvider>{children}</CartProvider>
+          <CartProvider>
+            {children}
+            <BookingChatWidget />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>
