@@ -129,7 +129,8 @@ export const PopularServices: React.FC = () => {
     };
   }, []);
 
-  const displayCategories = categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+  // const displayCategories = categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+  const displayCategories = (categories.length > 0 ? categories : DEFAULT_CATEGORIES).slice(0, 7);
 
   // Compute live database metrics per category (count of services and starting price)
   const getCategoryMetrics = (cat: ServiceCategory) => {
