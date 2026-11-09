@@ -211,6 +211,7 @@ export interface CreateBookingPayload {
   scheduledTime: string;
   specialRequests?: string;
   saveAddressToProfile?: boolean;
+  isLiveChat?: boolean;
 }
 
 export interface SavedAddress {

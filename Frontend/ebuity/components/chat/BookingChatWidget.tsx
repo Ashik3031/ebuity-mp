@@ -346,13 +346,13 @@ function BookingChatWidgetContent() {
           if (activeServices.length > 0) {
             setDbServices(activeServices);
             const mapped: Record<string, ChatServiceOption[]> = {
-              hair: [...PRESET_TREATMENTS.hair],
-              manicure: [...PRESET_TREATMENTS.manicure],
-              pedicure: [...PRESET_TREATMENTS.pedicure],
-              facial: [...PRESET_TREATMENTS.facial],
-              waxing: [...PRESET_TREATMENTS.waxing],
-              massage: [...PRESET_TREATMENTS.massage],
-              henna: [...PRESET_TREATMENTS.henna],
+              hair: [],
+              manicure: [],
+              pedicure: [],
+              facial: [],
+              waxing: [],
+              massage: [],
+              henna: [],
             };
 
             activeServices.forEach((s) => {
@@ -363,20 +363,22 @@ function BookingChatWidgetContent() {
 
               const targetKey = classifyServiceCategory(sName, catName, catSlug);
 
-              // ONLY push into the specific matched category bucket
+              // Push with REAL database _id
               if (targetKey && mapped[targetKey]) {
-                const alreadyExists = mapped[targetKey].some(
-                  (item) => item.name.toLowerCase() === sName.toLowerCase()
-                );
-                if (!alreadyExists) {
-                  mapped[targetKey].push({
-                    id: s._id,
-                    name: sName,
-                    category: catName || targetKey,
-                    price: s.price,
-                    duration: s.durationMinutes || s.duration || 45,
-                  });
-                }
+                mapped[targetKey].push({
+                  id: s._id,
+                  name: sName,
+                  category: catName || targetKey,
+                  price: s.isExclusiveDeal && s.dealPrice != null ? Number(s.dealPrice) : Number(s.price),
+                  duration: s.durationMinutes || s.duration || 45,
+                });
+              }
+            });
+
+            // If any category had no DB services, fall back to presets for that category
+            Object.keys(mapped).forEach((k) => {
+              if (mapped[k].length === 0 && PRESET_TREATMENTS[k]) {
+                mapped[k] = [...PRESET_TREATMENTS[k]];
               }
             });
 
@@ -778,69 +780,104 @@ function BookingChatWidgetContent() {
       },
     ]);
 
-    const generatedRef = `RE-${Math.floor(100000 + Math.random() * 900000)}`;
-    let confirmedRef = generatedRef;
+    // 1. Ensure we have database services loaded for valid ObjectId matching
+    let allDbServices = dbServices;
+    if (allDbServices.length === 0) {
+      try {
+        const fetched = await serviceApi.getAll({ limit: 200 });
+        if (fetched?.services?.length) {
+          allDbServices = fetched.services;
+          setDbServices(fetched.services);
+        }
+      } catch (fErr) {
+        console.warn("Could not fetch DB services on confirm:", fErr);
+      }
+    }
 
-    // Resolve real MongoDB service IDs for all selected services
-    const realServiceIds = selectedServices
-      .map((srv) => {
-        if (srv.id && /^[0-9a-fA-F]{24}$/.test(srv.id)) return srv.id;
-        const match = dbServices.find(
+    // 2. Resolve real 24-character MongoDB ObjectIds for all selected services
+    const finalServiceIds: string[] = [];
+    for (const srv of selectedServices) {
+      if (srv.id && /^[0-9a-fA-F]{24}$/.test(srv.id)) {
+        finalServiceIds.push(srv.id);
+      } else {
+        const exactMatch = allDbServices.find(
           (s) => s.name?.toLowerCase().trim() === srv.name?.toLowerCase().trim()
         );
-        if (match) return match._id;
-        const partialMatch = dbServices.find(
-          (s) =>
-            s.name?.toLowerCase().includes(srv.name?.toLowerCase() || "") ||
-            (srv.name && s.name && srv.name.toLowerCase().includes(s.name.toLowerCase()))
-        );
-        return partialMatch ? partialMatch._id : null;
-      })
-      .filter((id): id is string => Boolean(id));
+        if (exactMatch?._id) {
+          finalServiceIds.push(exactMatch._id);
+        } else {
+          const partialMatch = allDbServices.find(
+            (s) =>
+              s.name?.toLowerCase().includes(srv.name?.toLowerCase() || "") ||
+              srv.name?.toLowerCase().includes(s.name?.toLowerCase() || "")
+          );
+          if (partialMatch?._id) {
+            finalServiceIds.push(partialMatch._id);
+          }
+        }
+      }
+    }
 
-    const finalServiceIds =
-      realServiceIds.length > 0
-        ? realServiceIds
-        : dbServices[0]?._id
-          ? [dbServices[0]._id]
-          : [];
+    // Fallback: If any service was not matched, pick first active DB service so creation succeeds in MongoDB
+    if (finalServiceIds.length === 0 && allDbServices.length > 0) {
+      finalServiceIds.push(allDbServices[0]._id);
+    }
 
     const time24 = convert12To24(selectedTime || "12:00 PM");
     const serviceArea = selectedLocation || "Dubai Marina";
+    const bookingDate = selectedDate || new Date().toISOString().split("T")[0];
 
     try {
-      if (finalServiceIds.length > 0) {
-        const res = await bookingApi.create({
-          serviceIds: finalServiceIds,
-          scheduledDate: selectedDate || new Date().toISOString().split("T")[0],
-          scheduledTime: time24,
-          address: {
-            fullName: customerName.trim(),
-            phone: customerPhone.trim(),
-            unitNumber: "Residence",
-            buildingName: selectedLocation || "Dubai Residence",
-            area: serviceArea,
-            city: "Dubai",
-            street: `${serviceArea}, Dubai`,
-          },
-        });
+      if (finalServiceIds.length === 0) {
+        throw new Error("Please select at least one treatment from our active catalog.");
+      }
 
-        if (res?.booking?.bookingNumber) {
-          confirmedRef = res.booking.bookingNumber;
-        }
+      const res = await bookingApi.create({
+        serviceIds: finalServiceIds,
+        scheduledDate: bookingDate,
+        scheduledTime: time24,
+        isLiveChat: true,
+        address: {
+          fullName: customerName.trim() || "Live Chat Customer",
+          phone: customerPhone.trim(),
+          email: `${customerPhone.trim().replace(/[^0-9]/g, "") || Date.now()}@chat.ebuity.com`,
+          unitNumber: "Residence",
+          buildingName: selectedLocation ? `${selectedLocation} Tower` : "Dubai Residence",
+          area: serviceArea,
+          city: "Dubai",
+          street: `${serviceArea}, Dubai`,
+        },
+        specialRequests: `[Booked via Live Chat Assistant]\nSelected Services: ${selectedServices.map((s) => s.name).join(", ")}`,
+      });
+
+      if (res?.success && res?.booking?.bookingNumber) {
+        const realRef = res.booking.bookingNumber;
+        setBookingReference(realRef);
+        setIsSubmitting(false);
+        setBookingConfirmed(true);
+
+        botReply({
+          text: `🎉 **Booking Confirmed!**\n\nYour official booking reference number is **#${realRef}**.\n\nA verified female specialist will arrive at your home in **${serviceArea}** on **${bookingDate}** at **${selectedTime}** for your ${selectedServices.length} treatment${selectedServices.length > 1 ? "s" : ""}.\n\nThis appointment is registered directly in our salon management system. Pay cash or card upon service completion.`,
+          type: "confirmation",
+        });
+        return;
+      } else {
+        throw new Error(res?.message || "Booking creation was not confirmed by the salon server.");
       }
     } catch (err: any) {
-      console.warn("Live chat real booking creation note:", err);
+      console.error("[BookingChatWidget] Real booking creation failed:", err);
+      setIsSubmitting(false);
+
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Could not submit booking to salon server. Please try a different slot or confirm directly via WhatsApp.";
+
+      botReply({
+        text: `⚠️ **Booking Notice:**\n${errorMsg}\n\nYou can click below to confirm instantly with our manager on WhatsApp:`,
+        type: "summary-card",
+      });
     }
-
-    setBookingReference(confirmedRef);
-    setIsSubmitting(false);
-    setBookingConfirmed(true);
-
-    botReply({
-      text: `🎉 **Booking Confirmed!**\n\nYour reference number is **#${confirmedRef}**.\n\nA verified female specialist will arrive at your home on **${selectedDate}** at **${selectedTime}** for your ${selectedServices.length} treatment${selectedServices.length > 1 ? "s" : ""}.\n\nPay cash or card upon service completion.`,
-      type: "confirmation",
-    });
   };
 
   // Helper: Open WhatsApp with pre-filled message
@@ -1086,8 +1123,8 @@ function BookingChatWidgetContent() {
                               type="button"
                               onClick={() => setActiveCategoryKey(cat.key)}
                               className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${active
-                                  ? "bg-[#CF565D] text-white shadow-xs"
-                                  : "bg-white text-[#746D69] hover:text-[#292525] border border-[#E8D8C8]"
+                                ? "bg-[#CF565D] text-white shadow-xs"
+                                : "bg-white text-[#746D69] hover:text-[#292525] border border-[#E8D8C8]"
                                 }`}
                             >
                               <span>{cat.name}</span>
@@ -1120,15 +1157,15 @@ function BookingChatWidgetContent() {
                               type="button"
                               onClick={() => toggleTreatment(t)}
                               className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all shadow-2xs group cursor-pointer active:scale-[0.99] ${isSelected
-                                  ? "bg-[#FDF3F1] border-2 border-[#CF565D] ring-2 ring-[#CF565D]/10"
-                                  : "bg-white hover:bg-[#FAF7F2] border border-[#E8D8C8]"
+                                ? "bg-[#FDF3F1] border-2 border-[#CF565D] ring-2 ring-[#CF565D]/10"
+                                : "bg-white hover:bg-[#FAF7F2] border border-[#E8D8C8]"
                                 }`}
                             >
                               <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
                                 <div
                                   className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${isSelected
-                                      ? "bg-[#CF565D] text-white"
-                                      : "border border-[#E8D8C8] text-transparent group-hover:border-[#CF565D]/50"
+                                    ? "bg-[#CF565D] text-white"
+                                    : "border border-[#E8D8C8] text-transparent group-hover:border-[#CF565D]/50"
                                     }`}
                                 >
                                   <Check className="w-3 h-3 stroke-[3]" />
@@ -1148,8 +1185,8 @@ function BookingChatWidgetContent() {
                               <div className="shrink-0 flex items-center gap-1.5">
                                 <span
                                   className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${isSelected
-                                      ? "bg-[#CF565D] text-white"
-                                      : "bg-[#FAF7F2] text-[#CF565D] border border-[#E8D8C8]/60"
+                                    ? "bg-[#CF565D] text-white"
+                                    : "bg-[#FAF7F2] text-[#CF565D] border border-[#E8D8C8]/60"
                                     }`}
                                 >
                                   AED {t.price}

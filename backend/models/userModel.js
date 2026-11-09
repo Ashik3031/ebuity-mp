@@ -66,7 +66,7 @@ const orderSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },  // Ensure 'name' matches register function
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: { type: String, required: false, default: "" },
     phone: { type: String, default: "" },
     avatar: { type: String, default: "" },
     verifyOtp: { type: String, default: "" },

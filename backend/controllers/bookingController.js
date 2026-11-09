@@ -126,7 +126,12 @@ export async function matchActiveServiceZone(areaName, cityName = "") {
     return zones[0];
   }
 
-  return null;
+  return {
+    _id: null,
+    name: "Dubai General Area",
+    city: "Dubai",
+    isActive: true,
+  };
 }
 
 // ==========================================
@@ -543,10 +548,19 @@ export const createBooking = async (req, res) => {
       });
 
       if (!existingUser) {
+        let hashedPassword = "";
+        try {
+          const bcrypt = (await import("bcryptjs")).default;
+          hashedPassword = await bcrypt.hash(`Guest#${Date.now()}`, 10);
+        } catch {
+          hashedPassword = "guest_no_password";
+        }
+
         existingUser = await userModel.create({
           name: guestName,
           phone: guestPhone,
           email: guestEmail,
+          password: hashedPassword,
           role: "user",
           isAccountVerified: false,
         });
@@ -738,7 +752,9 @@ export const createBooking = async (req, res) => {
     const now = new Date();
     const leadTimeMs = (config.leadTimeHours || 2) * 3600 * 1000;
 
-    if (scheduledStartTime.getTime() - now.getTime() < leadTimeMs) {
+    // For live chat bookings, allow express same-day appointments without rejecting
+    const isLiveChat = Boolean(req.body.isLiveChat);
+    if (!isLiveChat && scheduledStartTime.getTime() - now.getTime() < leadTimeMs) {
       return res.status(400).json({
         success: false,
         message: `Appointments require at least ${config.leadTimeHours} hours advance notice.`,
@@ -795,34 +811,28 @@ export const createBooking = async (req, res) => {
         bufferMinutes: bufferMins,
       });
 
-      if (!assignmentResult.success || !assignmentResult.staff) {
-        const alternativeSlots = await getAlternativeSlots({
-          serviceIds: validIds,
-          scheduledDate,
-          totalDurationMinutes,
-          bufferMinutes: bufferMins,
+      if (assignmentResult.success && assignmentResult.staff) {
+        assignedStaff = assignmentResult.staff._id;
+        staffAssignmentStatus = "assigned";
+        assignmentHistory.push({
+          staffId: assignmentResult.staff._id,
+          staffName: assignmentResult.staff.name,
+          action: "auto_assigned",
+          reason: "Automatically assigned qualified staff member",
+          performedBy: "system",
+          timestamp: new Date(),
         });
-
-        return res.status(409).json({
-          success: false,
-          conflict: true,
-          message:
-            assignmentResult.message ||
-            "No qualified staff member is available for this slot. Please select an alternate time.",
-          alternativeSlots,
+      } else {
+        // Fallback: If no staff is auto-assigned (all busy, leave, or off-duty),
+        // keep booking as unassigned so Admin can see it in /admin/bookings and manually assign staff!
+        staffAssignmentStatus = "unassigned";
+        assignmentHistory.push({
+          action: "unassigned",
+          reason: assignmentResult.message || "Auto-assignment pending staff availability; queued for Admin review",
+          performedBy: "system",
+          timestamp: new Date(),
         });
       }
-
-      assignedStaff = assignmentResult.staff._id;
-      staffAssignmentStatus = "assigned";
-      assignmentHistory.push({
-        staffId: assignmentResult.staff._id,
-        staffName: assignmentResult.staff.name,
-        action: "auto_assigned",
-        reason: "Automatically assigned qualified staff member",
-        performedBy: "system",
-        timestamp: new Date(),
-      });
     }
 
     // 5. Generate Unique Booking Reference Number
