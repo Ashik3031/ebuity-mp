@@ -208,8 +208,8 @@ function PackagesContent() {
                     onClick={() => setSelectedCategory(cat)}
                     aria-pressed={isActive}
                     className={`h-11 px-6 rounded-full text-sm font-medium whitespace-nowrap transition cursor-pointer ${isActive
-                        ? "bg-[#292525] text-white"
-                        : "bg-white text-[#746D69] hover:text-[#292525] border border-[#E8D8C8] hover:border-[#CF565D]"
+                      ? "bg-[#292525] text-white"
+                      : "bg-white text-[#746D69] hover:text-[#292525] border border-[#E8D8C8] hover:border-[#CF565D]"
                       }`}
                   >
                     {cat}
@@ -225,7 +225,7 @@ function PackagesContent() {
           {loading ? (
             <div className="py-24 text-center">
               <Loader2 className="w-10 h-10 text-[#CF565D] animate-spin mx-auto mb-4" />
-              <p className="font-serif text-lg text-[#746D69]">Preparing signature rituals and offers…</p>
+              <p className="font-serif text-lg text-[#746D69]">Preparing signature services and offers…</p>
             </div>
           ) : error ? (
             <div className="max-w-md mx-auto text-center bg-white rounded-3xl border border-[#E8D8C8] p-10 shadow-sm">
@@ -277,18 +277,18 @@ function PackagesContent() {
                     </div>
                   </div>
 
-                  <div className="p-8 sm:p-12 flex flex-col justify-center gap-6">
+                  <div className="p-5 sm:p-8 lg:p-12 flex flex-col justify-center gap-5 sm:gap-6">
                     <p className="text-sm text-[#CF565D] font-medium">Featured package</p>
                     <div>
-                      <h2 className="font-display uppercase text-3xl sm:text-4xl lg:text-5xl leading-[0.98] text-[#292525]">
+                      <h2 className="font-display uppercase text-2xl sm:text-4xl lg:text-5xl leading-[1.02] sm:leading-[0.98] text-[#292525]">
                         {featured.name}
                       </h2>
                       {featured.tagline && (
-                        <p className="font-serif italic text-lg text-[#CF565D] mt-3">“{featured.tagline}”</p>
+                        <p className="font-serif italic text-base sm:text-lg text-[#CF565D] mt-2 sm:mt-3">“{featured.tagline}”</p>
                       )}
                     </div>
                     {featured.description && (
-                      <p className="text-[#746D69] leading-relaxed line-clamp-4">{featured.description}</p>
+                      <p className="text-[#746D69] text-sm leading-relaxed line-clamp-4">{featured.description}</p>
                     )}
 
                     {featured.inclusions && featured.inclusions.length > 0 && (
@@ -302,7 +302,7 @@ function PackagesContent() {
                       </ul>
                     )}
 
-                    <div className="pt-6 border-t border-[#E8D8C8] flex flex-wrap items-end justify-between gap-5">
+                    <div className="pt-6 border-t border-[#E8D8C8] flex flex-col sm:flex-row sm:items-end justify-between gap-5">
                       <div>
                         <p className="text-xs text-[#746D69] flex items-center gap-1.5 mb-1">
                           <Clock className="w-3.5 h-3.5 text-[#CF565D]" />
@@ -317,7 +317,7 @@ function PackagesContent() {
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col xs:flex-row gap-2.5">
                         <button
                           onClick={() => setSelectedPackageForModal(featured)}
                           className="h-12 px-6 rounded-full bg-white border border-[#E8D8C8] hover:border-[#CF565D] text-sm font-medium text-[#292525] transition"
@@ -326,7 +326,7 @@ function PackagesContent() {
                         </button>
                         <Link
                           href={`/book?package=${encodeURIComponent(featured.slug)}`}
-                          className="h-12 px-7 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-sm font-medium inline-flex items-center gap-2 transition active:scale-95"
+                          className="h-12 px-7 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-sm font-medium inline-flex items-center justify-center gap-2 transition active:scale-95"
                         >
                           <Calendar className="w-4 h-4" /> Book now
                         </Link>
@@ -422,7 +422,7 @@ function PackagesContent() {
                             <PriceBlock pkg={pkg} />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
                           <button
                             onClick={() => setSelectedPackageForModal(pkg)}
                             className="h-11 rounded-full bg-white border border-[#E8D8C8] hover:border-[#CF565D] text-sm font-medium text-[#292525] transition"

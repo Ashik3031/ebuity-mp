@@ -175,8 +175,8 @@ export default function AdminDashboardPage() {
                 type="button"
                 onClick={() => handleRangeChange(r)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${timeRange === r
-                    ? "bg-[#CF565D] text-white shadow-xs"
-                    : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
+                  ? "bg-[#CF565D] text-white shadow-xs"
+                  : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
                   }`}
               >
                 {r === "7d" ? "7 Days" : r === "30d" ? "30 Days" : "6 Months"}
@@ -194,9 +194,8 @@ export default function AdminDashboardPage() {
             }
           >
             <span
-              className={`w-2 h-2 rounded-full ${
-                isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
+                }`}
             />
             <span className={isRealtimeConnected ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}>
               {isRealtimeConnected ? "Live" : "Connecting..."}
@@ -294,7 +293,7 @@ export default function AdminDashboardPage() {
                 <span className="text-xs font-bold text-[#292525] dark:text-[#FAF7F2]">15%</span>
               </div>
               <div className="p-2 rounded-xl bg-[#FAF7F2] dark:bg-[#282323] border border-[#E8D8C8]/60 dark:border-white/10 text-center">
-                <span className="text-[10px] text-[#746D69] dark:text-[#A89F9A] block">VIP Rituals</span>
+                <span className="text-[10px] text-[#746D69] dark:text-[#A89F9A] block">VIP services</span>
                 <span className="text-xs font-bold text-[#CF565D]">Active</span>
               </div>
             </div>
@@ -310,7 +309,7 @@ export default function AdminDashboardPage() {
             icon={Sparkles}
             trend="Live UAE Day"
             badge="Asia/Dubai"
-            subtitle="Rituals scheduled today"
+            subtitle="services scheduled today"
           />
 
           {/* Upcoming Bookings */}
@@ -320,7 +319,7 @@ export default function AdminDashboardPage() {
             icon={CalendarDays}
             trend="Active Queue"
             trendType="up"
-            subtitle="Future scheduled rituals"
+            subtitle="Future scheduled services"
           />
 
           {/* Total Clients */}
@@ -352,7 +351,7 @@ export default function AdminDashboardPage() {
         <div className="lg:col-span-4 min-w-0">
           <BookingTrendChart
             data={stats?.charts?.bookingTrends || []}
-            title="Rituals & Service Activity"
+            title="services & Service Activity"
             subtitle={`Showing treatment trends for ${timeRange.toUpperCase()}`}
             currentRange={timeRange}
             onRangeChange={handleRangeChange}
@@ -364,7 +363,7 @@ export default function AdminDashboardPage() {
           3. SECONDARY METRICS BAR
          ======================================================== */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {/* Active Rituals */}
+        {/* Active services */}
         <Link
           href="/admin/services"
           className="bg-white dark:bg-[#1f1b1b] rounded-2xl p-4 border border-[#E8D8C8]/60 dark:border-white/10 shadow-xs flex items-center gap-3 hover:border-[#CF565D]/60 transition-colors"
@@ -377,7 +376,7 @@ export default function AdminDashboardPage() {
               Active Services
             </span>
             <span className="text-lg font-bold text-[#292525] dark:text-[#FAF7F2]">
-              {metrics.activeServices} Rituals
+              {metrics.activeServices} services
             </span>
           </div>
         </Link>
@@ -425,8 +424,8 @@ export default function AdminDashboardPage() {
         >
           <div
             className={`w-10 h-10 rounded-xl border flex items-center justify-center ${(metrics.lowStockCount || 0) + (metrics.outOfStockCount || 0) > 0
-                ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400"
-                : "bg-[#FAF7F2] dark:bg-[#282323] border-[#E8D8C8] dark:border-white/10 text-[#746D69] dark:text-[#A89F9A]"
+              ? "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400"
+              : "bg-[#FAF7F2] dark:bg-[#282323] border-[#E8D8C8] dark:border-white/10 text-[#746D69] dark:text-[#A89F9A]"
               }`}
           >
             <Package className="w-5 h-5" />

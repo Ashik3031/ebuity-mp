@@ -298,7 +298,7 @@ export default function AdminBookingsPage() {
             </span>
           </div>
           <p className="text-xs text-[#746D69] mt-0.5">
-            Oversee at-home beauty rituals, therapist dispatch statuses, and client schedules across the UAE.
+            Oversee at-home beauty services, therapist dispatch statuses, and client schedules across the UAE.
           </p>
         </div>
 
@@ -321,9 +321,8 @@ export default function AdminBookingsPage() {
             }
           >
             <span
-              className={`w-2 h-2 rounded-full ${
-                isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
+                }`}
             />
             <span className={isRealtimeConnected ? "text-emerald-700" : "text-amber-700"}>
               {isRealtimeConnected ? "Live" : "Connecting..."}
@@ -335,11 +334,10 @@ export default function AdminBookingsPage() {
       {/* Notification Toast */}
       {notification && (
         <div
-          className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-medium transition-all ${
-            notification.type === "success"
+          className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-medium transition-all ${notification.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
               : "bg-rose-50 border-rose-200 text-rose-800"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2">
             {notification.type === "success" ? (

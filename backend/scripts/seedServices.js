@@ -223,7 +223,7 @@ const sampleZones = [
 /* PRODUCTS (unchanged - not part of the price list)                   */
 /* ------------------------------------------------------------------ */
 const productCategoriesData = [
-  { name: "Skincare", slug: "skincare", label: "Skincare", description: "Organic Rosa Damascena skincare rituals", position: 1, active: true },
+  { name: "Skincare", slug: "skincare", label: "Skincare", description: "Organic Rosa Damascena skincare services", position: 1, active: true },
   { name: "Wellness", slug: "wellness", label: "Wellness", description: "Holistic at-home spa and relaxation accessories", position: 2, active: true },
 ];
 

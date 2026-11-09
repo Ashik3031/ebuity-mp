@@ -497,10 +497,10 @@ function AdminServicesManagementContent() {
             <span>/</span>
             <span className="text-[#292525] font-semibold">Catalog</span>
             <span>/</span>
-            <span className="text-[#CF565D] font-semibold">Services & Rituals</span>
+            <span className="text-[#CF565D] font-semibold">Services & services</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-[#292525]">
-            Services & Beauty Rituals
+            Services & Beauty services
           </h1>
           <p className="text-xs text-[#746D69] mt-0.5">
             Manage at-home wellness treatments, prices in AED, durations, preparation guides, and women-only settings.
@@ -722,7 +722,7 @@ function AdminServicesManagementContent() {
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-[#CF565D] mb-3" />
-            <p className="text-xs font-semibold text-[#292525]">Loading beauty rituals...</p>
+            <p className="text-xs font-semibold text-[#292525]">Loading beauty services...</p>
           </div>
         ) : paginatedServices.length === 0 ? (
           <div className="py-16 text-center flex flex-col items-center justify-center p-6">
@@ -1100,11 +1100,10 @@ function AdminServicesManagementContent() {
                     <button
                       type="button"
                       onClick={() => setServiceImageMode("upload")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                        serviceImageMode === "upload"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${serviceImageMode === "upload"
                           ? "bg-[#CF565D] text-white shadow-xs"
                           : "text-[#746D69] hover:text-[#292525]"
-                      }`}
+                        }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span>Upload File</span>
@@ -1112,11 +1111,10 @@ function AdminServicesManagementContent() {
                     <button
                       type="button"
                       onClick={() => setServiceImageMode("url")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                        serviceImageMode === "url"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${serviceImageMode === "url"
                           ? "bg-[#CF565D] text-white shadow-xs"
                           : "text-[#746D69] hover:text-[#292525]"
-                      }`}
+                        }`}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Image URL</span>
@@ -1128,9 +1126,8 @@ function AdminServicesManagementContent() {
                 {serviceImageMode === "upload" && (
                   <div>
                     <label
-                      className={`relative flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-2xl bg-white hover:bg-[#FDF3F1]/40 border-[#E8D8C8] hover:border-[#CF565D] transition-all cursor-pointer text-center ${
-                        uploadingServiceImage ? "opacity-60 pointer-events-none" : ""
-                      }`}
+                      className={`relative flex flex-col items-center justify-center p-5 border-2 border-dashed rounded-2xl bg-white hover:bg-[#FDF3F1]/40 border-[#E8D8C8] hover:border-[#CF565D] transition-all cursor-pointer text-center ${uploadingServiceImage ? "opacity-60 pointer-events-none" : ""
+                        }`}
                     >
                       <input
                         type="file"

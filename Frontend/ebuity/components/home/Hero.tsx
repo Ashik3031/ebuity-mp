@@ -539,8 +539,14 @@ export const Hero: React.FC = () => {
                     aria-haspopup="listbox"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="w-10 h-10 rounded-full bg-[#F5DAD6] text-[#C8505F] flex items-center justify-center shrink-0 shadow-2xs">
-                        <Sparkles className="w-4 h-4 stroke-[2]" />
+                      <span className="w-10 h-10 rounded-full bg-[#F5DAD6] overflow-hidden flex items-center justify-center shrink-0 shadow-2xs border border-[#E8D8C8]/60">
+                        <Image
+                          src="/rose-essence-logo-square.jpg"
+                          alt="Rose Essence Service"
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
                       </span>
                       <div className="flex flex-col flex-1 min-w-0">
                         <span className="text-[11px] font-semibold uppercase tracking-wider text-[#746D69]/90">
@@ -598,8 +604,14 @@ export const Hero: React.FC = () => {
                             }`}
                         >
                           <div className="flex items-center gap-2.5">
-                            <span className="w-7 h-7 rounded-lg bg-[#F5DAD6]/70 text-[#C8505F] flex items-center justify-center shrink-0">
-                              <Sparkles className="w-3.5 h-3.5" />
+                            <span className="w-7 h-7 rounded-lg overflow-hidden bg-[#F5DAD6]/70 flex items-center justify-center shrink-0 border border-[#E8D8C8]/60">
+                              <Image
+                                src="/rose-essence-logo-square.jpg"
+                                alt="All Services"
+                                width={28}
+                                height={28}
+                                className="w-full h-full object-cover"
+                              />
                             </span>
                             <div>
                               <span className="block text-sm leading-tight">All Services & Rituals</span>

@@ -12,7 +12,7 @@ interface BookingTrendChartProps {
 export function BookingTrendChart({
   data,
   title = "Booking & Service Trends",
-  subtitle = "Treatment volume and scheduled rituals across the UAE",
+  subtitle = "Treatment volume and scheduled services across the UAE",
   currentRange = "6m",
   onRangeChange,
 }: BookingTrendChartProps) {
@@ -46,11 +46,10 @@ export function BookingTrendChart({
                   key={r}
                   type="button"
                   onClick={() => onRangeChange(r)}
-                  className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all ${
-                    currentRange === r
+                  className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all ${currentRange === r
                       ? "bg-[#CF565D] text-white shadow-xs"
                       : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-                  }`}
+                    }`}
                 >
                   {r.toUpperCase()}
                 </button>
@@ -90,7 +89,7 @@ export function BookingTrendChart({
 
                 {/* Bars column */}
                 <div className="flex items-end gap-1 w-full justify-center">
-                  {/* Completed Rituals Bar (Coral) */}
+                  {/* Completed services Bar (Coral) */}
                   <div
                     style={{ height: `${completedHeight}px` }}
                     className="w-2.5 sm:w-3.5 rounded-t-sm bg-[#CF565D] hover:bg-[#B9474E] transition-all relative overflow-hidden"

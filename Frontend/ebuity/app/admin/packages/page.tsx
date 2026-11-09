@@ -384,8 +384,8 @@ export default function AdminPackagesPage() {
       {notification && (
         <div
           className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-sm font-medium transition-all ${notification.type === "success"
-              ? "bg-[#292525] text-white border border-[#CF565D]/30"
-              : "bg-red-600 text-white"
+            ? "bg-[#292525] text-white border border-[#CF565D]/30"
+            : "bg-red-600 text-white"
             }`}
         >
           {notification.type === "success" ? (
@@ -529,7 +529,7 @@ export default function AdminPackagesPage() {
           <p className="text-sm text-[#746D69] max-w-md mx-auto mt-1 mb-6">
             {searchQuery || selectedCategory !== "all" || statusFilter !== "all"
               ? "No packages match the current filters. Try resetting the search or category."
-              : "You have not created any package rituals yet. Click below to bundle services into a customer package."}
+              : "You have not created any package services yet. Click below to bundle services into a customer package."}
           </p>
           <button
             onClick={openCreateModal}
@@ -579,8 +579,8 @@ export default function AdminPackagesPage() {
                       <button
                         onClick={() => handleToggleStatus(pkg)}
                         className={`px-3 py-1 text-xs font-semibold rounded-full backdrop-blur-md transition-all shadow-sm ${pkg.isActive
-                            ? "bg-emerald-500 text-white"
-                            : "bg-neutral-800 text-neutral-300"
+                          ? "bg-emerald-500 text-white"
+                          : "bg-neutral-800 text-neutral-300"
                           }`}
                       >
                         {pkg.isActive ? "Active" : "Inactive"}
@@ -851,8 +851,8 @@ export default function AdminPackagesPage() {
                           key={srv._id}
                           onClick={() => toggleServiceSelection(srv._id)}
                           className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${isSelected
-                              ? "bg-white border-[#CF565D] shadow-xs text-[#292525]"
-                              : "bg-white/60 border-transparent hover:bg-white text-[#746D69]"
+                            ? "bg-white border-[#CF565D] shadow-xs text-[#292525]"
+                            : "bg-white/60 border-transparent hover:bg-white text-[#746D69]"
                             }`}
                         >
                           <div className="flex items-center gap-2 truncate">

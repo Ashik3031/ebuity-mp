@@ -246,33 +246,30 @@ export function BookingDetailDrawer({
         <div className="flex border-b border-[#FAF7F2] px-6 bg-white">
           <button
             onClick={() => setActiveTab("details")}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === "details"
+            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${activeTab === "details"
                 ? "border-[#CF565D] text-[#CF565D]"
                 : "border-transparent text-[#746D69] hover:text-[#292525]"
-            }`}
+              }`}
           >
             <FileText className="w-3.5 h-3.5" />
             Reservation Details
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === "history"
+            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${activeTab === "history"
                 ? "border-[#CF565D] text-[#CF565D]"
                 : "border-transparent text-[#746D69] hover:text-[#292525]"
-            }`}
+              }`}
           >
             <History className="w-3.5 h-3.5" />
             Audit Log ({booking.assignmentHistory?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab("notifications")}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === "notifications"
+            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${activeTab === "notifications"
                 ? "border-[#CF565D] text-[#CF565D]"
                 : "border-transparent text-[#746D69] hover:text-[#292525]"
-            }`}
+              }`}
           >
             <Bell className="w-3.5 h-3.5" />
             Notifications
@@ -282,11 +279,10 @@ export function BookingDetailDrawer({
         {/* Action Feedback Toast */}
         {actionFeedback && (
           <div
-            className={`px-6 py-2.5 text-xs font-medium flex items-center justify-between ${
-              actionFeedback.type === "success"
+            className={`px-6 py-2.5 text-xs font-medium flex items-center justify-between ${actionFeedback.type === "success"
                 ? "bg-emerald-50 text-emerald-800 border-b border-emerald-200"
                 : "bg-rose-50 text-rose-800 border-b border-rose-200"
-            }`}
+              }`}
           >
             <span>{actionFeedback.message}</span>
             <button
@@ -594,7 +590,7 @@ export function BookingDetailDrawer({
                 <div className="flex items-center justify-between border-b border-[#FAF7F2] pb-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#292525] uppercase tracking-wider">
                     <Sparkles className="w-4 h-4 text-[#CF565D]" />
-                    Services & Rituals Booked
+                    Services & services Booked
                   </div>
                   <span className="text-xs font-bold text-[#292525]">
                     Total: AED {Number(booking.totalPrice).toFixed(2)}
@@ -740,13 +736,12 @@ export function BookingDetailDrawer({
                           </span>
 
                           <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              isSuccess
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isSuccess
                                 ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                                 : isLogged
-                                ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                : "bg-rose-50 text-rose-800 border border-rose-200"
-                            }`}
+                                  ? "bg-amber-50 text-amber-800 border border-amber-200"
+                                  : "bg-rose-50 text-rose-800 border border-rose-200"
+                              }`}
                           >
                             {n.status}
                           </span>

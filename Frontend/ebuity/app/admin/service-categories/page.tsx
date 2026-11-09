@@ -202,9 +202,8 @@ export default function AdminServiceCategoriesPage() {
       if (res.success) {
         setMessage({
           type: "success",
-          text: `Category "${cat.name}" is now ${
-            nextStatus ? "active" : "inactive"
-          }.`,
+          text: `Category "${cat.name}" is now ${nextStatus ? "active" : "inactive"
+            }.`,
         });
         await loadCategories();
       }
@@ -289,7 +288,7 @@ export default function AdminServiceCategoriesPage() {
             Service Categories
           </h1>
           <p className="text-xs text-[#746D69] mt-0.5">
-            Organize luxury at-home rituals into client-facing categories (Face, Hair, Nail, Massage).
+            Organize luxury at-home services into client-facing categories (Face, Hair, Nail, Massage).
           </p>
         </div>
 
@@ -301,9 +300,8 @@ export default function AdminServiceCategoriesPage() {
             title="Refresh list"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${
-                refreshing ? "animate-spin text-[#CF565D]" : ""
-              }`}
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-[#CF565D]" : ""
+                }`}
             />
             <span>Refresh</span>
           </button>
@@ -329,11 +327,10 @@ export default function AdminServiceCategoriesPage() {
       {/* Alert Notification */}
       {message && (
         <div
-          className={`p-3.5 rounded-2xl text-xs font-medium flex items-center justify-between border ${
-            message.type === "success"
+          className={`p-3.5 rounded-2xl text-xs font-medium flex items-center justify-between border ${message.type === "success"
               ? "bg-emerald-50 text-emerald-800 border-emerald-200"
               : "bg-rose-50 text-rose-800 border-rose-200"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2">
             {message.type === "success" ? (
@@ -438,11 +435,10 @@ export default function AdminServiceCategoriesPage() {
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
-                statusFilter === st
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${statusFilter === st
                   ? "bg-[#292525] text-white shadow-xs"
                   : "bg-[#FAF7F2] text-[#746D69] border border-[#E8D8C8] hover:text-[#292525]"
-              }`}
+                }`}
             >
               {st}
             </button>
@@ -531,12 +527,12 @@ export default function AdminServiceCategoriesPage() {
                             {cat.slug === "face"
                               ? "Facials, Dermaplaning & Glow"
                               : cat.slug === "hair"
-                              ? "Blow Dry, Styling & Head Spa"
-                              : cat.slug === "nail"
-                              ? "Manicure, Pedicure & Gel"
-                              : cat.slug === "massage"
-                              ? "Hammam & Body Relaxation"
-                              : "Beauty Category"}
+                                ? "Blow Dry, Styling & Head Spa"
+                                : cat.slug === "nail"
+                                  ? "Manicure, Pedicure & Gel"
+                                  : cat.slug === "massage"
+                                    ? "Hammam & Body Relaxation"
+                                    : "Beauty Category"}
                           </span>
                         </div>
                       </div>
@@ -759,11 +755,10 @@ export default function AdminServiceCategoriesPage() {
                         isActive: !prev.isActive,
                       }))
                     }
-                    className={`w-full py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-all ${
-                      formData.isActive
+                    className={`w-full py-2.5 px-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-all ${formData.isActive
                         ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                         : "bg-stone-100 text-stone-600 border-stone-300"
-                    }`}
+                      }`}
                   >
                     {formData.isActive ? (
                       <>

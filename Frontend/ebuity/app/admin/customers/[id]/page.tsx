@@ -259,8 +259,8 @@ function AdminCustomerDetailContent() {
             <span>{customer.name}</span>
             <span
               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${customer.isBlocked
-                  ? "bg-red-50 text-red-700 border border-red-200"
-                  : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                 }`}
             >
               {customer.isBlocked ? (
@@ -302,8 +302,8 @@ function AdminCustomerDetailContent() {
           <button
             onClick={() => setStatusModalOpen(true)}
             className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl transition-all shadow-xs ${customer.isBlocked
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                : "bg-red-50 hover:bg-red-100 text-red-700 border border-red-200"
+              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+              : "bg-red-50 hover:bg-red-100 text-red-700 border border-red-200"
               }`}
           >
             {customer.isBlocked ? (
@@ -583,8 +583,8 @@ function AdminCustomerDetailContent() {
                 <button
                   onClick={() => setActiveTab("bookings")}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${activeTab === "bookings"
-                      ? "bg-[#CF565D] text-white shadow-xs"
-                      : "text-[#746D69] hover:bg-[#FAF7F2] hover:text-[#292525]"
+                    ? "bg-[#CF565D] text-white shadow-xs"
+                    : "text-[#746D69] hover:bg-[#FAF7F2] hover:text-[#292525]"
                     }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -594,8 +594,8 @@ function AdminCustomerDetailContent() {
                 <button
                   onClick={() => setActiveTab("orders")}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${activeTab === "orders"
-                      ? "bg-[#CF565D] text-white shadow-xs"
-                      : "text-[#746D69] hover:bg-[#FAF7F2] hover:text-[#292525]"
+                    ? "bg-[#CF565D] text-white shadow-xs"
+                    : "text-[#746D69] hover:bg-[#FAF7F2] hover:text-[#292525]"
                     }`}
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
@@ -632,7 +632,7 @@ function AdminCustomerDetailContent() {
                       No Service Bookings Recorded
                     </p>
                     <p className="text-xs text-[#746D69] max-w-sm mx-auto">
-                      This client has not scheduled any at-home wellness or beauty rituals yet.
+                      This client has not scheduled any at-home wellness or beauty services yet.
                     </p>
                   </div>
                 ) : (
@@ -653,10 +653,10 @@ function AdminCustomerDetailContent() {
                               </span>
                               <span
                                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.status === "completed"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : b.status === "cancelled"
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-blue-100 text-blue-800"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : b.status === "cancelled"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-blue-100 text-blue-800"
                                   }`}
                               >
                                 {b.status}
@@ -685,7 +685,7 @@ function AdminCustomerDetailContent() {
                           {/* Services List */}
                           <div className="space-y-1">
                             <span className="text-xs font-semibold text-[#746D69] uppercase tracking-wider block">
-                              Booked Rituals:
+                              Booked services:
                             </span>
                             <div className="flex flex-wrap gap-1.5">
                               {b.services?.map((s, idx) => (
@@ -760,10 +760,10 @@ function AdminCustomerDetailContent() {
                               </span>
                               <span
                                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${o.status === "Delivered"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : o.status === "Cancelled"
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-amber-100 text-amber-800"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : o.status === "Cancelled"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-amber-100 text-amber-800"
                                   }`}
                               >
                                 {o.status}

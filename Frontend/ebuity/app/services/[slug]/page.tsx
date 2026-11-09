@@ -180,8 +180,8 @@ function ServiceDetailContent() {
                         type="button"
                         onClick={() => setActiveImageIndex(idx)}
                         className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all duration-200 focus:outline-none ${idx === activeImageIndex
-                            ? "border-[#CF565D] ring-2 ring-[#CF565D]/20 shadow-xs"
-                            : "border-[#E8D8C8] opacity-75 hover:opacity-100"
+                          ? "border-[#CF565D] ring-2 ring-[#CF565D]/20 shadow-xs"
+                          : "border-[#E8D8C8] opacity-75 hover:opacity-100"
                           }`}
                       >
                         <Image
@@ -395,7 +395,7 @@ function ServiceDetailContent() {
               <div className="flex items-end justify-between mb-8">
                 <div>
                   <span className="text-xs uppercase tracking-widest font-semibold text-[#CF565D]">
-                    Complementary Rituals
+                    Complementary services
                   </span>
                   <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#292525] mt-1">
                     More in {categoryName}

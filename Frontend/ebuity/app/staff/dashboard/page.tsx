@@ -464,10 +464,10 @@ export default function StaffDashboardPage() {
                 ? res.booking
                   ? { ...b, ...res.booking }
                   : {
-                      ...b,
-                      staffAssignmentStatus: status,
-                      status: status === "completed" ? "completed" : b.status,
-                    }
+                    ...b,
+                    staffAssignmentStatus: status,
+                    status: status === "completed" ? "completed" : b.status,
+                  }
                 : b
             ),
             completedJobsCount:
@@ -484,10 +484,10 @@ export default function StaffDashboardPage() {
               ? res.booking
                 ? { ...b, ...res.booking }
                 : {
-                    ...b,
-                    staffAssignmentStatus: status,
-                    status: status === "completed" ? "completed" : b.status,
-                  }
+                  ...b,
+                  staffAssignmentStatus: status,
+                  status: status === "completed" ? "completed" : b.status,
+                }
               : b
           )
         );
@@ -626,34 +626,34 @@ export default function StaffDashboardPage() {
     icon: React.ElementType;
     badge?: number;
   }> = [
-    {
-      id: "today",
-      label: "Today's Jobs",
-      icon: Briefcase,
-      badge: summary?.todayBookings?.length || 0,
-    },
-    {
-      id: "upcoming",
-      label: "Upcoming Jobs",
-      icon: Calendar,
-      badge: summary?.upcomingJobsCount || 0,
-    },
-    {
-      id: "breaks",
-      label: "Break & Schedule",
-      icon: Coffee,
-    },
-    {
-      id: "attendance",
-      label: "Attendance",
-      icon: Clock,
-    },
-    {
-      id: "leaves",
-      label: "Leave Requests",
-      icon: CalendarDays,
-    },
-  ];
+      {
+        id: "today",
+        label: "Today's Jobs",
+        icon: Briefcase,
+        badge: summary?.todayBookings?.length || 0,
+      },
+      {
+        id: "upcoming",
+        label: "Upcoming Jobs",
+        icon: Calendar,
+        badge: summary?.upcomingJobsCount || 0,
+      },
+      {
+        id: "breaks",
+        label: "Break & Schedule",
+        icon: Coffee,
+      },
+      {
+        id: "attendance",
+        label: "Attendance",
+        icon: Clock,
+      },
+      {
+        id: "leaves",
+        label: "Leave Requests",
+        icon: CalendarDays,
+      },
+    ];
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] p-2 sm:p-4 md:p-6 flex flex-col font-sans text-[#292525]">
@@ -711,21 +711,19 @@ export default function StaffDashboardPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    isSelected
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${isSelected
                       ? "bg-[#292525] text-white shadow-xs"
                       : "text-[#746D69] hover:text-[#292525]"
-                  }`}
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                   {typeof tab.badge === "number" && tab.badge > 0 && (
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                        isSelected
+                      className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${isSelected
                           ? "bg-[#CF565D] text-white"
                           : "bg-[#E8D8C8]/80 text-[#292525]"
-                      }`}
+                        }`}
                     >
                       {tab.badge}
                     </span>
@@ -785,9 +783,8 @@ export default function StaffDashboardPage() {
               }
             >
               <span
-                className={`w-2 h-2 rounded-full ${
-                  isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
-                }`}
+                className={`w-2 h-2 rounded-full ${isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
+                  }`}
               />
               <span className={isRealtimeConnected ? "text-emerald-700" : "text-amber-700"}>
                 {isRealtimeConnected ? "Live" : "Connecting..."}
@@ -876,21 +873,19 @@ export default function StaffDashboardPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                  isSelected
+                className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${isSelected
                     ? "bg-[#292525] text-white shadow-xs"
                     : "bg-white text-[#746D69] border border-[#E8D8C8]"
-                }`}
+                  }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
                 {typeof tab.badge === "number" && tab.badge > 0 && (
                   <span
-                    className={`text-[10px] font-bold px-1.5 rounded-full ${
-                      isSelected
+                    className={`text-[10px] font-bold px-1.5 rounded-full ${isSelected
                         ? "bg-[#CF565D] text-white"
                         : "bg-[#FAF7F2] text-[#292525]"
-                    }`}
+                      }`}
                   >
                     {tab.badge}
                   </span>
@@ -905,11 +900,10 @@ export default function StaffDashboardPage() {
           {/* Toast / Banner Message */}
           {message && (
             <div
-              className={`p-4 rounded-2xl flex items-start gap-3 transition-all ${
-                message.type === "success"
+              className={`p-4 rounded-2xl flex items-start gap-3 transition-all ${message.type === "success"
                   ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
                   : "bg-rose-50 border border-rose-200 text-rose-900"
-              }`}
+                }`}
             >
               {message.type === "success" ? (
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -984,13 +978,13 @@ export default function StaffDashboardPage() {
                     Break:{" "}
                     {profile?.breaks && profile.breaks.length > 0
                       ? profile.breaks
-                          .map(
-                            (b) =>
-                              `${format12Hour(b.start)} – ${format12Hour(
-                                b.end
-                              )}`
-                          )
-                          .join(", ")
+                        .map(
+                          (b) =>
+                            `${format12Hour(b.start)} – ${format12Hour(
+                              b.end
+                            )}`
+                        )
+                        .join(", ")
                       : "Flexible (Your Choice)"}
                   </span>
                 </div>
@@ -1004,20 +998,19 @@ export default function StaffDashboardPage() {
               </p>
               <div className="flex items-center justify-end gap-2 mt-1.5">
                 <span
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    isCheckedIn
+                  className={`w-2.5 h-2.5 rounded-full ${isCheckedIn
                       ? "bg-emerald-500 animate-pulse"
                       : isCheckedOut
-                      ? "bg-gray-400"
-                      : "bg-amber-500"
-                  }`}
+                        ? "bg-gray-400"
+                        : "bg-amber-500"
+                    }`}
                 />
                 <span className="text-sm font-bold text-[#292525]">
                   {isCheckedIn
                     ? "On Duty (Clocked In)"
                     : isCheckedOut
-                    ? "Clocked Out"
-                    : "Not Checked In"}
+                      ? "Clocked Out"
+                      : "Not Checked In"}
                 </span>
               </div>
               {attendance?.checkIn && (
@@ -1109,7 +1102,7 @@ export default function StaffDashboardPage() {
               <div className="flex items-center justify-between pb-2 border-b border-[#E8D8C8]/60">
                 <div>
                   <h3 className="font-serif font-bold text-lg text-[#292525]">
-                    Today&apos;s Assigned Rituals
+                    Today&apos;s Assigned services
                   </h3>
                   <p className="text-xs text-[#746D69]">
                     Client appointments scheduled for delivery across Dubai
@@ -1508,25 +1501,25 @@ export default function StaffDashboardPage() {
                               <td className="py-3 px-5">
                                 {rec.checkIn
                                   ? new Date(rec.checkIn).toLocaleTimeString(
-                                      "en-US",
-                                      {
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                      }
-                                    )
+                                    "en-US",
+                                    {
+                                      hour: "numeric",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    }
+                                  )
                                   : "—"}
                               </td>
                               <td className="py-3 px-5">
                                 {rec.checkOut
                                   ? new Date(rec.checkOut).toLocaleTimeString(
-                                      "en-US",
-                                      {
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                      }
-                                    )
+                                    "en-US",
+                                    {
+                                      hour: "numeric",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    }
+                                  )
                                   : "—"}
                               </td>
                               <td className="py-3 px-5 font-mono">
@@ -1667,13 +1660,12 @@ export default function StaffDashboardPage() {
                                 {startStr} – {endStr}
                               </span>
                               <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                  leave.status === "approved"
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${leave.status === "approved"
                                     ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                                     : leave.status === "rejected"
-                                    ? "bg-rose-50 text-rose-800 border border-rose-200"
-                                    : "bg-amber-50 text-amber-800 border border-amber-200"
-                                }`}
+                                      ? "bg-rose-50 text-rose-800 border border-rose-200"
+                                      : "bg-amber-50 text-amber-800 border border-amber-200"
+                                  }`}
                               >
                                 {leave.status}
                               </span>
@@ -1692,8 +1684,8 @@ export default function StaffDashboardPage() {
                             Submitted:{" "}
                             {leave.requestedAt
                               ? new Date(leave.requestedAt).toLocaleDateString(
-                                  "en-GB"
-                                )
+                                "en-GB"
+                              )
                               : "Recently"}
                           </span>
                         </div>
@@ -1807,7 +1799,7 @@ export default function StaffDashboardPage() {
               }}
               className="inline-block mt-1.5 text-[11px] font-bold text-[#CF565D] hover:underline cursor-pointer"
             >
-              View Scheduled Rituals →
+              View Scheduled services →
             </button>
           </div>
         </div>
@@ -1868,7 +1860,7 @@ function JobCard({
           year: "numeric",
         });
       }
-    } catch (e) {}
+    } catch (e) { }
     return job.scheduledDate || "Scheduled Date";
   })();
 
@@ -2003,8 +1995,7 @@ function JobCard({
         {/* Navigation link */}
         <a
           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-            `${job.serviceAddress?.buildingName || ""}, ${
-              job.serviceAddress?.area || ""
+            `${job.serviceAddress?.buildingName || ""}, ${job.serviceAddress?.area || ""
             }, Dubai`
           )}`}
           target="_blank"
@@ -2269,22 +2260,20 @@ function UpcomingJobsList({
                 setViewMode("list");
                 setSelectedDateFilter(null);
               }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all ${
-                viewMode === "list"
+              className={`px-3 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all ${viewMode === "list"
                   ? "bg-[#CF565D] text-white shadow-xs"
                   : "text-[#746D69] hover:text-[#292525]"
-              }`}
+                }`}
             >
               <LayoutList className="w-3.5 h-3.5" />
               <span>List View</span>
             </button>
             <button
               onClick={() => setViewMode("calendar")}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all ${
-                viewMode === "calendar"
+              className={`px-3 py-1.5 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all ${viewMode === "calendar"
                   ? "bg-[#CF565D] text-white shadow-xs"
                   : "text-[#746D69] hover:text-[#292525]"
-              }`}
+                }`}
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Calendar View</span>
@@ -2372,27 +2361,25 @@ function UpcomingJobsList({
                         setSelectedDateFilter(isSelected ? null : d.dateStr);
                       }
                     }}
-                    className={`min-h-[85px] sm:min-h-[105px] p-2 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer ${
-                      d.isCurrentMonth
+                    className={`min-h-[85px] sm:min-h-[105px] p-2 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer ${d.isCurrentMonth
                         ? isSelected
                           ? "bg-[#FCF4F2] border-[#CF565D] ring-2 ring-[#CF565D]/30"
                           : dayBookings.length > 0
-                          ? "bg-white border-[#CF565D]/40 hover:border-[#CF565D] shadow-xs"
-                          : "bg-white border-[#E8D8C8]/60 hover:border-[#CF565D]/30"
+                            ? "bg-white border-[#CF565D]/40 hover:border-[#CF565D] shadow-xs"
+                            : "bg-white border-[#E8D8C8]/60 hover:border-[#CF565D]/30"
                         : "bg-[#FAF7F2]/40 border-stone-100 opacity-50"
-                    } ${isToday && !isSelected ? "ring-2 ring-emerald-500/40 bg-emerald-50/20" : ""}`}
+                      } ${isToday && !isSelected ? "ring-2 ring-emerald-500/40 bg-emerald-50/20" : ""}`}
                   >
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
-                          isSelected
+                        className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${isSelected
                             ? "bg-[#CF565D] text-white"
                             : isToday
-                            ? "bg-emerald-600 text-white"
-                            : d.isCurrentMonth
-                            ? "text-[#292525]"
-                            : "text-[#746D69]"
-                        }`}
+                              ? "bg-emerald-600 text-white"
+                              : d.isCurrentMonth
+                                ? "text-[#292525]"
+                                : "text-[#746D69]"
+                          }`}
                       >
                         {d.dayNum}
                       </span>
@@ -2410,17 +2397,16 @@ function UpcomingJobsList({
                         return (
                           <div
                             key={b._id}
-                            className={`p-1 rounded-md text-[9px] font-semibold truncate border ${
-                              status === "on_the_way"
+                            className={`p-1 rounded-md text-[9px] font-semibold truncate border ${status === "on_the_way"
                                 ? "bg-amber-50 text-amber-900 border-amber-200"
                                 : status === "arrived"
-                                ? "bg-indigo-50 text-indigo-900 border-indigo-200"
-                                : status === "in_progress"
-                                ? "bg-purple-50 text-purple-900 border-purple-200"
-                                : status === "accepted"
-                                ? "bg-sky-50 text-sky-900 border-sky-200"
-                                : "bg-stone-50 text-stone-700 border-stone-200"
-                            }`}
+                                  ? "bg-indigo-50 text-indigo-900 border-indigo-200"
+                                  : status === "in_progress"
+                                    ? "bg-purple-50 text-purple-900 border-purple-200"
+                                    : status === "accepted"
+                                      ? "bg-sky-50 text-sky-900 border-sky-200"
+                                      : "bg-stone-50 text-stone-700 border-stone-200"
+                              }`}
                           >
                             {(b as any).scheduledTime || "Ritual"} • {b.customerDetails?.name?.split(" ")[0]}
                           </div>
@@ -2443,9 +2429,9 @@ function UpcomingJobsList({
             <div className="flex items-center justify-between pb-1 border-b border-[#E8D8C8]/60">
               <h4 className="text-sm font-serif font-bold text-[#292525]">
                 {selectedDateFilter ? (
-                  <>Rituals Scheduled for <span className="text-[#CF565D] font-mono">{selectedDateFilter}</span> ({displayedJobs.length})</>
+                  <>services Scheduled for <span className="text-[#CF565D] font-mono">{selectedDateFilter}</span> ({displayedJobs.length})</>
                 ) : (
-                  <>All Assigned Upcoming Rituals ({displayedJobs.length})</>
+                  <>All Assigned Upcoming services ({displayedJobs.length})</>
                 )}
               </h4>
               {selectedDateFilter && (
@@ -2462,7 +2448,7 @@ function UpcomingJobsList({
             {displayedJobs.length === 0 ? (
               <div className="py-12 text-center rounded-3xl bg-[#FAF7F2]/40 border border-[#E8D8C8] p-6">
                 <Calendar className="w-8 h-8 text-[#746D69] mx-auto mb-2 opacity-50" />
-                <p className="text-xs font-bold text-[#292525]">No Rituals On Selected Date</p>
+                <p className="text-xs font-bold text-[#292525]">No services On Selected Date</p>
                 <p className="text-[11px] text-[#746D69] mt-0.5">
                   Click on any highlighted calendar day with assigned bookings to inspect details.
                 </p>

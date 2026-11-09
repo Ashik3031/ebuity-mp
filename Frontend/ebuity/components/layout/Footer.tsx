@@ -83,7 +83,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link href="#services" className="hover:text-[#CF565D] transition-colors">
-                  Scalp Revival Rituals
+                  Scalp Revival services
                 </Link>
               </li>
               <li>

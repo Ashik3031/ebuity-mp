@@ -53,7 +53,7 @@ async function runTests() {
   // 3. Create Root Category
   await test("3. Create new root category via POST /category", async () => {
     const formData = new FormData();
-    formData.append("label", `Bath Rituals ${uniqueSuffix}`);
+    formData.append("label", `Bath services ${uniqueSuffix}`);
     formData.append("description", "Exquisite botanical bath elixirs and salts.");
 
     const res = await fetch(`${BASE_URL}/category`, {
@@ -63,7 +63,7 @@ async function runTests() {
     assert.strictEqual(res.status, 201, `Expected 201, got ${res.status}`);
     const data = await res.json();
     assert(data._id, "Created category must have _id");
-    assert.strictEqual(data.label, `Bath Rituals ${uniqueSuffix}`);
+    assert.strictEqual(data.label, `Bath services ${uniqueSuffix}`);
     createdCategoryId = data._id;
   });
 
@@ -87,7 +87,7 @@ async function runTests() {
   // 5. Update Category
   await test("5. Update category details via PUT /category/:id", async () => {
     const formData = new FormData();
-    formData.append("label", `Bath Rituals Luxury ${uniqueSuffix}`);
+    formData.append("label", `Bath services Luxury ${uniqueSuffix}`);
     formData.append("description", "Updated description for luxury aromatherapy soaking.");
 
     const res = await fetch(`${BASE_URL}/category/${createdCategoryId}`, {
@@ -96,7 +96,7 @@ async function runTests() {
     });
     assert.strictEqual(res.status, 200, `Expected 200, got ${res.status}`);
     const data = await res.json();
-    assert.strictEqual(data.label, `Bath Rituals Luxury ${uniqueSuffix}`);
+    assert.strictEqual(data.label, `Bath services Luxury ${uniqueSuffix}`);
   });
 
   // 6. Delete Category Guard: Fails when child exists

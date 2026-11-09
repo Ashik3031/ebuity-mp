@@ -133,7 +133,7 @@ async function runTests() {
   });
 
   // 8. Service Category Distribution
-  await test("8. Category distribution aggregates booked rituals and sorts descending", async () => {
+  await test("8. Category distribution aggregates booked services and sorts descending", async () => {
     const cats = statsData.charts.categoryDistribution;
     assert(Array.isArray(cats));
     if (cats.length > 1) {

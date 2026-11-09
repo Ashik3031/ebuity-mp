@@ -189,7 +189,7 @@ export default function AdminPromotionsPage() {
             <span>Today's Exclusive Deals & Flash Offers</span>
           </h1>
           <p className="text-xs text-[#746D69] mt-0.5">
-            Select in-home wellness rituals and apply exclusive daily pricing that displays prominently across the client portal and homepage.
+            Select in-home wellness services and apply exclusive daily pricing that displays prominently across the client portal and homepage.
           </p>
         </div>
 
@@ -225,8 +225,8 @@ export default function AdminPromotionsPage() {
       {message && (
         <div
           className={`p-3.5 rounded-2xl text-xs font-medium flex items-center justify-between border ${message.type === "success"
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-rose-50 text-rose-800 border-rose-200"
+            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+            : "bg-rose-50 text-rose-800 border-rose-200"
             }`}
         >
           <div className="flex items-center gap-2">

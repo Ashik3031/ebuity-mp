@@ -144,7 +144,7 @@ export default function LoginPage() {
             Client Sign In
           </h1>
           <p className="mt-2 text-sm text-[#746D69]">
-            Access your botanical skincare rituals & orders
+            Access your botanical skincare services & orders
           </p>
         </div>
       </div>
@@ -183,9 +183,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm text-[#292525] placeholder:text-[#746D69]/50 transition-colors focus:border-[#CF565D] focus:outline-none focus:ring-1 focus:ring-[#CF565D] ${
-                  errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-[#E8D8C8]"
-                }`}
+                className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm text-[#292525] placeholder:text-[#746D69]/50 transition-colors focus:border-[#CF565D] focus:outline-none focus:ring-1 focus:ring-[#CF565D] ${errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-[#E8D8C8]"
+                  }`}
               />
               {errors.email && (
                 <p className="mt-1.5 text-xs text-red-600 font-medium" role="alert">

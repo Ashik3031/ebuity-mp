@@ -310,7 +310,7 @@ export default function BookingCalendarPage() {
             Booking Calendar & Dispatch Schedule
           </h1>
           <p className="text-xs text-[#746D69] mt-0.5">
-            Visualize scheduled at-home rituals, therapist workloads, and appointment timings.
+            Visualize scheduled at-home services, therapist workloads, and appointment timings.
           </p>
         </div>
 
@@ -330,11 +330,10 @@ export default function BookingCalendarPage() {
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl capitalize transition-all ${
-                  viewMode === mode
+                className={`px-3 py-1.5 text-xs font-semibold rounded-xl capitalize transition-all ${viewMode === mode
                     ? "bg-[#CF565D] text-white shadow-sm"
                     : "text-[#746D69] hover:text-[#292525]"
-                }`}
+                  }`}
               >
                 {mode}
               </button>
@@ -351,9 +350,8 @@ export default function BookingCalendarPage() {
             }
           >
             <span
-              className={`w-2 h-2 rounded-full ${
-                isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
+                }`}
             />
             <span className={isRealtimeConnected ? "text-emerald-700" : "text-amber-700"}>
               {isRealtimeConnected ? "Live Dispatch" : "Connecting..."}
@@ -483,21 +481,19 @@ export default function BookingCalendarPage() {
                 return (
                   <div
                     key={i}
-                    className={`min-h-[110px] p-2 rounded-2xl border transition-all flex flex-col justify-between ${
-                      d.isCurrentMonth
+                    className={`min-h-[110px] p-2 rounded-2xl border transition-all flex flex-col justify-between ${d.isCurrentMonth
                         ? "bg-white border-[#E8D8C8]/50 hover:border-[#CF565D]/30"
                         : "bg-[#FAF7F2]/40 border-stone-100 opacity-60"
-                    } ${isToday ? "ring-2 ring-[#CF565D] bg-[#F5DAD6]/10" : ""}`}
+                      } ${isToday ? "ring-2 ring-[#CF565D] bg-[#F5DAD6]/10" : ""}`}
                   >
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
-                          isToday
+                        className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${isToday
                             ? "bg-[#CF565D] text-white"
                             : d.isCurrentMonth
-                            ? "text-[#292525]"
-                            : "text-[#746D69]"
-                        }`}
+                              ? "text-[#292525]"
+                              : "text-[#746D69]"
+                          }`}
                       >
                         {d.dayNum}
                       </span>
@@ -534,9 +530,8 @@ export default function BookingCalendarPage() {
                             className={`w-full text-left p-1.5 rounded-lg border text-[10px] font-medium transition-transform active:scale-[0.98] truncate block ${getStatusStyle(
                               displayStatus
                             )}`}
-                            title={`${formatTime(bk.scheduledTime || bk.scheduledStartTime, bk)} - ${
-                              bk.customerDetails.name
-                            } (${bk.status}${staffStatus ? ` | Staff: ${staffStatus.replace(/_/g, " ")}` : ""})`}
+                            title={`${formatTime(bk.scheduledTime || bk.scheduledStartTime, bk)} - ${bk.customerDetails.name
+                              } (${bk.status}${staffStatus ? ` | Staff: ${staffStatus.replace(/_/g, " ")}` : ""})`}
                           >
                             <span className="font-bold">{formatTime(bk.scheduledTime || bk.scheduledStartTime, bk)}</span> •{" "}
                             {bk.customerDetails.name.split(" ")[0]}
@@ -577,19 +572,17 @@ export default function BookingCalendarPage() {
                 return (
                   <div
                     key={wd.dateStr}
-                    className={`rounded-2xl border flex flex-col min-h-[480px] overflow-hidden ${
-                      isToday
+                    className={`rounded-2xl border flex flex-col min-h-[480px] overflow-hidden ${isToday
                         ? "border-[#CF565D] bg-[#F5DAD6]/10 shadow-sm"
                         : "border-[#E8D8C8]/60 bg-[#FAF7F2]/30"
-                    }`}
+                      }`}
                   >
                     {/* Day Column Header */}
                     <div
-                      className={`p-3 text-center border-b ${
-                        isToday
+                      className={`p-3 text-center border-b ${isToday
                           ? "bg-[#CF565D] text-white"
                           : "bg-white border-[#E8D8C8]/60 text-[#292525]"
-                      }`}
+                        }`}
                     >
                       <p className="text-[10px] uppercase font-bold tracking-wider">
                         {wd.dayName}
@@ -690,7 +683,7 @@ export default function BookingCalendarPage() {
                     <Clock className="w-8 h-8 text-[#746D69] mx-auto opacity-50" />
                     <p className="text-sm font-bold text-[#292525]">No Appointments Scheduled</p>
                     <p className="text-xs text-[#746D69]">
-                      There are no at-home beauty rituals booked on this date.
+                      There are no at-home beauty services booked on this date.
                     </p>
                   </div>
                 );

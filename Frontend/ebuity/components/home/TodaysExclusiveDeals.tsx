@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { serviceApi } from "../../lib/api-client";
+import { serviceApi, packageApi } from "../../lib/api-client";
 import { Service } from "../../types/service";
+import { Package } from "../../types/package";
 import {
   Zap,
   Clock,
@@ -12,10 +13,30 @@ import {
   UserCheck,
   Calendar,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 
+interface OfferCardItem {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  description: string;
+  durationMinutes: number;
+  price: number;
+  originalPrice: number;
+  discountPercentage: number;
+  savings: number;
+  badge: string;
+  image: string;
+  bookLink: string;
+  detailLink: string;
+  womenOnly?: boolean;
+}
+
 export const TodaysExclusiveDeals: React.FC = () => {
-  const [deals, setDeals] = useState<Service[]>([]);
+  const [items, setItems] = useState<OfferCardItem[]>([]);
+  const [isPackageMode, setIsPackageMode] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
@@ -56,64 +77,141 @@ export const TodaysExclusiveDeals: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch today's exclusive deals
+  // Fetch today's exclusive deals; if not present, fetch real packages & offers
   useEffect(() => {
     let isMounted = true;
 
-    async function loadExclusiveDeals() {
+    async function loadOffers() {
       try {
         setLoading(true);
-        // Try dedicated deals endpoint first, or fallback to filter
+
+        // 1. Try dedicated exclusive deals set by admin
+        let realDeals: Service[] = [];
         const res = await serviceApi.getExclusiveDeals().catch(() => null);
-        if (isMounted && res && res.services && res.services.length > 0) {
-          setDeals(res.services);
-        } else {
-          // If no deals found, query with exclusiveDeals flag
+        if (res && res.services && res.services.length > 0) {
+          realDeals = res.services.filter((s) => s.isExclusiveDeal);
+        }
+
+        if (realDeals.length === 0) {
           const fallbackRes = await serviceApi
             .getAll({ exclusiveDeals: true, limit: 6 })
             .catch(() => null);
-          if (isMounted && fallbackRes?.services && fallbackRes.services.length > 0) {
-            setDeals(fallbackRes.services);
-          } else {
-            // Optional fallback: if admin hasn't flagged any deal yet, fetch top 3 featured services to show as deals preview
-            const generalRes = await serviceApi.getAll({ limit: 3 }).catch(() => null);
-            if (isMounted && generalRes?.services && generalRes.services.length > 0) {
-              // Mark them as deals for preview
-              const sampleDeals = generalRes.services.slice(0, 3).map((srv, idx) => ({
-                ...srv,
-                isExclusiveDeal: true,
-                dealPrice: Math.round(srv.price * (idx === 0 ? 0.7 : idx === 1 ? 0.75 : 0.8)),
-                dealDiscountPercentage: idx === 0 ? 30 : idx === 1 ? 25 : 20,
-                dealBadge: "Today's Exclusive",
-              }));
-              setDeals(sampleDeals);
-            }
+          if (fallbackRes?.services && fallbackRes.services.length > 0) {
+            realDeals = fallbackRes.services.filter((s) => s.isExclusiveDeal);
           }
         }
+
+        if (realDeals.length > 0) {
+          if (!isMounted) return;
+          const mappedDeals: OfferCardItem[] = realDeals.map((deal) => {
+            const orig = deal.price || 350;
+            const dealP = deal.dealPrice != null ? Number(deal.dealPrice) : orig;
+            const sav = Math.max(0, orig - dealP);
+            const disc =
+              deal.dealDiscountPercentage != null
+                ? deal.dealDiscountPercentage
+                : orig > 0 && sav > 0
+                  ? Math.round((sav / orig) * 100)
+                  : 0;
+
+            const cName =
+              typeof deal.category === "object" && deal.category !== null
+                ? deal.category.name
+                : "At-Home Ceremony";
+
+            return {
+              id: deal._id,
+              name: deal.name,
+              slug: deal.slug || deal._id,
+              category: cName,
+              description:
+                deal.dealDescription ||
+                deal.shortDescription ||
+                "Signature Damask rose formulated at-home therapy.",
+              durationMinutes: deal.durationMinutes || deal.duration || 60,
+              price: dealP,
+              originalPrice: orig,
+              discountPercentage: disc,
+              savings: sav,
+              badge: deal.dealBadge || "Today's Deal",
+              image:
+                deal.images?.[0] ||
+                "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
+              bookLink: `/book?service=${encodeURIComponent(deal.slug || deal._id)}`,
+              detailLink: `/services/${encodeURIComponent(deal.slug || deal._id)}`,
+              womenOnly: deal.womenOnly,
+            };
+          });
+
+          setItems(mappedDeals);
+          setIsPackageMode(false);
+          return;
+        }
+
+        // 2. Fallback: If daily offer is not added by admin, fetch REAL packages & offers from DB
+        const pkgRes = await packageApi.getAll().catch(() => null);
+        if (pkgRes && pkgRes.packages && pkgRes.packages.length > 0) {
+          if (!isMounted) return;
+          const activePackages = pkgRes.packages.filter((p) => p.isActive !== false);
+
+          const mappedPackages: OfferCardItem[] = activePackages.slice(0, 6).map((pkg) => {
+            const orig = pkg.originalPrice || pkg.price;
+            const sav = Math.max(0, orig - pkg.price);
+            const disc =
+              pkg.discountPercentage ||
+              (orig > 0 && sav > 0 ? Math.round((sav / orig) * 100) : 0);
+
+            return {
+              id: pkg._id,
+              name: pkg.name,
+              slug: pkg.slug || pkg._id,
+              category: String(pkg.category || "Ritual Package"),
+              description:
+                pkg.tagline ||
+                pkg.description ||
+                (pkg.inclusions && pkg.inclusions.length > 0
+                  ? pkg.inclusions.slice(0, 2).join(" · ")
+                  : "Handcrafted beauty ritual combination with complimentary sterilised tools."),
+              durationMinutes: pkg.durationMinutes || 90,
+              price: pkg.price,
+              originalPrice: orig,
+              discountPercentage: disc,
+              savings: sav,
+              badge: pkg.badge || "Special Package",
+              image:
+                pkg.images?.[0] ||
+                "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80",
+              bookLink: `/book?package=${encodeURIComponent(pkg.slug || pkg._id)}`,
+              detailLink: "/packages",
+              womenOnly: true,
+            };
+          });
+
+          setItems(mappedPackages);
+          setIsPackageMode(true);
+        } else {
+          if (isMounted) setItems([]);
+        }
       } catch (err) {
-        console.warn("Could not load exclusive deals:", err);
+        console.warn("Could not load exclusive deals or packages:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
     }
 
-    loadExclusiveDeals();
+    loadOffers();
     return () => {
       isMounted = false;
     };
   }, []);
 
-  if (!loading && deals.length === 0) {
+  if (!loading && items.length === 0) {
     return null;
   }
 
   return (
     <section className="relative overflow-hidden py-16 sm:py-24 bg-gradient-to-b from-[#FDF7F3] via-[#FAF4EF] to-[#FBF4EF]">
-      {/* ------------------------------------------------------------------ */}
-      {/* BACKGROUND: soft organic blush shapes + floating petals (same family as the hero) */}
-      {/* ------------------------------------------------------------------ */}
-
-      {/* Large pale blush shape bleeding off the top-right */}
+      {/* Background soft blush shapes */}
       <div className="absolute top-0 right-0 w-[60%] max-w-[900px] h-[75%] pointer-events-none select-none">
         <svg
           viewBox="0 0 900 700"
@@ -140,122 +238,75 @@ export const TodaysExclusiveDeals: React.FC = () => {
         </svg>
       </div>
 
-      {/* Soft blush glow bottom-left */}
       <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-[#F7D4D7]/40 blur-3xl pointer-events-none" />
-
-      {/* Petals (desktop only, kept to the edges so they never touch the cards' text) */}
-      <div className="hidden lg:block absolute inset-0 pointer-events-none select-none">
-        <div className="absolute right-[7%] top-[9%] animate-petal-1">
-          <svg viewBox="0 0 36 44" fill="none" className="w-9 xl:w-11 h-auto drop-shadow-sm" style={{ transform: "rotate(-24deg)" }}>
-            <path d="M15 2C26 6 34 17 33 30C32 40 19 44 11 41C3 38 -1 26 1 16C3 6 9 0 15 2Z" fill="url(#dealsPetalA)" />
-            <defs>
-              <linearGradient id="dealsPetalA" x1="5" y1="5" x2="32" y2="42" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#FCE8E6" />
-                <stop offset="0.6" stopColor="#EE8F99" />
-                <stop offset="1" stopColor="#D9606E" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-        <div className="absolute left-[3%] bottom-[8%] animate-petal-3 blur-[0.5px]">
-          <svg viewBox="0 0 34 38" fill="none" className="w-9 xl:w-12 h-auto" style={{ transform: "rotate(20deg)" }}>
-            <path d="M12 2C22 5 30 14 29 24C28 32 17 36 9 33C2 30 -1 22 1 13C3 4 7 0 12 2Z" fill="url(#dealsPetalB)" />
-            <defs>
-              <linearGradient id="dealsPetalB" x1="4" y1="4" x2="28" y2="34" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#FCE8E6" />
-                <stop offset="0.6" stopColor="#EE959D" />
-                <stop offset="1" stopColor="#D9606E" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-      </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
-          <div className="space-y-5 max-w-2xl">
-            {/* Eyebrow with delicate accent line (same as hero) */}
-            {/* <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-[#746D69]">
-                <Zap className="w-3.5 h-3.5 fill-[#C8505F] text-[#C8505F]" />
-                Limited daily at-home availability
-              </span>
-              <span className="hidden sm:inline-block w-12 h-[1px] bg-[#E8D8C8]"></span>
-            </div> */}
+          <div className="space-y-4 max-w-2xl">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.2em] uppercase text-[#C8505F]">
+              <Sparkles className="w-3.5 h-3.5" />
+              {isPackageMode ? "Curated Packages & Bundles" : "Limited daily availability"}
+            </span>
 
-            <h2 className="font-display text-4xl sm:text-4xl lg:text-[3rem] uppercase font-normal text-[#292525] tracking-tight leading-[0.95]">
-              Today Exclusive Deals
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl uppercase font-normal text-[#292525] tracking-tight leading-[0.95]">
+              {isPackageMode ? "Today's Packages & Offers" : "Today Exclusive Deals"}
             </h2>
 
             <p className="text-sm sm:text-base text-[#746D69] leading-relaxed max-w-xl">
-              Don’t miss out! Explore our exclusive deals for today.
+              {isPackageMode
+                ? "Experience our signature ritual bundles and complete beauty care at preferred rates."
+                : "Don’t miss out! Explore our exclusive deals and limited treatments for today."}
             </p>
           </div>
 
           {/* Countdown widget */}
-          <div className="flex flex-col items-start lg:items-end gap-3 bg-white/70 backdrop-blur-md px-5 py-4 rounded-[28px] border border-[#E8D8C8]/70 shadow-[0_12px_40px_rgba(200,80,95,0.08)]">
+          <div className="flex flex-col items-center sm:items-start lg:items-end gap-2.5 bg-white/70 backdrop-blur-md px-4 sm:px-5 py-3.5 sm:py-4 rounded-[24px] sm:rounded-[28px] border border-[#E8D8C8]/70 shadow-[0_12px_40px_rgba(200,80,95,0.08)] w-full sm:w-auto">
             <div className="flex items-center gap-2 text-xs font-semibold text-[#746D69]">
               <Clock className="w-4 h-4 text-[#C8505F]" />
-              <span>Deals end tonight</span>
+              <span>Offers end tonight</span>
             </div>
-            <div className="flex items-center gap-2 text-[#292525]">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-[#292525]">
               <div className="flex flex-col items-center">
-                <span className="min-w-[2.75rem] text-center font-serif text-2xl sm:text-3xl bg-[#F5DAD6] text-[#C8505F] px-2.5 py-1.5 rounded-2xl">
+                <span className="min-w-[2.25rem] sm:min-w-[2.75rem] text-center font-serif text-xl sm:text-3xl bg-[#F5DAD6] text-[#C8505F] px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl">
                   {String(timeLeft.hours).padStart(2, "0")}
                 </span>
-                <span className="text-[10px] font-medium text-[#746D69] mt-1">Hours</span>
+                <span className="text-[9px] sm:text-[10px] font-medium text-[#746D69] mt-1">Hours</span>
               </div>
-              <span className="font-serif text-xl text-[#C8505F]/50 mb-4">:</span>
+              <span className="font-serif text-lg sm:text-xl text-[#C8505F]/50 mb-3 sm:mb-4">:</span>
               <div className="flex flex-col items-center">
-                <span className="min-w-[2.75rem] text-center font-serif text-2xl sm:text-3xl bg-[#F5DAD6] text-[#C8505F] px-2.5 py-1.5 rounded-2xl">
+                <span className="min-w-[2.25rem] sm:min-w-[2.75rem] text-center font-serif text-xl sm:text-3xl bg-[#F5DAD6] text-[#C8505F] px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl">
                   {String(timeLeft.minutes).padStart(2, "0")}
                 </span>
-                <span className="text-[10px] font-medium text-[#746D69] mt-1">Mins</span>
+                <span className="text-[9px] sm:text-[10px] font-medium text-[#746D69] mt-1">Mins</span>
               </div>
-              <span className="font-serif text-xl text-[#C8505F]/50 mb-4">:</span>
+              <span className="font-serif text-lg sm:text-xl text-[#C8505F]/50 mb-3 sm:mb-4">:</span>
               <div className="flex flex-col items-center">
-                <span className="min-w-[2.75rem] text-center font-serif text-2xl sm:text-3xl bg-[#C8505F] text-white px-2.5 py-1.5 rounded-2xl shadow-md shadow-[#C8505F]/20">
+                <span className="min-w-[2.25rem] sm:min-w-[2.75rem] text-center font-serif text-xl sm:text-3xl bg-[#C8505F] text-white px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl shadow-md shadow-[#C8505F]/20">
                   {String(timeLeft.seconds).padStart(2, "0")}
                 </span>
-                <span className="text-[10px] font-medium text-[#746D69] mt-1">Secs</span>
+                <span className="text-[9px] sm:text-[10px] font-medium text-[#746D69] mt-1">Secs</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Deals Grid */}
+        {/* Deals/Packages Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {deals.map((deal) => {
-            const hasImgError = imgErrors[deal._id];
+          {items.map((item) => {
+            const hasImgError = imgErrors[item.id];
             const primaryImage =
-              deal.images?.[0] ||
+              item.image ||
               "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80";
-
-            const catName =
-              typeof deal.category === "object" && deal.category !== null
-                ? deal.category.name
-                : "At-Home Ceremony";
-
-            const originalPrice = deal.price || 350;
-            const dealPrice = deal.dealPrice != null ? deal.dealPrice : Math.round(originalPrice * 0.75);
-            const savings = Math.max(0, originalPrice - dealPrice);
-            const discountPct =
-              deal.dealDiscountPercentage != null
-                ? deal.dealDiscountPercentage
-                : Math.round((savings / originalPrice) * 100);
-
-            const serviceLink = `/services/${encodeURIComponent(deal.slug || deal._id)}`;
-            const bookLink = `/book?service=${encodeURIComponent(deal.slug || deal._id)}`;
 
             return (
               <div
-                key={deal._id}
+                key={item.id}
                 className="group relative flex flex-col bg-white/90 backdrop-blur-sm rounded-[28px] border border-[#E8D8C8]/70 overflow-hidden shadow-[0_12px_40px_rgba(200,80,95,0.06)] hover:shadow-[0_20px_50px_rgba(200,80,95,0.14)] hover:border-[#C8505F]/30 hover:-translate-y-0.5 transition-all duration-300"
               >
                 {/* Image Section */}
                 <Link
-                  href={serviceLink}
+                  href={item.bookLink}
                   className="relative block aspect-[16/10] w-full overflow-hidden bg-[#FAF4EF]"
                 >
                   <Image
@@ -264,45 +315,47 @@ export const TodaysExclusiveDeals: React.FC = () => {
                         ? "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80"
                         : primaryImage
                     }
-                    alt={deal.name}
+                    alt={item.name}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
                     onError={() =>
-                      setImgErrors((prev) => ({ ...prev, [deal._id]: true }))
+                      setImgErrors((prev) => ({ ...prev, [item.id]: true }))
                     }
                   />
 
-                  {/* Soft rose fade at the bottom of the photo */}
                   <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#C8505F]/10 to-transparent pointer-events-none" />
 
-                  {/* Left pills */}
-                  <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5 z-10">
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-white/95 backdrop-blur-sm text-[#292525] border border-[#E8D8C8] shadow-sm">
-                      <Clock className="w-3.5 h-3.5 text-[#C8505F]" />
-                      <span>{deal.durationMinutes || deal.duration || 60} mins</span>
+                  {/* Badges Overlay (Zero Collision Guaranteed on Mobile) */}
+                  <div className="absolute top-3 inset-x-3 flex items-start justify-between gap-2 pointer-events-none z-10">
+                    {/* Left pills */}
+                    <div className="flex flex-wrap gap-1.5 max-w-[56%]">
+                      <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-white/95 backdrop-blur-sm text-[#292525] border border-[#E8D8C8] shadow-sm">
+                        <Clock className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#C8505F]" />
+                        <span>{item.durationMinutes}m</span>
+                      </div>
+
+                      {item.womenOnly && (
+                        <div className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-[#F5DAD6] text-[#C8505F] border border-[#C8505F]/20 shadow-sm">
+                          <UserCheck className="w-3 h-3" />
+                          <span>Ladies</span>
+                        </div>
+                      )}
                     </div>
 
-                    {deal.womenOnly && (
-                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#F5DAD6] text-[#C8505F] border border-[#C8505F]/20 shadow-sm">
-                        <UserCheck className="w-3 h-3" />
-                        <span>Ladies only</span>
+                    {/* Right badges */}
+                    <div className="flex flex-col items-end gap-1.5 shrink-0 max-w-[42%]">
+                      <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-[#C8505F] text-white shadow-md shadow-[#C8505F]/25 truncate">
+                        <Zap className="w-3 h-3 fill-current shrink-0" />
+                        <span className="truncate">{item.badge}</span>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Right badges */}
-                  <div className="absolute top-3.5 right-3.5 flex flex-col items-end gap-1.5 z-10">
-                    <div className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#C8505F] text-white shadow-md shadow-[#C8505F]/25">
-                      <Zap className="w-3 h-3 fill-current" />
-                      <span>{deal.dealBadge || "Today's Deal"}</span>
+                      {item.discountPercentage > 0 && (
+                        <div className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-white text-[#C8505F] border border-[#F5DAD6] shadow-sm">
+                          {item.discountPercentage}% off
+                        </div>
+                      )}
                     </div>
-
-                    {discountPct > 0 && (
-                      <div className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#C8505F] border border-[#F5DAD6] shadow-sm">
-                        {discountPct}% off
-                      </div>
-                    )}
                   </div>
                 </Link>
 
@@ -310,24 +363,20 @@ export const TodaysExclusiveDeals: React.FC = () => {
                 <div className="flex flex-col flex-1 p-5 sm:p-6 justify-between gap-4">
                   <div className="space-y-2">
                     <span className="block text-[11px] font-semibold tracking-[0.2em] uppercase text-[#C8505F]">
-                      {catName}
+                      {item.category}
                     </span>
 
-                    <Link href={serviceLink} className="block group/title focus:outline-none">
+                    <Link href={item.bookLink} className="block group/title focus:outline-none">
                       <h3 className="font-serif text-xl sm:text-2xl font-medium text-[#292525] group-hover/title:text-[#C8505F] transition-colors line-clamp-1">
-                        {deal.name}
+                        {item.name}
                       </h3>
                     </Link>
 
-                    {deal.dealDescription ? (
+                    {item.description && (
                       <p className="text-xs sm:text-[13px] text-[#746D69] line-clamp-2 leading-relaxed">
-                        {deal.dealDescription}
+                        {item.description}
                       </p>
-                    ) : deal.shortDescription ? (
-                      <p className="text-xs sm:text-[13px] text-[#746D69] line-clamp-2 leading-relaxed">
-                        {deal.shortDescription}
-                      </p>
-                    ) : null}
+                    )}
                   </div>
 
                   {/* Pricing box */}
@@ -339,17 +388,19 @@ export const TodaysExclusiveDeals: React.FC = () => {
                       <div className="flex items-baseline gap-2 mt-0.5">
                         <span className="text-xs font-semibold text-[#C8505F]">AED</span>
                         <span className="text-3xl font-serif font-medium text-[#C8505F] leading-none">
-                          {dealPrice}
+                          {item.price}
                         </span>
-                        <span className="text-xs text-[#746D69]/60 line-through">
-                          AED {originalPrice}
-                        </span>
+                        {item.originalPrice > item.price && (
+                          <span className="text-xs text-[#746D69]/60 line-through">
+                            AED {item.originalPrice}
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {savings > 0 && (
+                    {item.savings > 0 && (
                       <span className="inline-block px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-[#C8505F] border border-[#F5DAD6] shrink-0">
-                        Save AED {savings}
+                        Save AED {item.savings}
                       </span>
                     )}
                   </div>
@@ -357,18 +408,18 @@ export const TodaysExclusiveDeals: React.FC = () => {
                   {/* Actions */}
                   <div className="pt-1 flex items-center gap-2.5">
                     <Link
-                      href={bookLink}
+                      href={item.bookLink}
                       className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-5 rounded-full bg-[#C8505F] hover:bg-[#B34351] text-white text-sm font-semibold tracking-wide shadow-md shadow-[#C8505F]/20 hover:shadow-lg active:scale-[0.98] transition-all duration-200"
                     >
                       <Calendar className="w-4 h-4" />
-                      <span>Claim deal &amp; book</span>
+                      <span>{isPackageMode ? "Book package" : "Claim deal & book"}</span>
                     </Link>
 
                     <Link
-                      href={serviceLink}
+                      href={item.detailLink}
                       className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full bg-[#F5DAD6] text-[#C8505F] hover:bg-[#C8505F] hover:text-white transition-colors"
-                      title="View service details"
-                      aria-label="View service details"
+                      title={isPackageMode ? "View packages" : "View service details"}
+                      aria-label={isPackageMode ? "View packages" : "View service details"}
                     >
                       <ArrowRight className="w-4 h-4" />
                     </Link>
@@ -382,10 +433,10 @@ export const TodaysExclusiveDeals: React.FC = () => {
         {/* Bottom CTA */}
         <div className="mt-12 text-center">
           <Link
-            href="/services"
+            href={isPackageMode ? "/packages" : "/services"}
             className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-white/80 backdrop-blur-sm border border-[#E8D8C8] text-[#292525] text-sm font-semibold hover:border-[#C8505F] hover:text-[#C8505F] transition-all shadow-sm hover:shadow-md"
           >
-            <span>Explore all at-home services</span>
+            <span>{isPackageMode ? "Explore all packages & offers" : "Explore all at-home services"}</span>
             <ChevronRight className="w-4 h-4 text-[#C8505F]" />
           </Link>
         </div>

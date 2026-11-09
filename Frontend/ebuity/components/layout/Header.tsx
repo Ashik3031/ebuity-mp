@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 import { useCart } from "../../lib/cart-context";
 import { BrandLogo } from "./BrandLogo";
@@ -258,6 +258,16 @@ export const Header: React.FC = () => {
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("hair-styling");
   const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
+  const router = useRouter();
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    router.push(`/services?query=${encodeURIComponent(q)}`);
+    setSearchOpen(false);
+    setMobileMenuOpen(false);
+  };
 
   const currentCategory =
     SERVICE_MENU_CATEGORIES.find((c) => c.id === activeCategory) ||
@@ -339,7 +349,7 @@ export const Header: React.FC = () => {
                       <div>
                         <div className="px-2.5 pt-0.5 pb-1.5 flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#746D69]/80">
-                            Service Rituals
+                            Service services
                           </span>
                         </div>
                         <div className="space-y-1">
@@ -414,7 +424,7 @@ export const Header: React.FC = () => {
                               {currentCategory.name}
                             </h4>
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FAF7F2] text-[#CF565D] border border-[#E8D8C8]">
-                              {currentCategory.subcategories.length} Rituals
+                              {currentCategory.subcategories.length} services
                             </span>
                             <span className="hidden sm:inline text-[11px] text-[#746D69]">
                               • Select a treatment to view details & pricing
@@ -507,61 +517,80 @@ export const Header: React.FC = () => {
             </Link>
           </nav>
 
-          {/* Right: Actions (Search, Profile, Cart, Book Now, Mobile Toggle) */}
-          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+          {/* Right: Actions (Mobile: Search -> /book, Book Now, Menu; Desktop: Search, Account, Cart, Book Now) */}
+          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 lg:gap-3.5 shrink-0">
 
-            {/* Search Toggle */}
-            <div className="relative">
+            {/* Mobile-Only Search Icon -> Navigates directly to /book per Requirement 4 */}
+            <Link
+              href="/book"
+              className="sm:hidden w-9 h-9 xs:w-10 xs:h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95 shrink-0"
+              aria-label="Search and book treatments"
+            >
+              <Search className="w-5 h-5 stroke-[1.75]" />
+            </Link>
+
+            {/* Desktop/Tablet Search Toggle & Dropdown */}
+            <div className="hidden sm:block relative">
               <button
                 type="button"
                 onClick={() => setSearchOpen(!searchOpen)}
-                className="p-2 text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60"
-                aria-label="Search services"
+                className="w-10 h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95"
+                aria-label="Search treatments and services"
               >
                 <Search className="w-5 h-5 stroke-[1.75]" />
               </button>
 
               {searchOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 p-2 bg-white rounded-2xl shadow-xl border border-[#E8D8C8] z-50">
-                  <div className="flex items-center px-2 py-1">
+                <div className="absolute right-0 top-full mt-2 w-80 lg:w-96 p-2.5 bg-white rounded-2xl shadow-xl border border-[#E8D8C8] z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-2.5 py-1.5 bg-[#FAF7F2] rounded-xl border border-[#E8D8C8]/70 focus-within:border-[#CF565D] focus-within:bg-white transition-all">
+                    <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search facials, massages, manicure..."
-                      className="w-full text-xs text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent"
+                      className="w-full text-xs text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent py-1"
                       autoFocus
                     />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="text-xs text-[#746D69] hover:text-[#292525] p-1"
+                        aria-label="Clear query"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
-                      type="button"
-                      onClick={() => setSearchOpen(false)}
-                      className="text-xs text-[#746D69] hover:text-[#292525] p-1"
+                      type="submit"
+                      className="px-3 py-1 rounded-lg bg-[#CF565D] text-white text-[11px] font-semibold hover:bg-[#b8454c] shrink-0"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      Search
                     </button>
-                  </div>
+                  </form>
                 </div>
               )}
             </div>
 
-            {/* Account / Profile */}
-            <div className="relative">
+            {/* Desktop/Tablet Account / Profile (Hidden on Mobile per Requirement 3; moved to Drawer) */}
+            <div className="hidden sm:block relative">
               {isAuthenticated ? (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <Link
                     href="/account"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-[#E8D8C8] hover:border-[#CF565D] hover:text-[#CF565D] transition-colors text-xs font-medium text-[#292525] shadow-2xs"
+                    className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white border border-[#E8D8C8] hover:border-[#CF565D] hover:text-[#CF565D] transition-colors text-xs font-medium text-[#292525] shadow-2xs"
                     title="Customer Account"
                   >
                     <UserIcon className="w-3.5 h-3.5 text-[#CF565D]" />
-                    <span className="hidden xl:inline max-w-[100px] truncate">
+                    <span className="hidden xl:inline max-w-[90px] truncate">
                       {user?.name?.split(" ")[0] || "Account"}
                     </span>
                   </Link>
                   <button
                     type="button"
                     onClick={() => logout()}
-                    className="p-2 text-[#746D69] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60"
+                    className="w-9 h-9 flex items-center justify-center text-[#746D69] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60"
                     title="Sign Out"
                     aria-label="Sign Out"
                   >
@@ -571,7 +600,7 @@ export const Header: React.FC = () => {
               ) : (
                 <Link
                   href="/login"
-                  className="p-2 text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60"
+                  className="w-10 h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95"
                   aria-label="Client Sign In"
                 >
                   <UserIcon className="w-5 h-5 stroke-[1.75]" />
@@ -579,21 +608,21 @@ export const Header: React.FC = () => {
               )}
             </div>
 
-            {/* Cart Bag Icon with Badge */}
+            {/* Desktop/Tablet Cart Bag Icon (Hidden on Mobile per Requirement 3; moved to Drawer) */}
             <Link
               href="/cart"
-              className="relative p-2 text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60"
+              className="hidden sm:flex relative w-10 h-10 items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95 shrink-0"
               aria-label={`Shopping Cart, ${totals.count} items`}
             >
               <ShoppingBag className="w-5 h-5 stroke-[1.75]" />
               {totals.count > 0 && (
-                <span className="absolute top-1 right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#CF565D] text-white text-[10px] font-bold flex items-center justify-center leading-none shadow-xs animate-in zoom-in duration-150">
+                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-[#CF565D] text-white text-[10px] font-bold flex items-center justify-center leading-none shadow-xs animate-in zoom-in duration-150">
                   {totals.count > 99 ? "99+" : totals.count}
                 </span>
               )}
             </Link>
 
-            {/* Book Now Button (visible on tablet and desktop; mobile uses drawer CTA) */}
+            {/* Prominent Book Now Button (Visible on ALL devices: Mobile, Tablet & Desktop) */}
             <Link
               href="/book"
               onClick={() => {
@@ -601,32 +630,149 @@ export const Header: React.FC = () => {
                   window.dispatchEvent(new CustomEvent("reset-booking-flow"));
                 }
               }}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 sm:px-4 lg:px-5 py-2 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 shrink-0"
+              className="flex items-center gap-1 sm:gap-1.5 h-8 xs:h-9 sm:h-10 px-2.5 xs:px-3 sm:px-4 lg:px-5 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-[11px] xs:text-xs font-semibold uppercase tracking-wider transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 shrink-0"
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Book Now</span>
+              <Calendar className="w-3 h-3 xs:w-3.5 xs:h-3.5" />
+              <span className="whitespace-nowrap">Book Now</span>
             </Link>
 
-            {/* Mobile Hamburger Toggle */}
+            {/* Mobile Hamburger Toggle (md:hidden) */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-[#292525] hover:text-[#CF565D] rounded-lg focus:outline-none"
+              className="md:hidden w-9 h-9 xs:w-10 xs:h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] rounded-lg focus:outline-none shrink-0"
               aria-label="Toggle mobile menu"
             >
               {mobileMenuOpen ? (
-                <X className="w-6 h-6 stroke-[1.75]" />
+                <X className="w-5 h-5 xs:w-6 xs:h-6 stroke-[1.75]" />
               ) : (
-                <Menu className="w-6 h-6 stroke-[1.75]" />
+                <Menu className="w-5 h-5 xs:w-6 xs:h-6 stroke-[1.75]" />
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer with Full Viewport Height and Independent Scroll */}
+      {/* Mobile Full-Header Search Bar Overlay (Active on Mobile when search clicked) */}
+      {searchOpen && (
+        <div className="sm:hidden absolute inset-x-0 top-0 h-16 bg-white border-b border-[#E8D8C8] px-3.5 flex items-center gap-2.5 z-50 shadow-md animate-in slide-in-from-top duration-150">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 bg-[#FAF7F2] rounded-xl border border-[#E8D8C8] px-3 py-1.5 focus-within:border-[#CF565D] focus-within:bg-white transition-all">
+            <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search treatments, rituals..."
+              className="w-full text-base text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent"
+              autoFocus
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="p-1 text-[#746D69]"
+                aria-label="Clear search query"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </form>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(false)}
+            className="w-9 h-9 flex items-center justify-center text-[#746D69] hover:text-[#292525] shrink-0"
+            aria-label="Close search"
+          >
+            <X className="w-5 h-5 stroke-[2]" />
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Drawer with Full Viewport Height, Safe Area and Search */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-[#FAF7F2] border-t border-[#E8D8C8] px-4 sm:px-6 py-5 overflow-y-auto space-y-4 animate-in slide-in-from-top duration-200 z-50 shadow-xl pb-12">
+        <div className="md:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-[#FAF7F2] border-t border-[#E8D8C8] px-4 sm:px-6 py-5 overflow-y-auto space-y-4 animate-in slide-in-from-top duration-200 z-50 shadow-xl pb-[max(3rem,env(safe-area-inset-bottom))]">
+          {/* Quick Account & Cart Row in Mobile Drawer */}
+          <div className="flex items-center gap-2.5">
+            {isAuthenticated ? (
+              <Link
+                href="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
+                  <UserIcon className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 text-left">
+                  <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Account</span>
+                  <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">{user?.name?.split(" ")[0] || "My Profile"}</span>
+                </div>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
+                  <UserIcon className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 text-left">
+                  <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Welcome</span>
+                  <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">Sign In / Profile</span>
+                </div>
+              </Link>
+            )}
+
+            <Link
+              href="/cart"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex-1 flex items-center justify-between p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 text-left">
+                  <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Basket</span>
+                  <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">Shopping Cart</span>
+                </div>
+              </div>
+              {totals.count > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-[#CF565D] text-white text-[11px] font-bold shrink-0">
+                  {totals.count}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          {/* Direct Search Bar Inside Mobile Drawer */}
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white border border-[#E8D8C8] shadow-2xs">
+            <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search treatments or packages..."
+              className="w-full text-sm text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="p-1 text-[#746D69]"
+                aria-label="Clear query"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="submit"
+              className="px-3 py-1 rounded-xl bg-[#CF565D] text-white text-xs font-semibold shrink-0"
+            >
+              Search
+            </button>
+          </form>
+
           {/* Quick Book CTA Button in Mobile Drawer */}
           <Link
             href="/book"
@@ -653,7 +799,7 @@ export const Header: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span>Our Services</span>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
-                    Rituals
+                    services
                   </span>
                 </div>
                 <ChevronDown

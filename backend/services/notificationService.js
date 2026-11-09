@@ -311,7 +311,7 @@ export async function notifyBookingConfirmed(booking) {
           <p>Your at-home ritual has been confirmed for <strong>${booking.scheduledDate}</strong>.</p>
           <p><strong>Appointment Time:</strong> ${new Date(booking.scheduledStartTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – ${new Date(booking.scheduledEndTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
           <p><strong>Location:</strong> ${booking.serviceAddress.unitNumber}, ${booking.serviceAddress.buildingName}, ${booking.serviceAddress.area}, Dubai</p>
-          <h3>Selected Rituals:</h3>
+          <h3>Selected services:</h3>
           <ul>${servicesList}</ul>
           <p><strong>Total:</strong> AED ${booking.totalPrice.toFixed(2)}</p>
           <p>Track your appointment: <a href="${SITE_URL}/my-bookings" style="color:#CF565D;">View Appointment Details</a></p>
@@ -386,7 +386,7 @@ export async function notifyBookingConfirmed(booking) {
               <div style="background:#FAF7F2;border:1px solid #E8D8C8;padding:12px;border-radius:8px;margin:12px 0;">
                 <p style="margin:0;font-weight:bold;color:${booking.assignedStaff?.name ? "#10B981" : "#CF565D"};">${assignedText}</p>
               </div>
-              <p><strong>Selected Rituals:</strong></p>
+              <p><strong>Selected services:</strong></p>
               <ul>${servicesList}</ul>
               <p style="font-size:16px;font-weight:bold;">Total Amount: AED ${booking.totalPrice?.toFixed(2) || "0.00"}</p>
               <p><a href="${SITE_URL}/admin/bookings" style="display:inline-block;padding:10px 18px;background:#CF565D;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;margin-top:10px;">Open in Admin Bookings →</a></p>

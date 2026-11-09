@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   MessageCircle,
   X,
@@ -17,8 +18,12 @@ import {
   Phone,
   ShieldCheck,
   ArrowRight,
+  ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Sun,
+  Moon,
+  Sunrise,
   Scissors,
   Flower2,
   Heart,
@@ -126,14 +131,35 @@ const DEFAULT_LOCATIONS = [
   "DIFC",
 ];
 
-const TIME_SLOTS = [
-  "10:00 AM",
-  "11:30 AM",
-  "01:00 PM",
-  "02:30 PM",
-  "04:00 PM",
-  "05:30 PM",
-  "07:00 PM",
+const COMPREHENSIVE_TIME_SLOTS: Array<{ time: string; period: "morning" | "afternoon" | "evening" }> = [
+  // Morning (10:00 AM - 12:00 PM)
+  { time: "10:00 AM", period: "morning" },
+  { time: "10:30 AM", period: "morning" },
+  { time: "11:00 AM", period: "morning" },
+  { time: "11:30 AM", period: "morning" },
+  // Afternoon (12:00 PM - 05:00 PM)
+  { time: "12:00 PM", period: "afternoon" },
+  { time: "12:30 PM", period: "afternoon" },
+  { time: "01:00 PM", period: "afternoon" },
+  { time: "01:30 PM", period: "afternoon" },
+  { time: "02:00 PM", period: "afternoon" },
+  { time: "02:30 PM", period: "afternoon" },
+  { time: "03:00 PM", period: "afternoon" },
+  { time: "03:30 PM", period: "afternoon" },
+  { time: "04:00 PM", period: "afternoon" },
+  { time: "04:30 PM", period: "afternoon" },
+  // Evening (05:00 PM - 10:00 PM)
+  { time: "05:00 PM", period: "evening" },
+  { time: "05:30 PM", period: "evening" },
+  { time: "06:00 PM", period: "evening" },
+  { time: "06:30 PM", period: "evening" },
+  { time: "07:00 PM", period: "evening" },
+  { time: "07:30 PM", period: "evening" },
+  { time: "08:00 PM", period: "evening" },
+  { time: "08:30 PM", period: "evening" },
+  { time: "09:00 PM", period: "evening" },
+  { time: "09:30 PM", period: "evening" },
+  { time: "10:00 PM", period: "evening" },
 ];
 
 /**
@@ -226,12 +252,15 @@ function BookingChatWidgetContent() {
 
   // Hide widget in admin and staff portals
   const isBackOffice = pathname?.startsWith("/admin") || pathname?.startsWith("/staff");
+  const hasStickyBottomCTA = pathname === "/book" || pathname === "/cart" || pathname === "/checkout";
 
   const [isOpen, setIsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
   // Chat Data Selections
-  const [selectedService, setSelectedService] = useState<ChatServiceOption | null>(null);
+  const [selectedServices, setSelectedServices] = useState<ChatServiceOption[]>([]);
+  const [activeCategoryKey, setActiveCategoryKey] = useState<string>("hair");
+  const [serviceSelectionConfirmed, setServiceSelectionConfirmed] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
@@ -241,6 +270,24 @@ function BookingChatWidgetContent() {
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingReference, setBookingReference] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Totals for multi-service selection
+  const totalChatPrice = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + (s.price || 0), 0),
+    [selectedServices]
+  );
+  const totalChatDuration = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + (s.duration || 60), 0),
+    [selectedServices]
+  );
+
+  // Interactive Chat Calendar & Time Filter States
+  const [chatCalendarMonth, setChatCalendarMonth] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
+  const [chatTimeFilter, setChatTimeFilter] = useState<"all" | "morning" | "afternoon" | "evening">("all");
 
   // Dynamic database lists
   const [locations, setLocations] = useState<string[]>(DEFAULT_LOCATIONS);
@@ -356,7 +403,9 @@ function BookingChatWidgetContent() {
 
   // Initialize Conversation
   const initializeChat = () => {
-    setSelectedService(null);
+    setSelectedServices([]);
+    setActiveCategoryKey("hair");
+    setServiceSelectionConfirmed(false);
     setSelectedLocation("");
     setSelectedDate("");
     setSelectedTime("");
@@ -390,32 +439,155 @@ function BookingChatWidgetContent() {
     }
   }, []);
 
-  // Generate Upcoming Dates (Today, Tomorrow, +3 days)
-  const getUpcomingDates = () => {
-    const list: Array<{ label: string; dateVal: string }> = [];
+  // Interactive Chat Calendar Logic
+  const canGoPrevChatMonth = useMemo(() => {
     const today = new Date();
+    return (
+      chatCalendarMonth.getFullYear() > today.getFullYear() ||
+      (chatCalendarMonth.getFullYear() === today.getFullYear() &&
+        chatCalendarMonth.getMonth() > today.getMonth())
+    );
+  }, [chatCalendarMonth]);
 
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
+  const handlePrevChatMonth = () => {
+    if (!canGoPrevChatMonth) return;
+    setChatCalendarMonth(
+      new Date(chatCalendarMonth.getFullYear(), chatCalendarMonth.getMonth() - 1, 1)
+    );
+  };
 
+  const handleNextChatMonth = () => {
+    setChatCalendarMonth(
+      new Date(chatCalendarMonth.getFullYear(), chatCalendarMonth.getMonth() + 1, 1)
+    );
+  };
+
+  const chatCalendarDays = useMemo(() => {
+    const year = chatCalendarMonth.getFullYear();
+    const month = chatCalendarMonth.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const days: Array<{
+      dateStr: string;
+      dayNum: number;
+      isCurrentMonth: boolean;
+      isPast: boolean;
+      isToday: boolean;
+    }> = [];
+
+    // Trailing previous month days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dayNum = daysInPrevMonth - i;
+      const prevDate = new Date(year, month - 1, dayNum);
+      const mm = String(prevDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(dayNum).padStart(2, "0");
+      days.push({
+        dateStr: `${prevDate.getFullYear()}-${mm}-${dd}`,
+        dayNum,
+        isCurrentMonth: false,
+        isPast: true,
+        isToday: false,
+      });
+    }
+
+    // Current month days
+    for (let d = 1; d <= totalDaysInMonth; d++) {
+      const curDate = new Date(year, month, d);
+      curDate.setHours(0, 0, 0, 0);
+      const mm = String(month + 1).padStart(2, "0");
+      const dd = String(d).padStart(2, "0");
+      const dateStr = `${year}-${mm}-${dd}`;
+      const isPast = curDate.getTime() < today.getTime();
+      const isToday = curDate.getTime() === today.getTime();
+
+      days.push({
+        dateStr,
+        dayNum: d,
+        isCurrentMonth: true,
+        isPast,
+        isToday,
+      });
+    }
+
+    // Trailing next month days to complete 7-column rows
+    const remainingCells = (7 - (days.length % 7)) % 7;
+    for (let n = 1; n <= remainingCells; n++) {
+      const nextDate = new Date(year, month + 1, n);
+      const mm = String(nextDate.getMonth() + 1).padStart(2, "0");
+      const dd = String(n).padStart(2, "0");
+      days.push({
+        dateStr: `${nextDate.getFullYear()}-${mm}-${dd}`,
+        dayNum: n,
+        isCurrentMonth: false,
+        isPast: false,
+        isToday: false,
+      });
+    }
+
+    return days;
+  }, [chatCalendarMonth]);
+
+  const getQuickDatePresets = () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    // Upcoming Weekend (Friday or Saturday)
+    const weekend = new Date(today);
+    const dayOfWeek = today.getDay(); // 0 is Sun, 5 is Fri, 6 is Sat
+    const daysUntilWeekend = (5 - dayOfWeek + 7) % 7 || 7;
+    weekend.setDate(today.getDate() + daysUntilWeekend);
+
+    const fmt = (d: Date) => {
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       const dd = String(d.getDate()).padStart(2, "0");
-      const dateVal = `${yyyy}-${mm}-${dd}`;
+      return `${yyyy}-${mm}-${dd}`;
+    };
 
-      let label = "";
-      if (i === 0) {
-        label = `Today, ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-      } else if (i === 1) {
-        label = `Tomorrow, ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-      } else {
-        label = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-      }
-      list.push({ label, dateVal });
-    }
-    return list;
+    return [
+      {
+        badge: "Today",
+        shortLabel: today.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        label: `Today, ${today.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+        dateVal: fmt(today),
+      },
+      {
+        badge: "Tomorrow",
+        shortLabel: tomorrow.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        label: `Tomorrow, ${tomorrow.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+        dateVal: fmt(tomorrow),
+      },
+      {
+        badge: "Weekend",
+        shortLabel: weekend.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+        label: weekend.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+        dateVal: fmt(weekend),
+      },
+    ];
   };
+
+  const handleSelectCalendarDate = (dStr: string) => {
+    const [y, m, d] = dStr.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const formatted = dateObj.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    handleSelectDate(dStr, formatted);
+  };
+
+  const displayedSlots = useMemo(() => {
+    if (chatTimeFilter === "all") return COMPREHENSIVE_TIME_SLOTS;
+    return COMPREHENSIVE_TIME_SLOTS.filter((s) => s.period === chatTimeFilter);
+  }, [chatTimeFilter]);
 
   // Helper: Append bot reply with typing indicator
   const botReply = (nextMessage: Partial<ChatMessage>, delay = 400) => {
@@ -437,41 +609,56 @@ function BookingChatWidgetContent() {
 
   // Step 1: User selected category -> bot displays specific treatments
   const handleSelectCategory = (catKey: string, catName: string) => {
+    setActiveCategoryKey(catKey);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setMessages((prev) => [
       ...prev,
       {
         id: `user-${Date.now()}`,
         sender: "user",
-        text: catName,
+        text: `Category: ${catName}`,
         timestamp: timeStr,
       },
     ]);
 
     botReply({
-      text: `Great choice! Here are our available rituals for **${catName}**.\n\nPlease choose your treatment:`,
+      text: `Browse treatments for **${catName}** below. You can select multiple treatments across any category:`,
       type: "treatment-picker",
       categoryKey: catKey,
     });
   };
 
-  // Step 2: User selected specific treatment -> Ask for Location
-  const handleSelectTreatment = (service: ChatServiceOption) => {
-    setSelectedService(service);
+  // Toggle treatment selection (Multiple treatments allowed)
+  const toggleTreatment = (service: ChatServiceOption) => {
+    setSelectedServices((prev) => {
+      const exists = prev.some((s) => s.id === service.id || s.name === service.name);
+      if (exists) {
+        return prev.filter((s) => s.id !== service.id && s.name !== service.name);
+      } else {
+        return [...prev, service];
+      }
+    });
+  };
+
+  // Step 2: Confirm selected treatments -> Move to Location
+  const handleConfirmSelectedTreatments = () => {
+    if (selectedServices.length === 0) return;
+    setServiceSelectionConfirmed(true);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+    const names = selectedServices.map((s) => s.name).join(", ");
     setMessages((prev) => [
       ...prev,
       {
         id: `user-${Date.now()}`,
         sender: "user",
-        text: `${service.name} (AED ${service.price})`,
+        text: `Selected ${selectedServices.length} Treatment${selectedServices.length > 1 ? "s" : ""}: ${names} (AED ${totalChatPrice})`,
         timestamp: timeStr,
       },
     ]);
 
     botReply({
-      text: `Selected: **${service.name}** (~${service.duration} mins, AED ${service.price}).\n\n**Which location in Dubai do you prefer?**`,
+      text: `Excellent selection! You've chosen **${selectedServices.length} treatment${selectedServices.length > 1 ? "s" : ""}** (Total: **AED ${totalChatPrice}**, ~${totalChatDuration} mins).\n\n**Which location in Dubai do you prefer?**`,
       type: "location-picker",
     });
   };
@@ -594,38 +781,37 @@ function BookingChatWidgetContent() {
     const generatedRef = `RE-${Math.floor(100000 + Math.random() * 900000)}`;
     let confirmedRef = generatedRef;
 
-    // Resolve real MongoDB service ID
-    let realServiceId = selectedService?.id;
-    const isHex24 = realServiceId && /^[0-9a-fA-F]{24}$/.test(realServiceId);
-
-    if (!isHex24 && dbServices.length > 0) {
-      // Find matching service in dbServices by name
-      const match = dbServices.find(
-        (s) => s.name?.toLowerCase().trim() === selectedService?.name?.toLowerCase().trim()
-      );
-      if (match) {
-        realServiceId = match._id;
-      } else {
+    // Resolve real MongoDB service IDs for all selected services
+    const realServiceIds = selectedServices
+      .map((srv) => {
+        if (srv.id && /^[0-9a-fA-F]{24}$/.test(srv.id)) return srv.id;
+        const match = dbServices.find(
+          (s) => s.name?.toLowerCase().trim() === srv.name?.toLowerCase().trim()
+        );
+        if (match) return match._id;
         const partialMatch = dbServices.find(
           (s) =>
-            s.name?.toLowerCase().includes(selectedService?.name?.toLowerCase() || "") ||
-            (selectedService?.name && s.name && selectedService.name.toLowerCase().includes(s.name.toLowerCase()))
+            s.name?.toLowerCase().includes(srv.name?.toLowerCase() || "") ||
+            (srv.name && s.name && srv.name.toLowerCase().includes(s.name.toLowerCase()))
         );
-        if (partialMatch) {
-          realServiceId = partialMatch._id;
-        } else {
-          realServiceId = dbServices[0]._id;
-        }
-      }
-    }
+        return partialMatch ? partialMatch._id : null;
+      })
+      .filter((id): id is string => Boolean(id));
+
+    const finalServiceIds =
+      realServiceIds.length > 0
+        ? realServiceIds
+        : dbServices[0]?._id
+          ? [dbServices[0]._id]
+          : [];
 
     const time24 = convert12To24(selectedTime || "12:00 PM");
     const serviceArea = selectedLocation || "Dubai Marina";
 
     try {
-      if (realServiceId && /^[0-9a-fA-F]{24}$/.test(realServiceId)) {
+      if (finalServiceIds.length > 0) {
         const res = await bookingApi.create({
-          serviceIds: [realServiceId],
+          serviceIds: finalServiceIds,
           scheduledDate: selectedDate || new Date().toISOString().split("T")[0],
           scheduledTime: time24,
           address: {
@@ -652,18 +838,23 @@ function BookingChatWidgetContent() {
     setBookingConfirmed(true);
 
     botReply({
-      text: `🎉 **Booking Confirmed!**\n\nYour reference number is **#${confirmedRef}**.\n\nA verified female specialist will arrive at your home on **${selectedDate}** at **${selectedTime}**.\n\nPay cash or card upon service completion.`,
+      text: `🎉 **Booking Confirmed!**\n\nYour reference number is **#${confirmedRef}**.\n\nA verified female specialist will arrive at your home on **${selectedDate}** at **${selectedTime}** for your ${selectedServices.length} treatment${selectedServices.length > 1 ? "s" : ""}.\n\nPay cash or card upon service completion.`,
       type: "confirmation",
     });
   };
 
   // Helper: Open WhatsApp with pre-filled message
   const openWhatsAppConfirmation = () => {
+    const servicesList = selectedServices
+      .map((s) => `  • ${s.name} (AED ${s.price}, ~${s.duration || 60}m)`)
+      .join("\n");
+
     const text = encodeURIComponent(
       `Hello Rose! 🌸 I would like to confirm my at-home beauty appointment:\n\n` +
       `• Ref: #${bookingReference || "RE-CHAT"}\n` +
-      `• Service: ${selectedService?.name || "Beauty Ritual"}\n` +
-      `• Price: AED ${selectedService?.price || 110}\n` +
+      `• Treatments (${selectedServices.length}):\n${servicesList}\n` +
+      `• Total Price: AED ${totalChatPrice}\n` +
+      `• Total Duration: ~${totalChatDuration} mins\n` +
       `• Location: ${selectedLocation || "Dubai"}\n` +
       `• Date: ${selectedDate}\n` +
       `• Time: ${selectedTime}\n` +
@@ -683,7 +874,12 @@ function BookingChatWidgetContent() {
       {/* FLOATING LAUNCHER BUTTON                                            */}
       {/* ==================================================================== */}
       {!isOpen && (
-        <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2">
+        <div
+          className={`fixed z-50 flex items-center gap-2 transition-all duration-300 ${hasStickyBottomCTA
+            ? "hidden sm:flex sm:bottom-6 sm:right-6"
+            : "bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 sm:bottom-6 sm:right-6"
+            }`}
+        >
           {/* Friendly floating speech bubble teaser on desktop */}
           <button
             type="button"
@@ -699,16 +895,24 @@ function BookingChatWidgetContent() {
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#CF565D] to-[#B34351] hover:from-[#B34351] hover:to-[#9E3340] text-white shadow-[0_8px_20px_rgba(207,86,93,0.35)] hover:shadow-[0_12px_28px_rgba(207,86,93,0.48)] flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
+            className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#CF565D] to-[#B34351] hover:from-[#B34351] hover:to-[#9E3340] text-white shadow-[0_8px_20px_rgba(207,86,93,0.35)] hover:shadow-[0_12px_28px_rgba(207,86,93,0.48)] flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer overflow-hidden p-1.5"
             aria-label="Open Booking Assistant Rose"
           >
             {/* Online Green Pulsing Beacon */}
-            <span className="absolute top-0.5 right-0.5 flex h-3 w-3">
+            <span className="absolute top-0.5 right-0.5 flex h-3 w-3 z-10">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white" />
             </span>
 
-            <MessageCircle className="w-6 h-6 stroke-[2] transition-transform duration-300 group-hover:scale-110" />
+            <div className="w-full h-full rounded-full overflow-hidden bg-white shadow-inner flex items-center justify-center">
+              <Image
+                src="/rose-essence-logo-square.jpg"
+                alt="Rose Booking Assistant"
+                width={48}
+                height={48}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+            </div>
           </button>
         </div>
       )}
@@ -717,15 +921,19 @@ function BookingChatWidgetContent() {
       {/* WHATSAPP-STYLE LIVE CHAT WINDOW                                     */}
       {/* ==================================================================== */}
       {isOpen && (
-        <div className="fixed inset-x-2 bottom-2 sm:inset-auto sm:bottom-6 sm:right-6 w-auto sm:w-[400px] h-[590px] max-h-[calc(100vh-1rem)] bg-[#FAF7F2] rounded-3xl border border-[#E8D8C8] shadow-[0_24px_60px_rgba(41,37,37,0.22)] z-50 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] sm:inset-auto sm:bottom-6 sm:right-6 w-auto sm:w-[400px] h-[590px] max-h-[calc(100dvh-2rem)] bg-[#FAF7F2] rounded-3xl border border-[#E8D8C8] shadow-[0_24px_60px_rgba(41,37,37,0.22)] z-50 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
           {/* HEADER: Rose Assistant (Clean, Small, Elegant Font) */}
           <div className="bg-gradient-to-r from-[#CF565D] via-[#B8454C] to-[#9E3340] text-white px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between shrink-0 shadow-sm">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="relative">
-                {/* <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-xs border border-white/25 flex items-center justify-center text-white shrink-0 shadow-2xs">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
-                </div> */}
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#B8454C]" />
+              <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/30 shrink-0 shadow-2xs bg-white">
+                <Image
+                  src="/rose-essence-logo-square.jpg"
+                  alt="Rose"
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-cover"
+                />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-white" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-xs font-bold tracking-wide truncate flex items-center gap-1 leading-tight">
@@ -825,7 +1033,7 @@ function BookingChatWidgetContent() {
                   {/* -------------------------------------------------------- */}
                   {/* STEP 1: SERVICE CATEGORIES QUICK REPLIES                  */}
                   {/* -------------------------------------------------------- */}
-                  {isBot && msg.type === "service-picker" && !selectedService && (
+                  {isBot && msg.type === "service-picker" && !serviceSelectionConfirmed && (
                     <div className="w-full pt-1 space-y-1.5">
                       <span className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider pl-1">
                         Select Category:
@@ -859,37 +1067,124 @@ function BookingChatWidgetContent() {
                   )}
 
                   {/* -------------------------------------------------------- */}
-                  {/* STEP 1.5: SPECIFIC TREATMENTS PICKER                      */}
+                  {/* STEP 1.5: MULTI-TREATMENT PICKER & CATEGORY FILTER TABS   */}
                   {/* -------------------------------------------------------- */}
-                  {isBot && msg.type === "treatment-picker" && !selectedService && msg.categoryKey && (
-                    <div className="w-full pt-1 space-y-1.5">
-                      <span className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider pl-1">
-                        Select Ritual:
-                      </span>
-                      <div className="space-y-1.5">
-                        {(treatments[msg.categoryKey] || PRESET_TREATMENTS[msg.categoryKey] || PRESET_TREATMENTS.hair).map((t) => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => handleSelectTreatment(t)}
-                            className="w-full flex items-center justify-between p-2 rounded-xl bg-white hover:bg-[#FDF3F1] border border-[#E8D8C8] hover:border-[#CF565D]/40 text-left transition-all shadow-2xs group cursor-pointer"
-                          >
-                            <div className="min-w-0 flex-1 pr-2">
-                              <span className="block text-xs font-bold text-[#292525] group-hover:text-[#CF565D] transition-colors truncate">
-                                {t.name}
-                              </span>
-                              <span className="block text-[10px] text-[#746D69]">
-                                Duration: ~{t.duration} mins
-                              </span>
-                            </div>
-                            <div className="shrink-0 flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded-full bg-[#FAF7F2] text-[#CF565D] text-[11px] font-bold border border-[#E8D8C8]/60">
-                                AED {t.price}
-                              </span>
-                              <ChevronRight className="w-3.5 h-3.5 text-[#746D69] group-hover:translate-x-0.5 transition-transform" />
-                            </div>
-                          </button>
-                        ))}
+                  {isBot && msg.type === "treatment-picker" && !serviceSelectionConfirmed && (
+                    <div className="w-full pt-1 space-y-2.5">
+                      {/* Category Switcher Pills */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+                        {DEFAULT_CATEGORIES.map((cat) => {
+                          const active = activeCategoryKey === cat.key;
+                          const countInCat = selectedServices.filter(
+                            (s) =>
+                              s.category?.toLowerCase() === cat.name.toLowerCase() ||
+                              s.category?.toLowerCase() === cat.key.toLowerCase()
+                          ).length;
+                          return (
+                            <button
+                              key={cat.key}
+                              type="button"
+                              onClick={() => setActiveCategoryKey(cat.key)}
+                              className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer ${active
+                                  ? "bg-[#CF565D] text-white shadow-xs"
+                                  : "bg-white text-[#746D69] hover:text-[#292525] border border-[#E8D8C8]"
+                                }`}
+                            >
+                              <span>{cat.name}</span>
+                              {countInCat > 0 && (
+                                <span
+                                  className={`min-w-3.5 h-3.5 px-1 rounded-full text-[9px] font-bold flex items-center justify-center ${active ? "bg-white text-[#CF565D]" : "bg-[#CF565D] text-white"
+                                    }`}
+                                >
+                                  {countInCat}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Treatments List (Multi-Selectable with Checkmarks) */}
+                      <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+                        {(
+                          treatments[activeCategoryKey] ||
+                          PRESET_TREATMENTS[activeCategoryKey] ||
+                          PRESET_TREATMENTS.hair
+                        ).map((t) => {
+                          const isSelected = selectedServices.some(
+                            (s) => s.id === t.id || s.name === t.name
+                          );
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => toggleTreatment(t)}
+                              className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all shadow-2xs group cursor-pointer active:scale-[0.99] ${isSelected
+                                  ? "bg-[#FDF3F1] border-2 border-[#CF565D] ring-2 ring-[#CF565D]/10"
+                                  : "bg-white hover:bg-[#FAF7F2] border border-[#E8D8C8]"
+                                }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-1 pr-2">
+                                <div
+                                  className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${isSelected
+                                      ? "bg-[#CF565D] text-white"
+                                      : "border border-[#E8D8C8] text-transparent group-hover:border-[#CF565D]/50"
+                                    }`}
+                                >
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </div>
+                                <div className="min-w-0">
+                                  <span
+                                    className={`block text-xs font-bold truncate ${isSelected ? "text-[#CF565D]" : "text-[#292525]"
+                                      }`}
+                                  >
+                                    {t.name}
+                                  </span>
+                                  <span className="block text-[10px] text-[#746D69]">
+                                    ~{t.duration} mins
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="shrink-0 flex items-center gap-1.5">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${isSelected
+                                      ? "bg-[#CF565D] text-white"
+                                      : "bg-[#FAF7F2] text-[#CF565D] border border-[#E8D8C8]/60"
+                                    }`}
+                                >
+                                  AED {t.price}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Sticky Action Footer */}
+                      <div className="pt-2 border-t border-[#E8D8C8] space-y-1.5">
+                        <div className="flex items-center justify-between px-1 text-xs">
+                          <span className="text-[#746D69]">
+                            {selectedServices.length > 0 ? (
+                              <>
+                                <strong className="text-[#292525]">{selectedServices.length}</strong> selected (~{totalChatDuration}m)
+                              </>
+                            ) : (
+                              "Select 1 or more treatments"
+                            )}
+                          </span>
+                          <span className="font-bold text-[#CF565D]">
+                            AED {totalChatPrice}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={selectedServices.length === 0}
+                          onClick={handleConfirmSelectedTreatments}
+                          className="w-full py-2.5 rounded-xl bg-[#CF565D] hover:bg-[#b8454c] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                        >
+                          <span>Continue ({selectedServices.length} Selected · AED {totalChatPrice})</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   )}
@@ -919,49 +1214,181 @@ function BookingChatWidgetContent() {
                   )}
 
                   {/* -------------------------------------------------------- */}
-                  {/* STEP 3: DATE PICKER QUICK REPLIES                         */}
+                  {/* STEP 3: DATE PICKER WITH INTERACTIVE CALENDAR             */}
                   {/* -------------------------------------------------------- */}
                   {isBot && msg.type === "date-picker" && !selectedDate && (
-                    <div className="w-full pt-1 space-y-1.5">
-                      <span className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider pl-1">
-                        Select Date:
-                      </span>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                        {getUpcomingDates().map((item) => (
+                    <div className="w-full pt-1 space-y-2">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[10px] font-bold text-[#746D69] uppercase tracking-wider flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-[#CF565D]" />
+                          Select Date
+                        </span>
+                        <span className="text-[10px] text-[#746D69]">Pick from calendar</span>
+                      </div>
+
+                      {/* Quick Presets (Today, Tomorrow, Weekend) */}
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {getQuickDatePresets().map((item) => (
                           <button
                             key={item.dateVal}
                             type="button"
                             onClick={() => handleSelectDate(item.dateVal, item.label)}
-                            className="flex flex-col items-center justify-center p-2 rounded-xl bg-white hover:bg-[#FDF3F1] border border-[#E8D8C8] hover:border-[#CF565D]/40 text-center transition-all shadow-2xs group cursor-pointer"
+                            className="py-1.5 px-2 rounded-xl bg-white hover:bg-[#FDF3F1] border border-[#E8D8C8] hover:border-[#CF565D]/50 text-center transition-all shadow-2xs group cursor-pointer active:scale-95"
                           >
-                            <Calendar className="w-3.5 h-3.5 text-[#CF565D] mb-0.5" />
-                            <span className="text-[11px] font-bold text-[#292525] leading-tight">
-                              {item.label}
+                            <span className="block text-[9.5px] text-[#746D69] uppercase font-bold tracking-wider">
+                              {item.badge}
+                            </span>
+                            <span className="block text-[11px] font-bold text-[#292525] group-hover:text-[#CF565D] leading-tight truncate mt-0.5">
+                              {item.shortLabel}
                             </span>
                           </button>
                         ))}
+                      </div>
+
+                      {/* Native App-like In-Chat Calendar Card */}
+                      <div className="bg-white rounded-2xl border border-[#E8D8C8] p-2.5 sm:p-3 shadow-2xs space-y-2">
+                        {/* Month Navigation */}
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#FAF7F2]">
+                          <button
+                            type="button"
+                            disabled={!canGoPrevChatMonth}
+                            onClick={handlePrevChatMonth}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#292525] hover:bg-[#FAF7F2] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                            aria-label="Previous month"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+
+                          <span className="font-bold text-xs text-[#292525] uppercase tracking-wider">
+                            {chatCalendarMonth.toLocaleDateString("en-US", {
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={handleNextChatMonth}
+                            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#292525] hover:bg-[#FAF7F2] cursor-pointer transition-colors"
+                            aria-label="Next month"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Weekday Labels */}
+                        <div className="grid grid-cols-7 text-center text-[10px] font-bold text-[#746D69]">
+                          <span>Su</span>
+                          <span>Mo</span>
+                          <span>Tu</span>
+                          <span>We</span>
+                          <span>Th</span>
+                          <span>Fr</span>
+                          <span>Sa</span>
+                        </div>
+
+                        {/* Calendar Days 7-Col Grid */}
+                        <div className="grid grid-cols-7 gap-1 text-center">
+                          {chatCalendarDays.map((d: { dateStr: string; dayNum: number; isCurrentMonth: boolean; isPast: boolean; isToday: boolean }, idx: number) => {
+                            if (!d.isCurrentMonth && d.isPast) {
+                              return (
+                                <div
+                                  key={`chat-d-${idx}`}
+                                  className="h-7 flex items-center justify-center text-[10.5px] text-[#CBD5E1] cursor-not-allowed select-none"
+                                >
+                                  {d.dayNum}
+                                </div>
+                              );
+                            }
+                            if (d.isPast) {
+                              return (
+                                <div
+                                  key={`chat-d-${idx}`}
+                                  className="h-7 flex items-center justify-center text-[10.5px] text-[#CBD5E1] opacity-40 cursor-not-allowed select-none"
+                                >
+                                  {d.dayNum}
+                                </div>
+                              );
+                            }
+                            return (
+                              <button
+                                key={`chat-d-${idx}`}
+                                type="button"
+                                onClick={() => handleSelectCalendarDate(d.dateStr)}
+                                className={`h-7 w-full rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center justify-center relative select-none active:scale-95 ${d.isToday
+                                  ? "bg-[#FAF5FF] text-[#CF565D] border border-[#CF565D]/40 font-bold hover:bg-[#CF565D] hover:text-white"
+                                  : d.isCurrentMonth
+                                    ? "text-[#292525] hover:bg-[#CF565D] hover:text-white hover:shadow-xs"
+                                    : "text-[#94A3B8] hover:bg-[#FAF7F2]"
+                                  }`}
+                              >
+                                <span>{d.dayNum}</span>
+                                {d.isToday && (
+                                  <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-[#CF565D]" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {/* -------------------------------------------------------- */}
-                  {/* STEP 4: TIME SLOTS QUICK REPLIES                          */}
+                  {/* STEP 4: TIME SLOTS QUICK REPLIES (App-Like Multi-Slot)    */}
                   {/* -------------------------------------------------------- */}
                   {isBot && msg.type === "time-picker" && !selectedTime && (
-                    <div className="w-full pt-1 space-y-1.5">
-                      <span className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider pl-1">
-                        Select Time:
-                      </span>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {TIME_SLOTS.map((slot) => (
+                    <div className="w-full pt-1 space-y-2">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[10px] font-bold text-[#746D69] uppercase tracking-wider flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-[#CF565D]" />
+                          Select Time ({displayedSlots.length} Available)
+                        </span>
+                        {selectedDate && (
+                          <span className="text-[10px] font-semibold text-[#CF565D] bg-[#FDF3F1] px-2 py-0.5 rounded-full border border-[#E8D8C8]">
+                            {selectedDate}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Period Filter Tabs */}
+                      <div className="flex items-center gap-1 p-1 bg-white rounded-xl border border-[#E8D8C8] shadow-2xs">
+                        {[
+                          { id: "all", label: "All" },
+                          { id: "morning", label: "Morning", icon: Sunrise },
+                          { id: "afternoon", label: "Afternoon", icon: Sun },
+                          { id: "evening", label: "Evening", icon: Moon },
+                        ].map((tab) => {
+                          const Icon = (tab as any).icon;
+                          const active = chatTimeFilter === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => setChatTimeFilter(tab.id as any)}
+                              className={`flex-1 py-1 px-1 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${active
+                                ? "bg-[#CF565D] text-white shadow-xs"
+                                : "text-[#746D69] hover:text-[#292525] hover:bg-[#FAF7F2]"
+                                }`}
+                            >
+                              {Icon && <Icon className="w-2.5 h-2.5" />}
+                              <span>{tab.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* 3-Column Time Slots Grid with Clock Icon */}
+                      <div className="grid grid-cols-3 gap-1.5 max-h-[200px] overflow-y-auto p-0.5 pr-1 [scrollbar-width:thin]">
+                        {displayedSlots.map((slot: { time: string; period: string }) => (
                           <button
-                            key={slot}
+                            key={slot.time}
                             type="button"
-                            onClick={() => handleSelectTime(slot)}
-                            className="flex items-center justify-center gap-1 p-2 rounded-xl bg-white hover:bg-[#FDF3F1] border border-[#E8D8C8] hover:border-[#CF565D]/40 text-center transition-all shadow-2xs text-xs font-semibold text-[#292525] group cursor-pointer"
+                            onClick={() => handleSelectTime(slot.time)}
+                            className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-white hover:bg-[#FDF3F1] border border-[#E8D8C8] hover:border-[#CF565D]/60 text-center transition-all shadow-2xs text-[11px] font-semibold text-[#292525] hover:text-[#CF565D] group cursor-pointer active:scale-95"
                           >
-                            <Clock className="w-3 h-3 text-[#CF565D]" />
-                            <span>{slot}</span>
+                            <Clock className="w-2.5 h-2.5 text-[#CF565D] opacity-60 group-hover:opacity-100" />
+                            <span>{slot.time}</span>
                           </button>
                         ))}
                       </div>
@@ -1035,18 +1462,31 @@ function BookingChatWidgetContent() {
                           </span>
                         </div>
 
-                        <div className="space-y-1.5 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-[#746D69]">Service:</span>
-                            <span className="font-bold text-[#292525] text-right truncate max-w-[190px]">
-                              {selectedService?.name}
+                        <div className="space-y-2 text-xs">
+                          {/* List of selected treatments */}
+                          <div className="space-y-1.5 pb-2 border-b border-[#FAF7F2]">
+                            <span className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider">
+                              Treatments ({selectedServices.length}):
                             </span>
+                            {selectedServices.map((srv) => (
+                              <div key={srv.id} className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-[#292525] truncate">
+                                  {srv.name}
+                                </span>
+                                <span className="text-[#CF565D] font-bold shrink-0">
+                                  AED {srv.price}
+                                </span>
+                              </div>
+                            ))}
                           </div>
 
-                          <div className="flex justify-between">
-                            <span className="text-[#746D69]">Total Price:</span>
-                            <span className="font-bold text-[#CF565D]">
-                              AED {selectedService?.price}
+                          <div className="flex justify-between items-center">
+                            <span className="text-[#746D69] font-medium">Total Amount:</span>
+                            <span className="font-bold text-sm text-[#CF565D]">
+                              AED {totalChatPrice}
+                              <span className="text-[10px] font-normal text-[#746D69] ml-1">
+                                (~{totalChatDuration} mins)
+                              </span>
                             </span>
                           </div>
 

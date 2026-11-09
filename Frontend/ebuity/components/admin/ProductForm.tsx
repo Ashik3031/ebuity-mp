@@ -52,8 +52,8 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
     initialProduct?.defaultPrice !== undefined
       ? String(initialProduct.defaultPrice)
       : initialProduct?.price !== undefined
-      ? String(initialProduct.price)
-      : ""
+        ? String(initialProduct.price)
+        : ""
   );
   const [compareAtPrice, setCompareAtPrice] = useState<string>(
     initialProduct?.compareAtPrice !== undefined ? String(initialProduct.compareAtPrice) : ""
@@ -62,8 +62,8 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
     initialProduct?.defaultStock !== undefined
       ? String(initialProduct.defaultStock)
       : initialProduct?.stock !== undefined
-      ? String(initialProduct.stock)
-      : "10"
+        ? String(initialProduct.stock)
+        : "10"
   );
   const [description, setDescription] = useState(initialProduct?.description || "");
   const [detailedDescription, setDetailedDescription] = useState(
@@ -205,7 +205,7 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
     const errors: Record<string, string> = {};
     if (!name.trim()) errors.name = "Product name is required.";
     if (!categoryId) errors.category = "Please select a product category.";
-    
+
     const parsedPrice = parseFloat(price);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
       errors.price = "Valid price in AED is required (e.g. 120.00).";
@@ -390,11 +390,10 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
                   if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: "" }));
                 }}
                 placeholder="e.g. Damascus Rose Rejuvenating Facial Elixir"
-                className={`w-full px-4 py-3 rounded-2xl border ${
-                  fieldErrors.name
+                className={`w-full px-4 py-3 rounded-2xl border ${fieldErrors.name
                     ? "border-rose-400 focus:ring-rose-200"
                     : "border-[#E8D8C8] focus:border-[#CF565D] focus:ring-[#CF565D]/10"
-                } bg-[#FAF7F2]/40 text-sm text-[#292525] focus:outline-none focus:ring-4 transition-all`}
+                  } bg-[#FAF7F2]/40 text-sm text-[#292525] focus:outline-none focus:ring-4 transition-all`}
               />
               {fieldErrors.name && (
                 <p className="text-xs text-rose-600 mt-1.5">{fieldErrors.name}</p>
@@ -457,9 +456,8 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
                       if (fieldErrors.category) setFieldErrors((prev) => ({ ...prev, category: "" }));
                     }}
                     disabled={loadingCategories}
-                    className={`w-full px-4 py-3 rounded-2xl border ${
-                      fieldErrors.category ? "border-rose-400" : "border-[#E8D8C8]"
-                    } bg-[#FAF7F2]/40 text-sm text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-4 focus:ring-[#CF565D]/10 transition-all appearance-none cursor-pointer`}
+                    className={`w-full px-4 py-3 rounded-2xl border ${fieldErrors.category ? "border-rose-400" : "border-[#E8D8C8]"
+                      } bg-[#FAF7F2]/40 text-sm text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-4 focus:ring-[#CF565D]/10 transition-all appearance-none cursor-pointer`}
                   >
                     <option value="" disabled>
                       {loadingCategories ? "Loading categories..." : "Select product category"}
@@ -519,9 +517,8 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
                       if (fieldErrors.price) setFieldErrors((prev) => ({ ...prev, price: "" }));
                     }}
                     placeholder="120.00"
-                    className={`w-full pl-14 pr-4 py-3 rounded-2xl border ${
-                      fieldErrors.price ? "border-rose-400" : "border-[#E8D8C8]"
-                    } bg-[#FAF7F2]/40 text-sm font-semibold text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-4 focus:ring-[#CF565D]/10 transition-all`}
+                    className={`w-full pl-14 pr-4 py-3 rounded-2xl border ${fieldErrors.price ? "border-rose-400" : "border-[#E8D8C8]"
+                      } bg-[#FAF7F2]/40 text-sm font-semibold text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-4 focus:ring-[#CF565D]/10 transition-all`}
                   />
                 </div>
                 {fieldErrors.price && (
@@ -563,9 +560,8 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
                     if (fieldErrors.stock) setFieldErrors((prev) => ({ ...prev, stock: "" }));
                   }}
                   placeholder="25"
-                  className={`w-full px-4 py-3 rounded-2xl border ${
-                    fieldErrors.stock ? "border-rose-400" : "border-[#E8D8C8]"
-                  } bg-[#FAF7F2]/40 text-sm font-semibold text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-4 focus:ring-[#CF565D]/10 transition-all`}
+                  className={`w-full px-4 py-3 rounded-2xl border ${fieldErrors.stock ? "border-rose-400" : "border-[#E8D8C8]"
+                    } bg-[#FAF7F2]/40 text-sm font-semibold text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-4 focus:ring-[#CF565D]/10 transition-all`}
                 />
                 {fieldErrors.stock && (
                   <p className="text-xs text-rose-600 mt-1.5">{fieldErrors.stock}</p>
@@ -593,9 +589,8 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
               {/* File upload drop area */}
               <label
                 htmlFor={fileInputId}
-                className={`relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#E8D8C8] hover:border-[#CF565D]/60 rounded-2xl bg-[#FAF7F2]/50 hover:bg-[#F5DAD6]/20 transition-all cursor-pointer text-center ${
-                  uploadingImage ? "opacity-60 pointer-events-none" : ""
-                }`}
+                className={`relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#E8D8C8] hover:border-[#CF565D]/60 rounded-2xl bg-[#FAF7F2]/50 hover:bg-[#F5DAD6]/20 transition-all cursor-pointer text-center ${uploadingImage ? "opacity-60 pointer-events-none" : ""
+                  }`}
               >
                 <input
                   id={fileInputId}
@@ -735,7 +730,7 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
                 rows={4}
                 value={detailedDescription}
                 onChange={(e) => setDetailedDescription(e.target.value)}
-                placeholder="Application rituals, full ingredients listing (INCI), and aromatic profile notes..."
+                placeholder="Application services, full ingredients listing (INCI), and aromatic profile notes..."
                 className="w-full px-4 py-3 rounded-2xl border border-[#E8D8C8] bg-[#FAF7F2]/40 text-sm text-[#292525] focus:outline-none focus:border-[#CF565D] focus:ring-4 focus:ring-[#CF565D]/10 transition-all resize-none"
               />
             </div>
@@ -796,14 +791,12 @@ export function ProductForm({ initialProduct, isEdit = false }: ProductFormProps
               <button
                 type="button"
                 onClick={() => setIsActive(!isActive)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  isActive ? "bg-[#CF565D]" : "bg-stone-300"
-                }`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isActive ? "bg-[#CF565D]" : "bg-stone-300"
+                  }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    isActive ? "translate-x-5" : "translate-x-0"
-                  }`}
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isActive ? "translate-x-5" : "translate-x-0"
+                    }`}
                 />
               </button>
             </div>

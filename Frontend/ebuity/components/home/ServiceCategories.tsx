@@ -318,7 +318,7 @@ export const ServiceCategories: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pt-8 border-t border-[#E8D8C8]/70">
           <div>
             <span className="text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-[#C8505F]">
-              Popular Rituals
+              Popular services
             </span>
             <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[#292525] mt-1.5">
               Client Favorite Home Services
@@ -337,7 +337,7 @@ export const ServiceCategories: React.FC = () => {
                   : "bg-white/80 text-[#746D69] border border-[#E8D8C8] hover:border-[#C8505F] hover:text-[#C8505F]"
                   }`}
               >
-                {catSlug === "all" ? "All Rituals" : catSlug}
+                {catSlug === "all" ? "All services" : catSlug}
               </button>
             ))}
           </div>

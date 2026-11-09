@@ -185,7 +185,7 @@ export default function ShopPage() {
                 <span>The Skincare Collection</span>
               </div>
               <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-medium text-[#292525] leading-tight">
-                Pure Rose Botanicals & Daily Rituals
+                Pure Rose Botanicals & Daily services
               </h1>
               <p className="text-sm sm:text-base text-[#746D69] leading-relaxed">
                 Clean, salon-grade formulations crafted with single-origin
@@ -209,11 +209,10 @@ export default function ShopPage() {
                       key={cat}
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 focus:outline-none ${
-                        isActive
+                      className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 focus:outline-none ${isActive
                           ? "bg-[#CF565D] text-white shadow-xs"
                           : "bg-white text-[#292525] border border-[#E8D8C8] hover:border-[#CF565D]/40"
-                      }`}
+                        }`}
                     >
                       {cat}
                     </button>

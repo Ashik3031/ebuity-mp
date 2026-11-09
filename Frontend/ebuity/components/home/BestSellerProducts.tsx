@@ -18,7 +18,7 @@ import {
 // Filter tabs (labels unchanged)
 const TABS = [
   { key: "all", label: "All Best Sellers" },
-  { key: "skincare", label: "Skincare Rituals" },
+  { key: "skincare", label: "Skincare services" },
   { key: "wellness", label: "Wellness & Relaxation" },
 ];
 
@@ -161,7 +161,7 @@ export const BestSellerProducts: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-[#746D69]">
-                <Sparkles className="w-3.5 h-3.5 text-[#C8505F]" />
+                {/* <Sparkles className="w-3.5 h-3.5 text-[#C8505F]" /> */}
                 <span>Organic Rose Botanicals &amp; Accessories</span>
               </span>
               <span className="hidden sm:inline-block w-12 h-[1px] bg-[#E8D8C8]"></span>

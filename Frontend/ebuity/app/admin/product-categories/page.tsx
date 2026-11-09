@@ -248,7 +248,7 @@ export default function AdminProductCategoriesPage() {
             </span>
           </div>
           <p className="text-xs text-[#746D69] mt-0.5">
-            Organize Rose Essence collections, skincare rituals, body care, and wellness elixirs.
+            Organize Rose Essence collections, skincare services, body care, and wellness elixirs.
           </p>
         </div>
 
@@ -275,11 +275,10 @@ export default function AdminProductCategoriesPage() {
       {/* Notification Banner */}
       {notification && (
         <div
-          className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-medium transition-all ${
-            notification.type === "success"
+          className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-medium transition-all ${notification.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
               : "bg-rose-50 border-rose-200 text-rose-800"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2">
             {notification.type === "success" ? (
@@ -628,11 +627,10 @@ export default function AdminProductCategoriesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-3xl bg-white border border-[#E8D8C8] p-6 shadow-xl space-y-4">
             <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto ${
-                deleteBlockedReason
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto ${deleteBlockedReason
                   ? "bg-amber-50 border border-amber-200 text-amber-600"
                   : "bg-rose-50 border border-rose-200 text-rose-600"
-              }`}
+                }`}
             >
               {deleteBlockedReason ? (
                 <AlertCircle className="w-6 h-6" />

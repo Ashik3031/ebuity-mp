@@ -30,7 +30,7 @@ async function runTests() {
     const testCategory = await ServiceCategory.create({
       name: "Bridal Wellness",
       slug: testCatSlug,
-      description: "Pre-wedding wellness rituals and bespoke bridal glow treatments.",
+      description: "Pre-wedding wellness services and bespoke bridal glow treatments.",
       image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874",
       displayOrder: 99,
       isActive: true,

@@ -5,7 +5,7 @@ import { AdminLayout } from "../../components/admin/AdminLayout";
 
 export const metadata = {
   title: "Rose Essence — Admin Dashboard",
-  description: "Management portal for Rose Essence at-home rituals, staff operations, and luxury wellness boutique.",
+  description: "Management portal for Rose Essence at-home services, staff operations, and luxury wellness boutique.",
 };
 
 export default function RootAdminLayout({

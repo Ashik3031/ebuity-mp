@@ -39,7 +39,7 @@ function ServicesContent() {
   const queryParam = searchParams.get("query") || searchParams.get("search") || "";
   const areaParam = searchParams.get("area") || "";
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    categoryParam || "All"
+    categoryParam || ""
   );
   const [searchQuery, setSearchQuery] = useState<string>(queryParam);
   const [selectedArea, setSelectedArea] = useState<string>(areaParam);
@@ -76,7 +76,11 @@ function ServicesContent() {
 
         if (isMounted) {
           if (catRes.status === "fulfilled" && catRes.value?.categories) {
-            setCategories(catRes.value.categories);
+            const fetchedCats = catRes.value.categories;
+            setCategories(fetchedCats);
+            if (!categoryParam && fetchedCats.length > 0) {
+              setSelectedCategory((prev) => prev || fetchedCats[0].slug);
+            }
           }
           if (zoneRes.status === "fulfilled" && zoneRes.value?.zones) {
             setZones(zoneRes.value.zones);
@@ -91,7 +95,7 @@ function ServicesContent() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [categoryParam]);
 
   // Fetch Services from API whenever category or search changes
   useEffect(() => {
@@ -102,7 +106,7 @@ function ServicesContent() {
         setLoading(true);
         const isDeals = selectedCategory === "deals" || selectedCategory === "Deals";
         const res = await serviceApi.getAll({
-          category: selectedCategory === "All" || isDeals ? undefined : selectedCategory,
+          category: isDeals ? undefined : (selectedCategory || undefined),
           exclusiveDeals: isDeals ? true : undefined,
           search: searchQuery.trim() || undefined,
           sortBy,
@@ -128,148 +132,25 @@ function ServicesContent() {
   }, [selectedCategory, searchQuery, sortBy]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2]">
+    <div className="min-h-screen flex flex-col bg-[#FAF7F2] w-full max-w-full overflow-x-hidden">
       <Header />
 
-      <main className="flex-1 pb-24">
-        {/* Editorial Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-[#F5DAD6]/35 via-[#FAF7F2] to-[#FAF7F2] border-b border-[#E8D8C8]/60 pt-12 sm:pt-16 pb-16 sm:pb-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-2 text-xs text-[#746D69] mb-8">
-              <Link href="/" className="hover:text-[#CF565D] transition-colors">
-                Home
-              </Link>
-              <ChevronRight className="w-3.5 h-3.5 opacity-50" />
-              <span className="font-semibold text-[#292525]">
-                At-Home Beauty & Wellness Services
-              </span>
-            </nav>
+      <main className="flex-1 pb-24 w-full max-w-full min-w-0">
 
-            <div className="max-w-3xl space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E8D8C8] text-xs font-semibold uppercase tracking-wider text-[#CF565D] shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Certified Female Aestheticians at Your Sanctuary</span>
-              </div>
-
-              <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-medium text-[#292525] leading-[1.15]">
-                Luxury Salon, Spa & Beauty Services at Home
-              </h1>
-
-              <p className="text-sm sm:text-base text-[#746D69] leading-relaxed max-w-2xl">
-                Experience hospital-grade sanitization, private licensed
-                therapists, and bespoke Face, Hair, Nail, and Massage rituals.
-                Enjoy five-star salon results in the privacy and comfort of your
-                home.
-              </p>
-
-              <div className="pt-2 flex flex-wrap items-center gap-3">
-                <a
-                  href="#catalogue"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#CF565D] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#b8454c] transition-all shadow-md active:scale-95"
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>Discover Services</span>
-                </a>
-
-                <a
-                  href="#how-it-works"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-[#292525] border border-[#E8D8C8] text-xs font-semibold uppercase tracking-wider hover:border-[#CF565D]/50 transition-colors shadow-2xs"
-                >
-                  <span>How It Works</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Value Proposition Highlights */}
-        <section className="bg-white border-b border-[#E8D8C8]/60 py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-[#F5DAD6]/50 flex items-center justify-center text-[#CF565D] flex-shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#292525]">
-                    Hospital-Grade Sterile
-                  </h4>
-                  <p className="text-xs text-[#746D69] mt-0.5">
-                    Medical autoclave pouches opened directly in your presence.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-[#F5DAD6]/50 flex items-center justify-center text-[#CF565D] flex-shrink-0">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#292525]">
-                    Licensed Female Staff
-                  </h4>
-                  <p className="text-xs text-[#746D69] mt-0.5">
-                    100% background-checked with 5+ years luxury salon tenure.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-[#F5DAD6]/50 flex items-center justify-center text-[#CF565D] flex-shrink-0">
-                  <Flower2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#292525]">
-                    Premium Botanicals
-                  </h4>
-                  <p className="text-xs text-[#746D69] mt-0.5">
-                    Professional, non-toxic products tailored to sensitive skin.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-full bg-[#F5DAD6]/50 flex items-center justify-center text-[#CF565D] flex-shrink-0">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#292525]">
-                    Punctual In-Home Setup
-                  </h4>
-                  <p className="text-xs text-[#746D69] mt-0.5">
-                    Aestheticians arrive fully equipped for complete relaxation.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Filter & Search Bar */}
         <div
           id="catalogue"
-          className="sticky top-20 z-30 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8D8C8]/70 py-4 shadow-2xs"
+          className="sticky top-16 sm:top-20 z-30 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8D8C8]/70 py-3 sm:py-4 shadow-2xs w-full max-w-full"
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
               {/* Category Pills (Face, Hair, Nail, Massage) */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 md:pb-0">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory("All")}
-                  className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 focus:outline-none ${selectedCategory === "All"
-                    ? "bg-[#CF565D] text-white shadow-xs"
-                    : "bg-white text-[#292525] border border-[#E8D8C8] hover:border-[#CF565D]/40"
-                    }`}
-                >
-                  All Services
-                </button>
-
+              <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch] w-full min-w-0 pb-1 lg:pb-0">
                 <button
                   type="button"
                   onClick={() => setSelectedCategory("deals")}
-                  className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 focus:outline-none flex items-center gap-1.5 ${selectedCategory === "deals"
+                  className={`whitespace-nowrap px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 focus:outline-none flex items-center gap-1.5 shrink-0 ${selectedCategory === "deals"
                     ? "bg-gradient-to-r from-amber-500 to-[#CF565D] text-white shadow-xs"
                     : "bg-white text-amber-900 border border-amber-300 hover:border-amber-400"
                     }`}
@@ -287,7 +168,7 @@ function ServicesContent() {
                       key={cat._id}
                       type="button"
                       onClick={() => setSelectedCategory(cat.slug)}
-                      className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 focus:outline-none ${isActive
+                      className={`whitespace-nowrap px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 focus:outline-none shrink-0 ${isActive
                         ? "bg-[#CF565D] text-white shadow-xs"
                         : "bg-white text-[#292525] border border-[#E8D8C8] hover:border-[#CF565D]/40"
                         }`}
@@ -303,34 +184,37 @@ function ServicesContent() {
                 })}
               </div>
 
-              {/* Search & Sort Controls */}
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 sm:w-64">
+              {/* Search & Sort Controls (Clean stacking on mobile, aligned on desktop) */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto min-w-0 shrink-0">
+                <div className="relative flex-1 sm:w-64 lg:w-72">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search lashes, manicure, massage..."
-                    className="w-full pl-9 pr-4 py-2 text-xs bg-white rounded-full border border-[#E8D8C8] text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none focus:border-[#CF565D] focus:ring-1 focus:ring-[#CF565D]"
+                    className="w-full pl-9 pr-8 py-2.5 sm:py-2 text-sm sm:text-xs bg-white rounded-full border border-[#E8D8C8] text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none focus:border-[#CF565D] focus:ring-1 focus:ring-[#CF565D]"
                   />
-                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#746D69]/60 pointer-events-none" />
+                  <Search className="absolute left-3 top-3 sm:top-2.5 w-4 h-4 text-[#746D69]/60 pointer-events-none" />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-2.5 text-[10px] text-[#746D69] hover:text-[#292525]"
+                      className="absolute right-3 top-3 sm:top-2.5 text-xs sm:text-[10px] text-[#746D69] hover:text-[#292525]"
                     >
                       Clear
                     </button>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-[#E8D8C8]">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-[#746D69]" />
+                <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-white px-3.5 py-2 sm:py-2 rounded-full border border-[#E8D8C8] shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs text-[#746D69]">
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Sort:</span>
+                  </div>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="text-xs font-medium text-[#292525] bg-transparent focus:outline-none cursor-pointer pr-1"
+                    className="text-xs font-semibold text-[#292525] bg-transparent focus:outline-none cursor-pointer pr-1"
                     aria-label="Sort services"
                   >
                     <option value="displayOrder">Curated</option>
@@ -344,7 +228,7 @@ function ServicesContent() {
         </div>
 
         {/* Services Grid Section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10">
+        <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 min-w-0">
           {selectedCategory === "deals" && (
             <div className="mb-8 p-6 rounded-3xl bg-gradient-to-r from-amber-500/15 via-[#FAF7F2] to-rose-500/15 border border-amber-300 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
@@ -356,7 +240,7 @@ function ServicesContent() {
                     Today's Exclusive Limited Deals
                   </h3>
                   <p className="text-xs text-[#746D69] mt-0.5">
-                    Special promotional daily rates for at-home rituals. Valid for appointments scheduled today across Dubai.
+                    Special promotional daily rates for at-home services. Valid for appointments scheduled today across Dubai.
                   </p>
                 </div>
               </div>
@@ -437,20 +321,20 @@ function ServicesContent() {
                 No Services Found
               </h3>
               <p className="text-xs text-[#746D69] leading-relaxed">
-                We couldn&apos;t find any beauty or spa rituals matching your
+                We couldn&apos;t find any beauty or spa services matching your
                 current filter. Try resetting your search to explore all at-home
                 experiences.
               </p>
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedCategory("All");
+                  setSelectedCategory(categories[0]?.slug || "deals");
                   setSearchQuery("");
                 }}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#CF565D] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#b8454c] transition-colors shadow-xs"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Show All Services</span>
+                <span>Reset Filters</span>
               </button>
             </div>
           )}
@@ -485,7 +369,7 @@ function ServicesContent() {
                   Select Service & Desired Time
                 </h3>
                 <p className="text-xs text-[#746D69] leading-relaxed">
-                  Choose from Face, Hair, Nail, or Massage rituals. Pick your
+                  Choose from Face, Hair, Nail, or Massage services. Pick your
                   preferred appointment date and specify your location.
                 </p>
               </div>

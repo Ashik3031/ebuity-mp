@@ -16,7 +16,7 @@ export function UpcomingAppointmentsWidget({
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-bold text-[#292525] dark:text-[#FAF7F2]">Upcoming Rituals</h3>
+            <h3 className="text-base font-bold text-[#292525] dark:text-[#FAF7F2]">Upcoming services</h3>
             <p className="text-xs text-[#746D69] dark:text-[#A89F9A] mt-0.5">
               Next scheduled at-home treatments
             </p>

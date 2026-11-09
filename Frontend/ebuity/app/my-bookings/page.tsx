@@ -252,11 +252,10 @@ export default function MyBookingsPage() {
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveFilter(tab.key)}
-                    className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shrink-0 ${
-                      activeFilter === tab.key
+                    className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shrink-0 ${activeFilter === tab.key
                         ? "bg-[#CF565D] text-white shadow-xs"
                         : "bg-white text-[#746D69] border border-[#E8D8C8] hover:border-[#CF565D]"
-                    }`}
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -286,7 +285,7 @@ export default function MyBookingsPage() {
                   </h3>
                   <p className="text-xs text-[#746D69] max-w-sm mx-auto">
                     {activeFilter === "all"
-                      ? "You haven't scheduled any in-home rituals yet. Transform your home into a sanctuary today."
+                      ? "You haven't scheduled any in-home services yet. Transform your home into a sanctuary today."
                       : `No ${activeFilter} appointments match your filter.`}
                   </p>
                   <div className="pt-2">
@@ -306,10 +305,10 @@ export default function MyBookingsPage() {
                       b.status === "confirmed"
                         ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                         : b.status === "completed"
-                        ? "bg-blue-50 text-blue-800 border-blue-200"
-                        : b.status === "cancelled"
-                        ? "bg-rose-50 text-rose-800 border-rose-200"
-                        : "bg-amber-50 text-amber-800 border-amber-200";
+                          ? "bg-blue-50 text-blue-800 border-blue-200"
+                          : b.status === "cancelled"
+                            ? "bg-rose-50 text-rose-800 border-rose-200"
+                            : "bg-amber-50 text-amber-800 border-amber-200";
 
                     const startTime = formatBookingTime(
                       b.scheduledTime || b.scheduledStartTime,
@@ -370,13 +369,12 @@ export default function MyBookingsPage() {
                         {/* Request Outcome Notices */}
                         {b.rescheduleRequest && b.rescheduleRequest.status !== "none" && (
                           <div
-                            className={`p-3.5 rounded-2xl text-xs flex items-start gap-2.5 ${
-                              b.rescheduleRequest.status === "pending"
+                            className={`p-3.5 rounded-2xl text-xs flex items-start gap-2.5 ${b.rescheduleRequest.status === "pending"
                                 ? "bg-amber-50 border border-amber-200 text-amber-900"
                                 : b.rescheduleRequest.status === "approved"
-                                ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
-                                : "bg-rose-50 border border-rose-200 text-rose-900"
-                            }`}
+                                  ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
+                                  : "bg-rose-50 border border-rose-200 text-rose-900"
+                              }`}
                           >
                             <RotateCcw className="w-4 h-4 mt-0.5 shrink-0" />
                             <div>
@@ -692,11 +690,10 @@ export default function MyBookingsPage() {
                               key={slot.time}
                               type="button"
                               onClick={() => setRescheduleTime(slot.time)}
-                              className={`py-2 px-2.5 rounded-xl text-xs font-medium transition-all text-center border ${
-                                isSelected
+                              className={`py-2 px-2.5 rounded-xl text-xs font-medium transition-all text-center border ${isSelected
                                   ? "bg-[#CF565D] text-white border-[#CF565D] shadow-xs"
                                   : "bg-[#FAF7F2]/60 hover:bg-[#FAF7F2] text-[#292525] border-[#E8D8C8]"
-                              }`}
+                                }`}
                             >
                               {format12Hour(slot.time)}
                             </button>

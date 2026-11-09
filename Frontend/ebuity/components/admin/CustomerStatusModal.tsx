@@ -66,11 +66,10 @@ export function CustomerStatusModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F5DAD6]/60 bg-[#FAF7F2]">
           <div className="flex items-center gap-2.5">
             <div
-              className={`p-2 rounded-xl ${
-                willBlock
+              className={`p-2 rounded-xl ${willBlock
                   ? "bg-[#CF565D]/10 text-[#CF565D]"
                   : "bg-emerald-50 text-emerald-600"
-              }`}
+                }`}
             >
               {willBlock ? (
                 <ShieldAlert className="w-5 h-5" />
@@ -117,11 +116,10 @@ export function CustomerStatusModal({
             <div className="flex justify-between">
               <span className="text-[#746D69]">Current Status:</span>
               <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                  customer.isBlocked
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${customer.isBlocked
                     ? "bg-red-100 text-red-700"
                     : "bg-emerald-100 text-emerald-700"
-                }`}
+                  }`}
               >
                 {customer.isBlocked ? "Deactivated (Blocked)" : "Active"}
               </span>
@@ -131,7 +129,7 @@ export function CustomerStatusModal({
           <p className="text-sm text-[#746D69] leading-relaxed">
             {willBlock
               ? "Deactivating this client account will immediately revoke their ability to sign in, book treatments, or order products. Their historical bookings and data will remain preserved for accounting compliance."
-              : "Reactivating this client account will restore their ability to log in, view scheduled wellness rituals, and place boutique orders."}
+              : "Reactivating this client account will restore their ability to log in, view scheduled wellness services, and place boutique orders."}
           </p>
         </div>
 
@@ -149,11 +147,10 @@ export function CustomerStatusModal({
             type="button"
             onClick={handleConfirm}
             disabled={loading}
-            className={`flex items-center gap-2 px-5 py-2 text-sm font-medium text-white rounded-xl shadow-sm transition-all ${
-              willBlock
+            className={`flex items-center gap-2 px-5 py-2 text-sm font-medium text-white rounded-xl shadow-sm transition-all ${willBlock
                 ? "bg-[#CF565D] hover:bg-[#b8454c]"
                 : "bg-emerald-600 hover:bg-emerald-700"
-            }`}
+              }`}
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             <span>Confirm {actionVerb}</span>

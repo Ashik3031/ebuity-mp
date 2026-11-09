@@ -155,10 +155,10 @@ function ProductDetailContent() {
         },
         variantSnapshot: selectedVariant
           ? {
-              _id: selectedVariant._id,
-              price: selectedVariant.price,
-              optionValues: selectedVariant.optionValues,
-            }
+            _id: selectedVariant._id,
+            price: selectedVariant.price,
+            optionValues: selectedVariant.optionValues,
+          }
           : undefined,
       });
 
@@ -270,19 +270,18 @@ function ProductDetailContent() {
 
                     {/* Stock Status Pill */}
                     <span
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                        isOutOfStock
+                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${isOutOfStock
                           ? "bg-red-50 text-red-700 border border-red-200"
                           : availableStock <= 5
-                          ? "bg-amber-50 text-amber-800 border border-amber-200"
-                          : "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      }`}
+                            ? "bg-amber-50 text-amber-800 border border-amber-200"
+                            : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        }`}
                     >
                       {isOutOfStock
                         ? "Currently Sold Out"
                         : availableStock <= 5
-                        ? `Only ${availableStock} units remaining`
-                        : "In Stock & Ready to Dispatch"}
+                          ? `Only ${availableStock} units remaining`
+                          : "In Stock & Ready to Dispatch"}
                     </span>
                   </div>
 
@@ -297,11 +296,10 @@ function ProductDetailContent() {
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(product.avgRating || 5)
+                            className={`w-4 h-4 ${i < Math.floor(product.avgRating || 5)
                                 ? "fill-[#CF565D]"
                                 : "text-neutral-300"
-                            }`}
+                              }`}
                           />
                         ))}
                       </div>
@@ -396,13 +394,12 @@ function ProductDetailContent() {
                       type="button"
                       onClick={handleAddToCart}
                       disabled={isOutOfStock || isAdding}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-8 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#CF565D]/30 ${
-                        addedSuccess
+                      className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-8 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#CF565D]/30 ${addedSuccess
                           ? "bg-emerald-700 text-white shadow-md"
                           : isOutOfStock
-                          ? "bg-neutral-200 text-neutral-500 cursor-not-allowed"
-                          : "bg-[#CF565D] text-white hover:bg-[#b8454c] shadow-md hover:shadow-lg active:scale-[0.98]"
-                      }`}
+                            ? "bg-neutral-200 text-neutral-500 cursor-not-allowed"
+                            : "bg-[#CF565D] text-white hover:bg-[#b8454c] shadow-md hover:shadow-lg active:scale-[0.98]"
+                        }`}
                     >
                       {addedSuccess ? (
                         <>
@@ -418,8 +415,8 @@ function ProductDetailContent() {
                             {isAdding
                               ? "Adding..."
                               : `Add to Bag • AED ${(
-                                  effectivePrice * quantity
-                                ).toFixed(2)}`}
+                                effectivePrice * quantity
+                              ).toFixed(2)}`}
                           </span>
                         </>
                       )}
@@ -510,7 +507,7 @@ function ProductDetailContent() {
               <div className="flex items-end justify-between mb-8">
                 <div>
                   <span className="text-xs uppercase tracking-widest font-semibold text-[#CF565D]">
-                    Harmonious Rituals
+                    Harmonious services
                   </span>
                   <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#292525] mt-1">
                     Complete Your Skincare Ceremony

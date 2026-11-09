@@ -12,7 +12,7 @@ export function CategoryDistributionChart({ data }: CategoryDistributionChartPro
     { category: "Hammam & Body", count: 18 },
     { category: "Massage & Wellness", count: 15 },
     { category: "Nail Care", count: 12 },
-    { category: "Hair Rituals", count: 8 },
+    { category: "Hair services", count: 8 },
   ];
 
   const categories = data && data.length > 0 ? data : fallbackCategories;
@@ -47,9 +47,8 @@ export function CategoryDistributionChart({ data }: CategoryDistributionChartPro
               key={idx}
               style={{ width: `${pct}%` }}
               title={`${cat.category}: ${cat.count} (${Math.round(pct)}%)`}
-              className={`h-full first:rounded-l-full last:rounded-r-full ${
-                colorPalette[idx % colorPalette.length]
-              } transition-all duration-300`}
+              className={`h-full first:rounded-l-full last:rounded-r-full ${colorPalette[idx % colorPalette.length]
+                } transition-all duration-300`}
             />
           );
         })}
@@ -63,9 +62,8 @@ export function CategoryDistributionChart({ data }: CategoryDistributionChartPro
             <div key={idx} className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    colorPalette[idx % colorPalette.length]
-                  }`}
+                  className={`w-2 h-2 rounded-full ${colorPalette[idx % colorPalette.length]
+                    }`}
                 />
                 <span className="text-[#292525] dark:text-[#FAF7F2] font-medium">{cat.category}</span>
               </div>

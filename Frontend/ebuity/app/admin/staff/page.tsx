@@ -394,9 +394,8 @@ export default function AdminStaffDirectoryPage() {
       if (res.success) {
         setMessage({
           type: "success",
-          text: `Staff profile for ${statusConfirmStaff.name} has been ${
-            newStatus ? "activated" : "deactivated"
-          }.`,
+          text: `Staff profile for ${statusConfirmStaff.name} has been ${newStatus ? "activated" : "deactivated"
+            }.`,
         });
         setStatusConfirmStaff(null);
         loadStaff(currentPage);
@@ -470,9 +469,8 @@ export default function AdminStaffDirectoryPage() {
             }
           >
             <span
-              className={`w-2 h-2 rounded-full ${
-                isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${isRealtimeConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
+                }`}
             />
             <span className={isRealtimeConnected ? "text-emerald-700" : "text-amber-700"}>
               {isRealtimeConnected ? "Live" : "Connecting..."}
@@ -500,13 +498,12 @@ export default function AdminStaffDirectoryPage() {
       {/* Message Banner */}
       {message && (
         <div
-          className={`p-4 rounded-2xl flex items-center justify-between text-sm ${
-            message.type === "success"
+          className={`p-4 rounded-2xl flex items-center justify-between text-sm ${message.type === "success"
               ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
               : message.type === "error"
-              ? "bg-rose-50 text-rose-800 border border-rose-200"
-              : "bg-blue-50 text-blue-800 border border-blue-200"
-          }`}
+                ? "bg-rose-50 text-rose-800 border border-rose-200"
+                : "bg-blue-50 text-blue-800 border border-blue-200"
+            }`}
         >
           <div className="flex items-center gap-2.5">
             {message.type === "success" ? (
@@ -805,10 +802,10 @@ export default function AdminStaffDirectoryPage() {
                       <td className="py-3.5 px-4 text-[#746D69] text-[11px]">
                         {st.joiningDate
                           ? new Date(st.joiningDate).toLocaleDateString("en-GB", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
                           : "—"}
                       </td>
 
@@ -841,11 +838,10 @@ export default function AdminStaffDirectoryPage() {
 
                           <button
                             onClick={() => setStatusConfirmStaff(st)}
-                            className={`p-1.5 rounded-xl border transition-colors ${
-                              st.isActive
+                            className={`p-1.5 rounded-xl border transition-colors ${st.isActive
                                 ? "border-emerald-200 text-emerald-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
                                 : "border-rose-200 text-rose-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200"
-                            }`}
+                              }`}
                             title={st.isActive ? "Deactivate Staff" : "Activate Staff"}
                           >
                             {st.isActive ? (
@@ -1108,7 +1104,7 @@ export default function AdminStaffDirectoryPage() {
                 <label className="block text-xs font-semibold text-[#292525] mb-2 flex items-center justify-between">
                   <span>Qualified Service Categories</span>
                   <span className="text-[11px] text-[#746D69] font-normal">
-                    Selecting a category auto-selects all of its rituals below
+                    Selecting a category auto-selects all of its services below
                   </span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1117,11 +1113,10 @@ export default function AdminStaffDirectoryPage() {
                     return (
                       <label
                         key={cat._id}
-                        className={`p-2.5 rounded-2xl border text-xs font-medium cursor-pointer transition-all flex items-center gap-2 ${
-                          isChecked
+                        className={`p-2.5 rounded-2xl border text-xs font-medium cursor-pointer transition-all flex items-center gap-2 ${isChecked
                             ? "border-[#CF565D] bg-[#F5DAD6]/30 text-[#292525] font-semibold"
                             : "border-[#E8D8C8] bg-[#FAF7F2] text-[#746D69] hover:bg-white"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -1147,7 +1142,7 @@ export default function AdminStaffDirectoryPage() {
                 <div className="max-h-48 overflow-y-auto p-2 rounded-2xl border border-[#E8D8C8] bg-[#FAF7F2] space-y-1.5">
                   {services.length === 0 ? (
                     <div className="text-center py-4 text-xs text-[#746D69]">
-                      Loading rituals...
+                      Loading services...
                     </div>
                   ) : (
                     services.map((srv) => {
@@ -1159,9 +1154,8 @@ export default function AdminStaffDirectoryPage() {
                       return (
                         <label
                           key={srv._id}
-                          className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-colors ${
-                            isChecked ? "bg-white shadow-xs" : "hover:bg-white"
-                          }`}
+                          className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-colors ${isChecked ? "bg-white shadow-xs" : "hover:bg-white"
+                            }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <input
@@ -1176,9 +1170,8 @@ export default function AdminStaffDirectoryPage() {
                               className="rounded text-[#CF565D] focus:ring-[#CF565D]"
                             />
                             <span
-                              className={`truncate font-medium ${
-                                isChecked ? "text-[#292525]" : "text-[#746D69]"
-                              }`}
+                              className={`truncate font-medium ${isChecked ? "text-[#292525]" : "text-[#746D69]"
+                                }`}
                             >
                               {srv.name}
                             </span>
@@ -1331,8 +1324,8 @@ export default function AdminStaffDirectoryPage() {
                 <span className="text-[#292525] font-medium">
                   {viewingStaff.breaks && viewingStaff.breaks.length > 0
                     ? viewingStaff.breaks
-                        .map((b) => `${b.start}-${b.end}${b.label ? ` (${b.label})` : ""}`)
-                        .join(", ")
+                      .map((b) => `${b.start}-${b.end}${b.label ? ` (${b.label})` : ""}`)
+                      .join(", ")
                     : "Flexible (chosen by staff based on free time)"}
                 </span>
               </p>
@@ -1354,7 +1347,7 @@ export default function AdminStaffDirectoryPage() {
                     {staffStats.completed}
                   </span>
                   <span className="text-[11px] text-[#746D69] block">
-                    Completed Rituals
+                    Completed services
                   </span>
                 </div>
               </div>
@@ -1445,11 +1438,10 @@ export default function AdminStaffDirectoryPage() {
         <div className="fixed inset-0 bg-[#292525]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-[#E8D8C8] shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
             <div
-              className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${
-                statusConfirmStaff.isActive
+              className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${statusConfirmStaff.isActive
                   ? "bg-rose-50 text-rose-600"
                   : "bg-emerald-50 text-emerald-600"
-              }`}
+                }`}
             >
               <AlertTriangle className="w-6 h-6" />
             </div>
@@ -1477,11 +1469,10 @@ export default function AdminStaffDirectoryPage() {
               <button
                 disabled={statusSubmitting}
                 onClick={handleConfirmStatusToggle}
-                className={`px-5 py-2 rounded-2xl text-white text-xs font-semibold shadow-md ${
-                  statusConfirmStaff.isActive
+                className={`px-5 py-2 rounded-2xl text-white text-xs font-semibold shadow-md ${statusConfirmStaff.isActive
                     ? "bg-rose-600 hover:bg-rose-700"
                     : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
+                  }`}
               >
                 {statusSubmitting ? "Updating..." : "Confirm"}
               </button>

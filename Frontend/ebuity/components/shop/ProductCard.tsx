@@ -130,7 +130,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="flex flex-col flex-1 p-5 sm:p-6 justify-between gap-4">
         <div className="space-y-1.5">
           {/* Category & Rating */}
-          <div className="flex items-center justify-between text-xs text-[#746D69]">
+          {/* <div className="flex items-center justify-between text-xs text-[#746D69]">
             <span className="uppercase tracking-widest text-[10px] font-semibold text-[#CF565D]">
               {typeof product.category === "object"
                 ? product.category.name || product.category.label
@@ -148,7 +148,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 ) : null}
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Title */}
           <Link
@@ -192,10 +192,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             onClick={handleQuickAdd}
             disabled={isOutOfStock || isAdding}
             className={`relative flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#CF565D]/30 ${justAdded
-                ? "bg-emerald-700 text-white shadow-xs"
-                : isOutOfStock
-                  ? "bg-[#FAF7F2] text-[#746D69]/50 border border-[#E8D8C8] cursor-not-allowed"
-                  : "bg-[#CF565D] text-white hover:bg-[#b8454c] shadow-xs active:scale-95"
+              ? "bg-emerald-700 text-white shadow-xs"
+              : isOutOfStock
+                ? "bg-[#FAF7F2] text-[#746D69]/50 border border-[#E8D8C8] cursor-not-allowed"
+                : "bg-[#CF565D] text-white hover:bg-[#b8454c] shadow-xs active:scale-95"
               }`}
             aria-label={`Add ${product.name} to bag`}
           >
