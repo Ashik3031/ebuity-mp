@@ -25,11 +25,14 @@ import {
   Heart,
   Palette,
 } from "lucide-react";
+import { serviceCategoryApi, serviceApi } from "../../lib/api-client";
 
 interface ServiceSubCategory {
   title: string;
   description: string;
   query: string;
+  price?: number;
+  duration?: number;
 }
 
 interface ServiceMenuCategory {
@@ -50,24 +53,44 @@ const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
     icon: Scissors,
     subcategories: [
       {
-        title: "Blowdry & Curls (Short & Medium)",
-        description: "Voluminous curls and signature blowouts with heat protection",
+        title: "Blow Dry",
+        description: "Classic voluminous blowout for an effortlessly polished, salon-fresh look",
+        query: "blow dry",
+      },
+      {
+        title: "Blow Dry with Curls",
+        description: "Deluxe blow dry with elegant defined curls and lasting bounce",
         query: "curls",
       },
       {
-        title: "Blowdry & Curls (Long & Extra Long)",
-        description: "Glamorous Hollywood waves & cascading curls with argan shine",
-        query: "long",
+        title: "Blowdry & Curls (Short & Medium)",
+        description: "Signature blowout and curls tailored for short to medium length hair",
+        query: "short and medium",
       },
       {
-        title: "Hair Straightening",
-        description: "Smooth mirror-finish keratin straightening & humidity block",
-        query: "straightening",
+        title: "Blowdry & Curls (Long Hair)",
+        description: "Full blowout and glamorous cascading curls with argan shine",
+        query: "long hair",
       },
       {
-        title: "Blow Dry & Waves",
-        description: "Effortless root lift, natural body & silky salon finish",
-        query: "blow dry",
+        title: "Blowdry & Curls (Extra Long)",
+        description: "Complete blowout with sculpted glossy curls for extra-long hair",
+        query: "extra long",
+      },
+      {
+        title: "Hair Straightening (Short & Medium)",
+        description: "Smooth glass-like keratin straightening & humidity block",
+        query: "straightening short",
+      },
+      {
+        title: "Hair Straightening (Long Hair)",
+        description: "Silky sleek straightening for long, dense hair with mirror finish",
+        query: "straightening long",
+      },
+      {
+        title: "Hair Straightening (Extra Long)",
+        description: "Ultra-sleek straightening & cuticle sealing for extra-long hair",
+        query: "straightening extra long",
       },
     ],
   },
@@ -79,24 +102,64 @@ const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
     icon: Sparkles,
     subcategories: [
       {
-        title: "Classic & Polish Manicure",
-        description: "Nail shaping, gentle cuticle care & high-shine lacquer",
-        query: "manicure",
+        title: "Classic Manicure",
+        description: "Nail shaping, cuticle care, hydrating hand massage & fresh polish",
+        query: "classic manicure",
+      },
+      {
+        title: "Polish Manicure",
+        description: "Premium manicure with deep cuticle hydration and dual-coat polish",
+        query: "polish manicure",
       },
       {
         title: "Gel Polish Manicure",
-        description: "UV/LED cured chip-free wear with safe gentle removal",
-        query: "gel",
+        description: "UV/LED cured chip-free wear with mirror shine lasting 3 weeks",
+        query: "gel manicure",
       },
       {
-        title: "French & Nail Art Manicure",
-        description: "Clean French tips, chic minimalist designs & bespoke art",
-        query: "french",
+        title: "French Manicure",
+        description: "Timeless sheer pink base with clean, crisp white smile tips",
+        query: "french manicure",
       },
       {
-        title: "Polish Free & Cut / File",
-        description: "Natural glassy nail buffing, clipping & gel removals",
-        query: "cut and file",
+        title: "Nail Art Manicure",
+        description: "Custom designer accent nail art & chic bespoke minimalist patterns",
+        query: "nail art",
+      },
+      {
+        title: "Gel Polish with/without Removal",
+        description: "Full manicure with gel polish, including gentle gel removal",
+        query: "gel polish manicure",
+      },
+      {
+        title: "Polish Free Manicure",
+        description: "Natural grooming manicure with precision shaping & glassy buffing",
+        query: "polish free manicure",
+      },
+      {
+        title: "Polish Free Mani-Pedi Combo",
+        description: "Hands & feet complete natural grooming with exfoliating scrub",
+        query: "polish free mani-pedi",
+      },
+      {
+        title: "Classic Polish Change (Hands)",
+        description: "Quick 25-minute old polish removal and fresh seasonal coat",
+        query: "polish change hands",
+      },
+      {
+        title: "Gel French Polish Change (Hands)",
+        description: "Express gel polish switch with French tip LED styling",
+        query: "gel french hands",
+      },
+      {
+        title: "Cut and File (Hands)",
+        description: "Hygienic clipping, shaping & edge smoothing for neat nails",
+        query: "cut and file hands",
+      },
+      {
+        title: "Gel Polish Removal (Hands)",
+        description: "Safe non-damaging gel removal with nourishing botanical oil",
+        query: "gel removal hands",
       },
     ],
   },
@@ -108,24 +171,59 @@ const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
     icon: Flower2,
     subcategories: [
       {
-        title: "Classic & Regular Pedicure",
-        description: "Warm herbal foot soak, callus smoothing & fresh color",
-        query: "pedicure",
+        title: "Classic Pedicure",
+        description: "Warm herbal foot soak, heel buffing, nail shaping & fresh polish",
+        query: "classic pedicure",
+      },
+      {
+        title: "Regular Pedicure",
+        description: "Essential foot grooming: soak, trim, filing, light buff & polish",
+        query: "regular pedicure",
       },
       {
         title: "Luxury Spa Pedicure",
-        description: "Exfoliating sea salt scrub, cooling foot mask & massage",
-        query: "spa",
+        description: "Exfoliating sea salt scrub, cooling foot mask & calf massage",
+        query: "spa pedicure",
       },
       {
-        title: "Gel & French Pedicure",
-        description: "Instant dry LED cure, no smudging or denting in sandals",
-        query: "gel",
+        title: "Gel Pedicure",
+        description: "Full pedicure finished with smudge-proof, chip-free gel polish",
+        query: "gel pedicure",
       },
       {
-        title: "Polish Free Pedicure & Care",
-        description: "Deep heel softening, toenail cut/file & gentle gel removal",
-        query: "polish free",
+        title: "French Pedicure",
+        description: "Elegant French tips pedicure with cuticle balm and foot massage",
+        query: "french pedicure",
+      },
+      {
+        title: "Gel Pedicure with/without Removal",
+        description: "Complete pedicure with gel polish, including gentle gel removal",
+        query: "gel polish pedicure",
+      },
+      {
+        title: "Polish Free Pedicure",
+        description: "Natural restorative pedicure with deep heel smoothing & buffing",
+        query: "polish free pedicure",
+      },
+      {
+        title: "Classic Polish Change (Feet)",
+        description: "Express toenail polish removal, light filing and a fresh coat",
+        query: "polish change feet",
+      },
+      {
+        title: "Gel French Polish Change (Feet)",
+        description: "Express gel change for feet with French tips and LED cure",
+        query: "gel french feet",
+      },
+      {
+        title: "Cut and File (Feet)",
+        description: "Hygienic toenail trimming, precision filing & edge softening",
+        query: "cut and file feet",
+      },
+      {
+        title: "Gel Polish Removal (Feet)",
+        description: "Gentle gel polish removal without scraping the natural nail bed",
+        query: "gel removal feet",
       },
     ],
   },
@@ -137,24 +235,44 @@ const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
     icon: Eye,
     subcategories: [
       {
-        title: "Herbal & Soothing Facial",
-        description: "Calming antioxidant botanical extracts for sensitive skin",
-        query: "herbal",
+        title: "Herbal & Botanical Facial",
+        description: "All-natural botanical facial with antioxidant herbs & floral extracts",
+        query: "herbal facial",
       },
       {
-        title: "Hydra & Deep Cleansing",
-        description: "Hydro-dermabrasion exfoliation, extraction & deep hydration",
-        query: "hydra",
+        title: "Face Cleansing / Clean Up",
+        description: "Express deep pore cleanse, light exfoliation, extraction & toner",
+        query: "face cleansing",
       },
       {
-        title: "Brightening & Glow Therapy",
-        description: "Vitamin C radiance boost, gold mask & dark spot fading",
-        query: "brightening",
+        title: "Soothing Brightening & Glow",
+        description: "Intensive radiance facial with vitamin C and soothing aloe vera",
+        query: "brightening and glowing facial",
       },
       {
-        title: "Anti-Aging & Clean Up",
-        description: "Firming collagen lifting & express pore purifying cleanse",
-        query: "anti aging",
+        title: "Hydra Facial Ritual",
+        description: "Multi-step hydro-dermabrasion exfoliation & hyaluronic infusion",
+        query: "hydra facial",
+      },
+      {
+        title: "Brightening Complexion Facial",
+        description: "Complexion-evening therapy for tired, sun-damaged or dull skin",
+        query: "brightening facial",
+      },
+      {
+        title: "Deep Cleaning Clay Facial",
+        description: "Purifying steam, blackhead extraction & clarifying pore-refining mask",
+        query: "deep cleaning facial",
+      },
+      {
+        title: "Anti Aging Collagen Facial",
+        description: "Firming collagen lifting massage to diminish fine lines & plump skin",
+        query: "anti aging facial",
+      },
+      {
+        title: "Gold Glow Radiance Ritual",
+        description: "Revitalizing gold leaf antioxidant mask for special occasions & events",
+        query: "glowing facial",
       },
     ],
   },
@@ -166,24 +284,74 @@ const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
     icon: Flame,
     subcategories: [
       {
-        title: "Full Body & Brazilian",
-        description: "Silky head-to-toe hair removal with stripless hot wax",
-        query: "full body",
+        title: "Full Body Waxing with Brazilian",
+        description: "Head-to-toe smooth hair removal with gentle stripless hot wax",
+        query: "full body waxing with brazilian",
       },
       {
-        title: "Arms, Legs & Underarms",
-        description: "Half & full legs, full arms & soothing underarm waxing",
-        query: "waxing",
+        title: "Full Body Waxing (without Brazilian)",
+        description: "Complete full body hair removal excluding the bikini area",
+        query: "full body waxing without brazilian",
       },
       {
-        title: "Facial & Targeted Waxing",
-        description: "Upper lip, chin, stomach & back delicate waxing",
-        query: "lip waxing",
+        title: "Brazilian Wax",
+        description: "Discreet, hygienic Brazilian waxing with peelable hot wax",
+        query: "brazilian wax",
       },
       {
-        title: "Precision Threading",
-        description: "Eyebrow shaping, upper lip, chin & forehead threading",
-        query: "threading",
+        title: "Full Leg, Full Arm & Underarms",
+        description: "Popular trio: full legs, full arms and soothing underarms waxing",
+        query: "full leg full arm",
+      },
+      {
+        title: "Full Arms with Underarms Waxing",
+        description: "Silky arm hair removal from shoulders to fingertips with underarms",
+        query: "full arms with underarms",
+      },
+      {
+        title: "Full Leg Waxing",
+        description: "Complete hair removal from upper thighs to toes, lasts 3-4 weeks",
+        query: "full leg waxing",
+      },
+      {
+        title: "Half Leg Waxing",
+        description: "Fast session waxing from above the knees down to ankles",
+        query: "half leg waxing",
+      },
+      {
+        title: "Underarm Waxing",
+        description: "Fast, gentle underarm waxing preventing dark razor shadow",
+        query: "underarm waxing",
+      },
+      {
+        title: "Stomach & Back Waxing",
+        description: "Smooth hair removal across the abdomen and full back",
+        query: "stomach waxing",
+      },
+      {
+        title: "Upper Lip & Chin Waxing",
+        description: "Delicate facial waxing with temperature-controlled wax",
+        query: "upper lip waxing",
+      },
+      {
+        title: "Eyebrows Threading",
+        description: "Artistic brow contour shaping with sanitized organic cotton thread",
+        query: "eyebrows threading",
+      },
+      {
+        title: "Upper Lip Threading",
+        description: "Gentle cotton thread hair removal safe for sensitive skin",
+        query: "upper lip threading",
+      },
+      {
+        title: "Chin & Jawline Threading",
+        description: "Precision threading for stray hairs along chin and jawline",
+        query: "chin threading",
+      },
+      {
+        title: "Full Forehead & Hairline Threading",
+        description: "Peach fuzz threading for a crisp hairline & smooth makeup base",
+        query: "forehead threading",
       },
     ],
   },
@@ -195,23 +363,38 @@ const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
     icon: Heart,
     subcategories: [
       {
-        title: "Indian Head Massage",
-        description: "Warm botanical oil scalp massage for headache & stress relief",
-        query: "head massage",
+        title: "Foot Relaxation Massage",
+        description: "Aromatherapy herbal foot massage relieving tired feet & swelling",
+        query: "foot massage",
       },
       {
-        title: "Shoulder Tension Relief",
-        description: "Targeted kneading & acupressure for stiff shoulder blades",
-        query: "shoulder",
+        title: "Head Massage without Oil",
+        description: "Dry scalp acupressure massage for stress, headache & desk fatigue",
+        query: "head massage without oil",
       },
       {
-        title: "Head & Shoulder Ritual",
-        description: "Combined upper body massage for restorative relaxation",
+        title: "Oil Massage Head & Scalp",
+        description: "Warm botanical oil scalp massage to deeply nourish and relax",
+        query: "oil massage head",
+      },
+      {
+        title: "Palm & Hand Massage",
+        description: "Soothing acupressure palm massage releasing wrist and finger tension",
+        query: "palm massage",
+      },
+      {
+        title: "Shoulder Tension Relief Massage",
+        description: "Deep kneading massage for tired, stiff shoulder blades & traps",
+        query: "shoulder massage",
+      },
+      {
+        title: "Combined Head & Shoulder Ritual",
+        description: "Restorative upper body massage combining scalp and shoulder work",
         query: "head and shoulder",
       },
       {
-        title: "Neck & Back Ease",
-        description: "Deep restorative pressure for desk strain & muscle fatigue",
+        title: "Neck & Back Deep Ease",
+        description: "Targeted pressure massage dissolving knots and postural strain",
         query: "tension relief",
       },
     ],
@@ -225,27 +408,195 @@ const SERVICE_MENU_CATEGORIES: ServiceMenuCategory[] = [
     subcategories: [
       {
         title: "Normal Nail Polish",
-        description: "Vibrant high-pigment lacquer & mirror-shine protective topcoat",
-        query: "normal",
+        description: "Classic high-pigment lacquer with protective mirror-shine topcoat",
+        query: "normal nail polish",
       },
       {
         title: "Gel Nail Polish",
         description: "Durable chip-free LED gel color lasting up to 3 weeks",
-        query: "gel",
+        query: "gel nail polish",
       },
       {
         title: "French Nail Polish",
-        description: "Timeless chic sheer base with crisp white smile tips",
-        query: "french",
+        description: "Timeless sheer base topped with crisp white French smile tips",
+        query: "french nail polish",
       },
       {
-        title: "Polish Change (Hands & Feet)",
-        description: "Express 25-minute color refresh & fresh seasonal shade",
-        query: "polish change",
+        title: "Classic Polish Change (Hands)",
+        description: "Express 25-minute color refresh and clean edge smoothing",
+        query: "polish change hands",
+      },
+      {
+        title: "Classic Polish Change (Feet)",
+        description: "Express toenail polish removal, light filing and a fresh shade",
+        query: "polish change feet",
+      },
+      {
+        title: "Gel French Polish Change (Hands)",
+        description: "Instant LED dry French tip styling for hand nails",
+        query: "gel french hands",
+      },
+      {
+        title: "Gel French Polish Change (Feet)",
+        description: "Instant smudge-proof gel French polish for toenails in sandals",
+        query: "gel french feet",
+      },
+      {
+        title: "Polish Free Natural Buffing",
+        description: "Gentle cut, file and glassy high-shine natural nail buff",
+        query: "polish free",
+      },
+    ],
+  },
+  {
+    id: "henna",
+    name: "Henna",
+    slug: "henna",
+    tagline: "Cone henna designs for hands, arms & feet",
+    icon: Flower2,
+    subcategories: [
+      {
+        title: "Henna - Per Finger",
+        description: "Delicate artistic design tailored for individual fingers",
+        query: "Henna - Per Finger",
+        price: 30,
+        duration: 5,
+      },
+      {
+        title: "Henna - Palm",
+        description: "Traditional floral mandala motif across the inner palm",
+        query: "Henna - Palm",
+        price: 75,
+        duration: 10,
+      },
+      {
+        title: "Henna - Front Hand Till Wrist (Basic Design)",
+        description: "Classic wrist-length graceful henna pattern on front hand",
+        query: "Henna - Front Hand Till Wrist (Basic Design)",
+        price: 99,
+        duration: 15,
+      },
+      {
+        title: "Henna - Front Hand Till Wrist (Heavy Design)",
+        description: "Intricate bridal-style dense geometric & paisley detailing",
+        query: "Henna - Front Hand Till Wrist (Heavy Design)",
+        price: 179,
+        duration: 25,
+      },
+      {
+        title: "Henna - Both Front Hands Till Wrist (Basic Design)",
+        description: "Coordinated matching henna motifs across both palms and wrists",
+        query: "Henna - Both Front Hands Till Wrist (Basic Design)",
+        price: 195,
+        duration: 30,
+      },
+      {
+        title: "Henna - Both Back Hands Till Wrist (Basic Design)",
+        description: "Striking back-of-hand patterns extending to fingertips",
+        query: "Henna - Both Back Hands Till Wrist (Basic Design)",
+        price: 195,
+        duration: 30,
+      },
+      {
+        title: "Henna - Simple Feet Design Till Ankle (Both Legs)",
+        description: "Elegant foot and ankle henna accents perfect for sandals",
+        query: "Henna - Simple Feet Design Till Ankle (Both Legs)",
+        price: 349,
+        duration: 30,
+      },
+      {
+        title: "Henna - Heavy Feet Design Till Ankle (Both Legs)",
+        description: "Celebration-ready dense ornate artwork covering feet and ankles",
+        query: "Henna - Heavy Feet Design Till Ankle (Both Legs)",
+        price: 649,
+        duration: 60,
       },
     ],
   },
 ];
+
+const CATEGORY_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  "hair-styling": Scissors,
+  hair: Scissors,
+  manicure: Sparkles,
+  pedicure: Flower2,
+  facial: Eye,
+  waxing: Flame,
+  "women-salon-services": Heart,
+  massage: Heart,
+  "nail-polish": Palette,
+  nails: Palette,
+  "combo-deals": Sparkles,
+  henna: Flower2,
+};
+
+let cachedCategories: ServiceMenuCategory[] | null = null;
+let categoriesFetchPromise: Promise<ServiceMenuCategory[]> | null = null;
+
+async function fetchRealServiceCategories(): Promise<ServiceMenuCategory[]> {
+  try {
+    const [catsRes, servsRes] = await Promise.allSettled([
+      serviceCategoryApi.getAll(),
+      serviceApi.getAll({ limit: 300, sortBy: "displayOrder" }),
+    ]);
+
+    const categoriesData =
+      catsRes.status === "fulfilled" && catsRes.value?.categories
+        ? catsRes.value.categories
+        : [];
+    const servicesData =
+      servsRes.status === "fulfilled" && servsRes.value?.services
+        ? servsRes.value.services
+        : [];
+
+    if (!categoriesData.length) {
+      return SERVICE_MENU_CATEGORIES;
+    }
+
+    const transformed: ServiceMenuCategory[] = categoriesData.map((cat) => {
+      const matchedServices = servicesData.filter((s) => {
+        const catObj = typeof s.category === "object" ? s.category : null;
+        return (
+          catObj?._id === cat._id ||
+          catObj?.slug === cat.slug ||
+          s.category === cat._id ||
+          s.categorySlug === cat.slug ||
+          (typeof s.category === "string" && s.category === cat.slug) ||
+          s.categoryName?.toLowerCase() === cat.name.toLowerCase()
+        );
+      });
+
+      const iconKey = (cat.slug || cat.name).toLowerCase().replace(/\s+/g, "-");
+      const IconComponent = CATEGORY_ICON_MAP[iconKey] || Sparkles;
+
+      const subcategories: ServiceSubCategory[] = matchedServices.map((srv) => ({
+        title: srv.name,
+        description:
+          srv.shortDescription ||
+          (srv.duration
+            ? `${srv.duration} mins • AED ${srv.price}`
+            : `AED ${srv.price}`),
+        query: srv.name,
+        price: srv.price,
+        duration: srv.duration,
+      }));
+
+      return {
+        id: cat.slug || cat._id,
+        name: cat.name,
+        slug: cat.slug,
+        tagline: cat.description || `${subcategories.length} treatments available`,
+        icon: IconComponent,
+        subcategories,
+      };
+    });
+
+    return transformed;
+  } catch (err) {
+    console.warn("Failed to fetch real categories for navbar:", err);
+    return SERVICE_MENU_CATEGORIES;
+  }
+}
 
 export const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -258,7 +609,37 @@ export const Header: React.FC = () => {
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("hair-styling");
   const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
+  const [menuCategories, setMenuCategories] = useState<ServiceMenuCategory[]>(
+    () => cachedCategories || SERVICE_MENU_CATEGORIES
+  );
   const router = useRouter();
+
+  // Load real service catalog data from backend API
+  useEffect(() => {
+    let isMounted = true;
+
+    if (cachedCategories) {
+      setMenuCategories(cachedCategories);
+      return;
+    }
+
+    if (!categoriesFetchPromise) {
+      categoriesFetchPromise = fetchRealServiceCategories().then((res) => {
+        cachedCategories = res;
+        return res;
+      });
+    }
+
+    categoriesFetchPromise.then((res) => {
+      if (isMounted && res && res.length > 0) {
+        setMenuCategories(res);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +651,8 @@ export const Header: React.FC = () => {
   };
 
   const currentCategory =
-    SERVICE_MENU_CATEGORIES.find((c) => c.id === activeCategory) ||
+    menuCategories.find((c) => c.id === activeCategory || c.slug === activeCategory) ||
+    menuCategories[0] ||
     SERVICE_MENU_CATEGORIES[0];
 
   // Transparent navbar on hero section initial state; changes to glass blur on scroll
@@ -349,13 +731,13 @@ export const Header: React.FC = () => {
                       <div>
                         <div className="px-2.5 pt-0.5 pb-1.5 flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#746D69]/80">
-                            Service services
+                            Service Categories
                           </span>
                         </div>
-                        <div className="space-y-1">
-                          {SERVICE_MENU_CATEGORIES.map((cat) => {
-                            const Icon = cat.icon;
-                            const isSelected = activeCategory === cat.id;
+                        <div className="space-y-1 max-h-[390px] overflow-y-auto [scrollbar-width:thin] pr-1">
+                          {menuCategories.map((cat) => {
+                            const Icon = cat.icon || Sparkles;
+                            const isSelected = activeCategory === cat.id || activeCategory === cat.slug;
                             return (
                               <Link
                                 key={cat.id}
@@ -440,31 +822,42 @@ export const Header: React.FC = () => {
                           </Link>
                         </div>
 
-                        {/* Subcategories Grid - 2 columns, spacious horizontal width, compact vertical height */}
-                        <div className="grid grid-cols-2 gap-2">
-                          {currentCategory.subcategories.map((sub, idx) => (
-                            <Link
-                              key={idx}
-                              href={`/services?category=${currentCategory.slug}&query=${encodeURIComponent(
-                                sub.query
-                              )}`}
-                              onClick={() => setServicesDropdownOpen(false)}
-                              className="group/sub p-2.5 rounded-xl bg-[#FAF7F2]/50 hover:bg-[#FAF7F2] border border-[#E8D8C8]/50 hover:border-[#CF565D]/40 transition-all duration-150 flex items-start justify-between gap-2"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[13.5px] font-semibold text-[#292525] group-hover/sub:text-[#CF565D] transition-colors truncate">
-                                    {sub.title}
-                                  </span>
+                        {/* Subcategories Grid - 2 columns, fills available vertical space naturally */}
+                        {currentCategory.subcategories.length === 0 ? (
+                          <div className="py-12 text-center text-[#746D69] text-xs">
+                            No treatments currently listed in this category.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1.5 [scrollbar-width:thin]">
+                            {currentCategory.subcategories.map((sub, idx) => (
+                              <Link
+                                key={idx}
+                                href={`/services?category=${currentCategory.slug}&query=${encodeURIComponent(
+                                  sub.query
+                                )}`}
+                                onClick={() => setServicesDropdownOpen(false)}
+                                className="group/sub p-2.5 rounded-xl bg-[#FAF7F2]/50 hover:bg-[#FAF7F2] border border-[#E8D8C8]/50 hover:border-[#CF565D]/40 transition-all duration-150 flex items-start justify-between gap-2"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <span className="text-[13px] font-semibold text-[#292525] group-hover/sub:text-[#CF565D] transition-colors truncate">
+                                      {sub.title}
+                                    </span>
+                                    {typeof sub.price === "number" && (
+                                      <span className="text-[11px] font-bold text-[#CF565D] shrink-0">
+                                        AED {sub.price}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-[#746D69] truncate mt-0.5 leading-snug">
+                                    {sub.description}
+                                  </p>
                                 </div>
-                                <p className="text-[11.5px] text-[#746D69] truncate mt-0.5 leading-snug">
-                                  {sub.description}
-                                </p>
-                              </div>
-                              <ArrowRight className="w-3.5 h-3.5 text-[#CF565D] mt-0.5 opacity-40 group-hover/sub:opacity-100 group-hover/sub:translate-x-0.5 transition-all shrink-0" />
-                            </Link>
-                          ))}
-                        </div>
+                                <ArrowRight className="w-3.5 h-3.5 text-[#CF565D] mt-0.5 opacity-40 group-hover/sub:opacity-100 group-hover/sub:translate-x-0.5 transition-all shrink-0" />
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Bottom Banner */}
@@ -810,7 +1203,7 @@ export const Header: React.FC = () => {
 
               {mobileServicesOpen && (
                 <div className="pt-2 pb-1 space-y-3 animate-in slide-in-from-top-1 duration-150 pl-1">
-                  {SERVICE_MENU_CATEGORIES.map((cat) => (
+                  {menuCategories.map((cat) => (
                     <div key={cat.id} className="space-y-1.5 p-2.5 rounded-2xl bg-white/60 border border-[#E8D8C8]/50">
                       <Link
                         href={`/services?category=${cat.slug}`}
@@ -819,19 +1212,24 @@ export const Header: React.FC = () => {
                       >
                         <span>{cat.name}</span>
                         <span className="text-xs text-[#CF565D] font-medium flex items-center gap-0.5">
-                          <span>View All</span>
+                          <span>View All ({cat.subcategories.length})</span>
                           <span>&rarr;</span>
                         </span>
                       </Link>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                        {cat.subcategories.map((sub, idx) => (
+                        {cat.subcategories.slice(0, 8).map((sub, idx) => (
                           <Link
                             key={idx}
                             href={`/services?category=${cat.slug}&query=${encodeURIComponent(sub.query)}`}
                             onClick={() => setMobileMenuOpen(false)}
-                            className="text-[12px] text-[#746D69] hover:text-[#CF565D] py-1.5 px-2.5 rounded-xl bg-[#FAF7F2] border border-[#E8D8C8]/40 truncate block"
+                            className="text-[12px] text-[#746D69] hover:text-[#CF565D] py-1.5 px-2.5 rounded-xl bg-[#FAF7F2] border border-[#E8D8C8]/40 truncate flex items-center justify-between"
                           >
-                            {sub.title}
+                            <span className="truncate">{sub.title}</span>
+                            {typeof sub.price === "number" && (
+                              <span className="text-[11px] font-bold text-[#CF565D] shrink-0 ml-1.5">
+                                AED {sub.price}
+                              </span>
+                            )}
                           </Link>
                         ))}
                       </div>
