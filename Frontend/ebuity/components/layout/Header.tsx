@@ -806,10 +806,12 @@ export const Header: React.FC = () => {
                               {currentCategory.name}
                             </h4>
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FAF7F2] text-[#CF565D] border border-[#E8D8C8]">
-                              {currentCategory.subcategories.length} services
+                              {currentCategory.subcategories.length} total services
                             </span>
                             <span className="hidden sm:inline text-[11px] text-[#746D69]">
-                              • Select a treatment to view details & pricing
+                              {currentCategory.subcategories.length > 8
+                                ? `• Showing 8 of ${currentCategory.subcategories.length} treatments`
+                                : "• Select a treatment to view details & pricing"}
                             </span>
                           </div>
                           <Link
@@ -817,19 +819,19 @@ export const Header: React.FC = () => {
                             onClick={() => setServicesDropdownOpen(false)}
                             className="text-[12px] font-semibold text-[#CF565D] hover:text-[#b8454c] flex items-center gap-1 group/view transition-colors shrink-0"
                           >
-                            <span>View All</span>
+                            <span>View All ({currentCategory.subcategories.length})</span>
                             <ArrowRight className="w-3.5 h-3.5 group-hover/view:translate-x-0.5 transition-transform" />
                           </Link>
                         </div>
 
-                        {/* Subcategories Grid - 2 columns, fills available vertical space naturally */}
+                        {/* Subcategories Grid - 2 columns, showing top 8 services */}
                         {currentCategory.subcategories.length === 0 ? (
                           <div className="py-12 text-center text-[#746D69] text-xs">
                             No treatments currently listed in this category.
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1.5 [scrollbar-width:thin]">
-                            {currentCategory.subcategories.map((sub, idx) => (
+                          <div className="grid grid-cols-2 gap-2">
+                            {currentCategory.subcategories.slice(0, 8).map((sub, idx) => (
                               <Link
                                 key={idx}
                                 href={`/services?category=${currentCategory.slug}&query=${encodeURIComponent(
@@ -866,479 +868,494 @@ export const Header: React.FC = () => {
                           <Sparkles className="w-3.5 h-3.5 text-[#CF565D]" />
                           <span>Hospital-grade sterilisation & certified aestheticians</span>
                         </div>
-                        <Link
-                          href="/book"
-                          onClick={() => setServicesDropdownOpen(false)}
-                          className="text-[#CF565D] font-semibold hover:underline"
-                        >
-                          Book Appointment &rarr;
-                        </Link>
+                        {currentCategory.subcategories.length > 8 ? (
+                          <Link
+                            href={`/services?category=${currentCategory.slug}`}
+                            onClick={() => setServicesDropdownOpen(false)}
+                            className="text-[#CF565D] font-semibold hover:underline flex items-center gap-1"
+                          >
+                            <span>Explore all {currentCategory.subcategories.length} treatments</span>
+                            <span>&rarr;</span>
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/book"
+                            onClick={() => setServicesDropdownOpen(false)}
+                            className="text-[#CF565D] font-semibold hover:underline"
+                          >
+                            Book Appointment &rarr;
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Packages & Offers */}
-            <Link
-              href="/packages"
-              className="relative py-1 text-[#746D69] hover:text-[#CF565D] transition-colors flex items-center gap-1.5"
-            >
-              <span>Packages & Offers</span>
-            </Link>
-
-            {/* Shop */}
-            <Link
-              href="/shop"
-              className="relative py-1 text-[#746D69] hover:text-[#292525] transition-colors flex items-center gap-1.5"
-            >
-              <span>Shop </span>
-            </Link>
-
-            <Link
-              href="/#about"
-              className="py-1 text-[#746D69] hover:text-[#292525] transition-colors"
-            >
-              About
-            </Link>
-            <Link
-              href="/#contact"
-              className="py-1 text-[#746D69] hover:text-[#292525] transition-colors"
-            >
-              Contact
-            </Link>
-          </nav>
-
-          {/* Right: Actions (Mobile: Search -> /book, Book Now, Menu; Desktop: Search, Account, Cart, Book Now) */}
-          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 lg:gap-3.5 shrink-0">
-
-            {/* Mobile-Only Search Icon -> Navigates directly to /book per Requirement 4 */}
-            <Link
-              href="/book"
-              className="sm:hidden w-9 h-9 xs:w-10 xs:h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95 shrink-0"
-              aria-label="Search and book treatments"
-            >
-              <Search className="w-5 h-5 stroke-[1.75]" />
-            </Link>
-
-            {/* Desktop/Tablet Search Toggle & Dropdown */}
-            <div className="hidden sm:block relative">
-              <button
-                type="button"
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="w-10 h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95"
-                aria-label="Search treatments and services"
-              >
-                <Search className="w-5 h-5 stroke-[1.75]" />
-              </button>
-
-              {searchOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 lg:w-96 p-2.5 bg-white rounded-2xl shadow-xl border border-[#E8D8C8] z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-2.5 py-1.5 bg-[#FAF7F2] rounded-xl border border-[#E8D8C8]/70 focus-within:border-[#CF565D] focus-within:bg-white transition-all">
-                    <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search facials, massages, manicure..."
-                      className="w-full text-xs text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent py-1"
-                      autoFocus
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        className="text-xs text-[#746D69] hover:text-[#292525] p-1"
-                        aria-label="Clear query"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      className="px-3 py-1 rounded-lg bg-[#CF565D] text-white text-[11px] font-semibold hover:bg-[#b8454c] shrink-0"
-                    >
-                      Search
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
-
-            {/* Desktop/Tablet Account / Profile (Hidden on Mobile per Requirement 3; moved to Drawer) */}
-            <div className="hidden sm:block relative">
-              {isAuthenticated ? (
-                <div className="flex items-center gap-1">
-                  <Link
-                    href="/account"
-                    className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white border border-[#E8D8C8] hover:border-[#CF565D] hover:text-[#CF565D] transition-colors text-xs font-medium text-[#292525] shadow-2xs"
-                    title="Customer Account"
-                  >
-                    <UserIcon className="w-3.5 h-3.5 text-[#CF565D]" />
-                    <span className="hidden xl:inline max-w-[90px] truncate">
-                      {user?.name?.split(" ")[0] || "Account"}
-                    </span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => logout()}
-                    className="w-9 h-9 flex items-center justify-center text-[#746D69] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60"
-                    title="Sign Out"
-                    aria-label="Sign Out"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  href="/login"
-                  className="w-10 h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95"
-                  aria-label="Client Sign In"
-                >
-                  <UserIcon className="w-5 h-5 stroke-[1.75]" />
-                </Link>
-              )}
-            </div>
-
-            {/* Desktop/Tablet Cart Bag Icon (Hidden on Mobile per Requirement 3; moved to Drawer) */}
-            <Link
-              href="/cart"
-              className="hidden sm:flex relative w-10 h-10 items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95 shrink-0"
-              aria-label={`Shopping Cart, ${totals.count} items`}
-            >
-              <ShoppingBag className="w-5 h-5 stroke-[1.75]" />
-              {totals.count > 0 && (
-                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-[#CF565D] text-white text-[10px] font-bold flex items-center justify-center leading-none shadow-xs animate-in zoom-in duration-150">
-                  {totals.count > 99 ? "99+" : totals.count}
-                </span>
-              )}
-            </Link>
-
-            {/* Prominent Book Now Button (Visible on ALL devices: Mobile, Tablet & Desktop) */}
-            <Link
-              href="/book"
-              onClick={() => {
-                if (pathname === "/book") {
-                  window.dispatchEvent(new CustomEvent("reset-booking-flow"));
-                }
-              }}
-              className="flex items-center gap-1 sm:gap-1.5 h-8 xs:h-9 sm:h-10 px-2.5 xs:px-3 sm:px-4 lg:px-5 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-[11px] xs:text-xs font-semibold uppercase tracking-wider transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 shrink-0"
-            >
-              <Calendar className="w-3 h-3 xs:w-3.5 xs:h-3.5" />
-              <span className="whitespace-nowrap">Book Now</span>
-            </Link>
-
-            {/* Mobile Hamburger Toggle (md:hidden) */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden w-9 h-9 xs:w-10 xs:h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] rounded-lg focus:outline-none shrink-0"
-              aria-label="Toggle mobile menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-5 h-5 xs:w-6 xs:h-6 stroke-[1.75]" />
-              ) : (
-                <Menu className="w-5 h-5 xs:w-6 xs:h-6 stroke-[1.75]" />
-              )}
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* Mobile Full-Header Search Bar Overlay (Active on Mobile when search clicked) */}
-      {searchOpen && (
-        <div className="sm:hidden absolute inset-x-0 top-0 h-16 bg-white border-b border-[#E8D8C8] px-3.5 flex items-center gap-2.5 z-50 shadow-md animate-in slide-in-from-top duration-150">
-          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 bg-[#FAF7F2] rounded-xl border border-[#E8D8C8] px-3 py-1.5 focus-within:border-[#CF565D] focus-within:bg-white transition-all">
-            <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search treatments, rituals..."
-              className="w-full text-base text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent"
-              autoFocus
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="p-1 text-[#746D69]"
-                aria-label="Clear search query"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </form>
+        {/* Packages & Offers */}
+        <Link
+          href="/packages"
+          className="relative py-1 text-[#746D69] hover:text-[#CF565D] transition-colors flex items-center gap-1.5"
+        >
+          <span>Packages & Offers</span>
+        </Link>
+
+        {/* Shop */}
+        <Link
+          href="/shop"
+          className="relative py-1 text-[#746D69] hover:text-[#292525] transition-colors flex items-center gap-1.5"
+        >
+          <span>Shop </span>
+        </Link>
+
+        <Link
+          href="/#about"
+          className="py-1 text-[#746D69] hover:text-[#292525] transition-colors"
+        >
+          About
+        </Link>
+        <Link
+          href="/#contact"
+          className="py-1 text-[#746D69] hover:text-[#292525] transition-colors"
+        >
+          Contact
+        </Link>
+      </nav>
+
+      {/* Right: Actions (Mobile: Search -> /book, Book Now, Menu; Desktop: Search, Account, Cart, Book Now) */}
+      <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 lg:gap-3.5 shrink-0">
+
+        {/* Mobile-Only Search Icon -> Navigates directly to /book per Requirement 4 */}
+        <Link
+          href="/book"
+          className="sm:hidden w-9 h-9 xs:w-10 xs:h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95 shrink-0"
+          aria-label="Search and book treatments"
+        >
+          <Search className="w-5 h-5 stroke-[1.75]" />
+        </Link>
+
+        {/* Desktop/Tablet Search Toggle & Dropdown */}
+        <div className="hidden sm:block relative">
           <button
             type="button"
-            onClick={() => setSearchOpen(false)}
-            className="w-9 h-9 flex items-center justify-center text-[#746D69] hover:text-[#292525] shrink-0"
-            aria-label="Close search"
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="w-10 h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95"
+            aria-label="Search treatments and services"
           >
-            <X className="w-5 h-5 stroke-[2]" />
+            <Search className="w-5 h-5 stroke-[1.75]" />
           </button>
-        </div>
-      )}
 
-      {/* Mobile Drawer with Full Viewport Height, Safe Area and Search */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-[#FAF7F2] border-t border-[#E8D8C8] px-4 sm:px-6 py-5 overflow-y-auto space-y-4 animate-in slide-in-from-top duration-200 z-50 shadow-xl pb-[max(3rem,env(safe-area-inset-bottom))]">
-          {/* Quick Account & Cart Row in Mobile Drawer */}
-          <div className="flex items-center gap-2.5">
-            {isAuthenticated ? (
-              <Link
-                href="/account"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
-              >
-                <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
-                  <UserIcon className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0 text-left">
-                  <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Account</span>
-                  <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">{user?.name?.split(" ")[0] || "My Profile"}</span>
-                </div>
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
-              >
-                <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
-                  <UserIcon className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0 text-left">
-                  <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Welcome</span>
-                  <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">Sign In / Profile</span>
-                </div>
-              </Link>
-            )}
-
-            <Link
-              href="/cart"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 flex items-center justify-between p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0 text-left">
-                  <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Basket</span>
-                  <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">Shopping Cart</span>
-                </div>
-              </div>
-              {totals.count > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-[#CF565D] text-white text-[11px] font-bold shrink-0">
-                  {totals.count}
-                </span>
-              )}
-            </Link>
-          </div>
-
-          {/* Direct Search Bar Inside Mobile Drawer */}
-          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white border border-[#E8D8C8] shadow-2xs">
-            <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search treatments or packages..."
-              className="w-full text-sm text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="p-1 text-[#746D69]"
-                aria-label="Clear query"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <button
-              type="submit"
-              className="px-3 py-1 rounded-xl bg-[#CF565D] text-white text-xs font-semibold shrink-0"
-            >
-              Search
-            </button>
-          </form>
-
-          {/* Quick Book CTA Button in Mobile Drawer */}
-          <Link
-            href="/book"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              if (pathname === "/book") {
-                window.dispatchEvent(new CustomEvent("reset-booking-flow"));
-              }
-            }}
-            className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-xs active:scale-95"
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Book an Appointment</span>
-          </Link>
-
-          <nav className="flex flex-col space-y-3">
-            {/* Mobile Services Accordion */}
-            <div className="border-b border-[#E8D8C8]/40 pb-2">
-              <button
-                type="button"
-                onClick={() => setMobileServicesOpen(!mobileServicesOpen)}
-                className="w-full text-base font-semibold text-[#CF565D] py-1 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <span>Our Services</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
-                    services
-                  </span>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-[#CF565D] transition-transform duration-200 ${mobileServicesOpen ? "rotate-180" : ""
-                    }`}
+          {searchOpen && (
+            <div className="absolute right-0 top-full mt-2 w-80 lg:w-96 p-2.5 bg-white rounded-2xl shadow-xl border border-[#E8D8C8] z-50 animate-in fade-in zoom-in-95 duration-150">
+              <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-2.5 py-1.5 bg-[#FAF7F2] rounded-xl border border-[#E8D8C8]/70 focus-within:border-[#CF565D] focus-within:bg-white transition-all">
+                <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search facials, massages, manicure..."
+                  className="w-full text-xs text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent py-1"
+                  autoFocus
                 />
-              </button>
-
-              {mobileServicesOpen && (
-                <div className="pt-2 pb-1 space-y-3 animate-in slide-in-from-top-1 duration-150 pl-1">
-                  {menuCategories.map((cat) => (
-                    <div key={cat.id} className="space-y-1.5 p-2.5 rounded-2xl bg-white/60 border border-[#E8D8C8]/50">
-                      <Link
-                        href={`/services?category=${cat.slug}`}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-[15px] font-bold text-[#292525] hover:text-[#CF565D] flex items-center justify-between"
-                      >
-                        <span>{cat.name}</span>
-                        <span className="text-xs text-[#CF565D] font-medium flex items-center gap-0.5">
-                          <span>View All ({cat.subcategories.length})</span>
-                          <span>&rarr;</span>
-                        </span>
-                      </Link>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
-                        {cat.subcategories.slice(0, 8).map((sub, idx) => (
-                          <Link
-                            key={idx}
-                            href={`/services?category=${cat.slug}&query=${encodeURIComponent(sub.query)}`}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="text-[12px] text-[#746D69] hover:text-[#CF565D] py-1.5 px-2.5 rounded-xl bg-[#FAF7F2] border border-[#E8D8C8]/40 truncate flex items-center justify-between"
-                          >
-                            <span className="truncate">{sub.title}</span>
-                            {typeof sub.price === "number" && (
-                              <span className="text-[11px] font-bold text-[#CF565D] shrink-0 ml-1.5">
-                                AED {sub.price}
-                              </span>
-                            )}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  <Link
-                    href="/services"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block text-xs font-bold text-[#CF565D] pt-1 text-center hover:underline"
-                  >
-                    View All Services & Ceremonies &rarr;
-                  </Link>
-                </div>
-              )}
-            </div>
-            <Link
-              href="/packages"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40 flex items-center justify-between"
-            >
-              <span>Packages & Offers</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
-                Offers
-              </span>
-            </Link>
-            <Link
-              href="/shop"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40 flex items-center justify-between"
-            >
-              <span>Shop Botanicals</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
-                Store
-              </span>
-            </Link>
-            <Link
-              href="/cart"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40 flex items-center justify-between"
-            >
-              <span>Shopping Cart</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8D8C8]/60 text-[#292525]">
-                {totals.count} items
-              </span>
-            </Link>
-            <Link
-              href="/#about"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40"
-            >
-              About Our Standards
-            </Link>
-            <Link
-              href="/#contact"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1"
-            >
-              Contact & Concierge
-            </Link>
-          </nav>
-
-          <div className="pt-4 border-t border-[#E8D8C8] flex flex-col gap-3">
-
-            {isAuthenticated ? (
-              <div className="flex flex-col gap-2 w-full pt-1">
-                <Link
-                  href="/account"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-xs text-[#292525] font-semibold hover:text-[#CF565D] py-1"
-                >
-                  My Account &rarr;
-                </Link>
-                <div className="flex items-center justify-between w-full pt-1 border-t border-[#FAF7F2]">
-                  <span className="text-xs text-[#746D69]">
-                    Signed in as {user?.name}
-                  </span>
+                {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-xs text-[#CF565D] font-semibold"
+                    onClick={() => setSearchQuery("")}
+                    className="text-xs text-[#746D69] hover:text-[#292525] p-1"
+                    aria-label="Clear query"
                   >
-                    Log Out
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-3 w-full">
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center py-2 text-xs font-semibold uppercase tracking-wider text-[#292525] border border-[#E8D8C8] rounded-full bg-white"
+                )}
+                <button
+                  type="submit"
+                  className="px-3 py-1 rounded-lg bg-[#CF565D] text-white text-[11px] font-semibold hover:bg-[#b8454c] shrink-0"
                 >
-                  Sign In
-                </Link>
-                <Link
-                  href="/signup"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center py-2 text-xs font-semibold uppercase tracking-wider text-[#292525] border border-[#E8D8C8] rounded-full bg-white"
-                >
-                  Register
-                </Link>
-              </div>
-            )}
-          </div>
+                  Search
+                </button>
+              </form>
+            </div>
+          )}
         </div>
-      )}
-    </header>
+
+        {/* Desktop/Tablet Account / Profile (Hidden on Mobile per Requirement 3; moved to Drawer) */}
+        <div className="hidden sm:block relative">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-1">
+              <Link
+                href="/account"
+                className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white border border-[#E8D8C8] hover:border-[#CF565D] hover:text-[#CF565D] transition-colors text-xs font-medium text-[#292525] shadow-2xs"
+                title="Customer Account"
+              >
+                <UserIcon className="w-3.5 h-3.5 text-[#CF565D]" />
+                <span className="hidden xl:inline max-w-[90px] truncate">
+                  {user?.name?.split(" ")[0] || "Account"}
+                </span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="w-9 h-9 flex items-center justify-center text-[#746D69] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60"
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="w-10 h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95"
+              aria-label="Client Sign In"
+            >
+              <UserIcon className="w-5 h-5 stroke-[1.75]" />
+            </Link>
+          )}
+        </div>
+
+        {/* Desktop/Tablet Cart Bag Icon (Hidden on Mobile per Requirement 3; moved to Drawer) */}
+        <Link
+          href="/cart"
+          className="hidden sm:flex relative w-10 h-10 items-center justify-center text-[#292525] hover:text-[#CF565D] transition-colors rounded-full hover:bg-white/60 active:scale-95 shrink-0"
+          aria-label={`Shopping Cart, ${totals.count} items`}
+        >
+          <ShoppingBag className="w-5 h-5 stroke-[1.75]" />
+          {totals.count > 0 && (
+            <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-[#CF565D] text-white text-[10px] font-bold flex items-center justify-center leading-none shadow-xs animate-in zoom-in duration-150">
+              {totals.count > 99 ? "99+" : totals.count}
+            </span>
+          )}
+        </Link>
+
+        {/* Prominent Book Now Button (Visible on ALL devices: Mobile, Tablet & Desktop) */}
+        <Link
+          href="/book"
+          onClick={() => {
+            if (pathname === "/book") {
+              window.dispatchEvent(new CustomEvent("reset-booking-flow"));
+            }
+          }}
+          className="flex items-center gap-1 sm:gap-1.5 h-8 xs:h-9 sm:h-10 px-2.5 xs:px-3 sm:px-4 lg:px-5 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-[11px] xs:text-xs font-semibold uppercase tracking-wider transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 shrink-0"
+        >
+          <Calendar className="w-3 h-3 xs:w-3.5 xs:h-3.5" />
+          <span className="whitespace-nowrap">Book Now</span>
+        </Link>
+
+        {/* Mobile Hamburger Toggle (md:hidden) */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden w-9 h-9 xs:w-10 xs:h-10 flex items-center justify-center text-[#292525] hover:text-[#CF565D] rounded-lg focus:outline-none shrink-0"
+          aria-label="Toggle mobile menu"
+        >
+          {mobileMenuOpen ? (
+            <X className="w-5 h-5 xs:w-6 xs:h-6 stroke-[1.75]" />
+          ) : (
+            <Menu className="w-5 h-5 xs:w-6 xs:h-6 stroke-[1.75]" />
+          )}
+        </button>
+      </div>
+    </div>
+      </div >
+
+  {/* Mobile Full-Header Search Bar Overlay (Active on Mobile when search clicked) */ }
+{
+  searchOpen && (
+    <div className="sm:hidden absolute inset-x-0 top-0 h-16 bg-white border-b border-[#E8D8C8] px-3.5 flex items-center gap-2.5 z-50 shadow-md animate-in slide-in-from-top duration-150">
+      <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 bg-[#FAF7F2] rounded-xl border border-[#E8D8C8] px-3 py-1.5 focus-within:border-[#CF565D] focus-within:bg-white transition-all">
+        <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search treatments, rituals..."
+          className="w-full text-base text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent"
+          autoFocus
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="p-1 text-[#746D69]"
+            aria-label="Clear search query"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </form>
+      <button
+        type="button"
+        onClick={() => setSearchOpen(false)}
+        className="w-9 h-9 flex items-center justify-center text-[#746D69] hover:text-[#292525] shrink-0"
+        aria-label="Close search"
+      >
+        <X className="w-5 h-5 stroke-[2]" />
+      </button>
+    </div>
+  )
+}
+
+{/* Mobile Drawer with Full Viewport Height, Safe Area and Search */ }
+{
+  mobileMenuOpen && (
+    <div className="md:hidden fixed inset-x-0 top-16 sm:top-20 bottom-0 bg-[#FAF7F2] border-t border-[#E8D8C8] px-4 sm:px-6 py-5 overflow-y-auto space-y-4 animate-in slide-in-from-top duration-200 z-50 shadow-xl pb-[max(3rem,env(safe-area-inset-bottom))]">
+      {/* Quick Account & Cart Row in Mobile Drawer */}
+      <div className="flex items-center gap-2.5">
+        {isAuthenticated ? (
+          <Link
+            href="/account"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex-1 flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
+          >
+            <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
+              <UserIcon className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 text-left">
+              <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Account</span>
+              <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">{user?.name?.split(" ")[0] || "My Profile"}</span>
+            </div>
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex-1 flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
+          >
+            <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
+              <UserIcon className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 text-left">
+              <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Welcome</span>
+              <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">Sign In / Profile</span>
+            </div>
+          </Link>
+        )}
+
+        <Link
+          href="/cart"
+          onClick={() => setMobileMenuOpen(false)}
+          className="flex-1 flex items-center justify-between p-2.5 rounded-2xl bg-white border border-[#E8D8C8] text-xs font-semibold text-[#292525] shadow-2xs hover:border-[#CF565D] transition-colors min-w-0"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-full bg-[#FAF7F2] flex items-center justify-center shrink-0 text-[#CF565D]">
+              <ShoppingBag className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 text-left">
+              <span className="block text-[10px] uppercase font-bold text-[#746D69]/70 leading-none">Basket</span>
+              <span className="block text-xs font-bold text-[#292525] truncate mt-0.5">Shopping Cart</span>
+            </div>
+          </div>
+          {totals.count > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-[#CF565D] text-white text-[11px] font-bold shrink-0">
+              {totals.count}
+            </span>
+          )}
+        </Link>
+      </div>
+
+      {/* Direct Search Bar Inside Mobile Drawer */}
+      <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white border border-[#E8D8C8] shadow-2xs">
+        <Search className="w-4 h-4 text-[#CF565D] shrink-0" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search treatments or packages..."
+          className="w-full text-sm text-[#292525] placeholder:text-[#746D69]/60 focus:outline-none bg-transparent"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="p-1 text-[#746D69]"
+            aria-label="Clear query"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          type="submit"
+          className="px-3 py-1 rounded-xl bg-[#CF565D] text-white text-xs font-semibold shrink-0"
+        >
+          Search
+        </button>
+      </form>
+
+      {/* Quick Book CTA Button in Mobile Drawer */}
+      <Link
+        href="/book"
+        onClick={() => {
+          setMobileMenuOpen(false);
+          if (pathname === "/book") {
+            window.dispatchEvent(new CustomEvent("reset-booking-flow"));
+          }
+        }}
+        className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-xs active:scale-95"
+      >
+        <Calendar className="w-4 h-4" />
+        <span>Book an Appointment</span>
+      </Link>
+
+      <nav className="flex flex-col space-y-3">
+        {/* Mobile Services Accordion */}
+        <div className="border-b border-[#E8D8C8]/40 pb-2">
+          <button
+            type="button"
+            onClick={() => setMobileServicesOpen(!mobileServicesOpen)}
+            className="w-full text-base font-semibold text-[#CF565D] py-1 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <span>Our Services</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
+                services
+              </span>
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 text-[#CF565D] transition-transform duration-200 ${mobileServicesOpen ? "rotate-180" : ""
+                }`}
+            />
+          </button>
+
+          {mobileServicesOpen && (
+            <div className="pt-2 pb-1 space-y-3 animate-in slide-in-from-top-1 duration-150 pl-1">
+              {menuCategories.map((cat) => (
+                <div key={cat.id} className="space-y-1.5 p-2.5 rounded-2xl bg-white/60 border border-[#E8D8C8]/50">
+                  <Link
+                    href={`/services?category=${cat.slug}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-[15px] font-bold text-[#292525] hover:text-[#CF565D] flex items-center justify-between"
+                  >
+                    <span>{cat.name}</span>
+                    <span className="text-xs text-[#CF565D] font-medium flex items-center gap-0.5">
+                      <span>View All ({cat.subcategories.length})</span>
+                      <span>&rarr;</span>
+                    </span>
+                  </Link>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                    {cat.subcategories.slice(0, 8).map((sub, idx) => (
+                      <Link
+                        key={idx}
+                        href={`/services?category=${cat.slug}&query=${encodeURIComponent(sub.query)}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-[12px] text-[#746D69] hover:text-[#CF565D] py-1.5 px-2.5 rounded-xl bg-[#FAF7F2] border border-[#E8D8C8]/40 truncate flex items-center justify-between"
+                      >
+                        <span className="truncate">{sub.title}</span>
+                        {typeof sub.price === "number" && (
+                          <span className="text-[11px] font-bold text-[#CF565D] shrink-0 ml-1.5">
+                            AED {sub.price}
+                          </span>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <Link
+                href="/services"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-xs font-bold text-[#CF565D] pt-1 text-center hover:underline"
+              >
+                View All Services & Ceremonies &rarr;
+              </Link>
+            </div>
+          )}
+        </div>
+        <Link
+          href="/packages"
+          onClick={() => setMobileMenuOpen(false)}
+          className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40 flex items-center justify-between"
+        >
+          <span>Packages & Offers</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
+            Offers
+          </span>
+        </Link>
+        <Link
+          href="/shop"
+          onClick={() => setMobileMenuOpen(false)}
+          className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40 flex items-center justify-between"
+        >
+          <span>Shop Botanicals</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F5DAD6] text-[#CF565D]">
+            Store
+          </span>
+        </Link>
+        <Link
+          href="/cart"
+          onClick={() => setMobileMenuOpen(false)}
+          className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40 flex items-center justify-between"
+        >
+          <span>Shopping Cart</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8D8C8]/60 text-[#292525]">
+            {totals.count} items
+          </span>
+        </Link>
+        <Link
+          href="/#about"
+          onClick={() => setMobileMenuOpen(false)}
+          className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1 border-b border-[#E8D8C8]/40"
+        >
+          About Our Standards
+        </Link>
+        <Link
+          href="/#contact"
+          onClick={() => setMobileMenuOpen(false)}
+          className="text-base font-medium text-[#292525] hover:text-[#CF565D] py-1"
+        >
+          Contact & Concierge
+        </Link>
+      </nav>
+
+      <div className="pt-4 border-t border-[#E8D8C8] flex flex-col gap-3">
+
+        {isAuthenticated ? (
+          <div className="flex flex-col gap-2 w-full pt-1">
+            <Link
+              href="/account"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-xs text-[#292525] font-semibold hover:text-[#CF565D] py-1"
+            >
+              My Account &rarr;
+            </Link>
+            <div className="flex items-center justify-between w-full pt-1 border-t border-[#FAF7F2]">
+              <span className="text-xs text-[#746D69]">
+                Signed in as {user?.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                }}
+                className="text-xs text-[#CF565D] font-semibold"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-3 w-full">
+            <Link
+              href="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex-1 text-center py-2 text-xs font-semibold uppercase tracking-wider text-[#292525] border border-[#E8D8C8] rounded-full bg-white"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex-1 text-center py-2 text-xs font-semibold uppercase tracking-wider text-[#292525] border border-[#E8D8C8] rounded-full bg-white"
+            >
+              Register
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+    </header >
   );
 };
