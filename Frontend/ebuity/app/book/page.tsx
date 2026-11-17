@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Header } from "../../components/layout/Header";
@@ -11,6 +11,7 @@ import {
   serviceZoneApi,
   addressApi,
   bookingApi,
+  noonPaymentApi,
   ZoneValidationResponse,
   Booking,
 } from "../../lib/api-client";
@@ -19,6 +20,7 @@ import { Service, ServiceCategory, ServiceZone } from "../../types/service";
 import { Package } from "../../types/package";
 import { TimeSlot, SavedAddress } from "../../types/booking";
 import { format12Hour } from "../../lib/booking-utils";
+import { NoonPaymentForm, NoonPaymentFormHandle } from "../../components/payment/NoonPaymentForm";
 import {
   CheckCircle2,
   AlertCircle,
@@ -31,10 +33,16 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Gift,
   Pencil,
+  CreditCard,
+  Banknote,
+  ShieldCheck,
+  Lock,
 } from "lucide-react";
-import { UAE_EMIRATES } from "../../lib/locations";
+import { UAE_EMIRATES, DEFAULT_EMIRATE_LOCATIONS } from "../../lib/locations";
+import { ServiceAreaSelect } from "../../components/booking/ServiceAreaSelect";
 
 /* ---------- helpers ---------- */
 const getPrice = (s: Service) =>
@@ -266,6 +274,11 @@ function BookingContent() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
+
+  // Payment method
+  const [paymentMethod, setPaymentMethod] = useState<"noon" | "cash">("noon");
+  const noonBookingPaymentRef = useRef<NoonPaymentFormHandle>(null);
+  const [isNoonCardValid, setIsNoonCardValid] = useState<boolean>(false);
 
   const useNewAddress = !isAuthenticated || savedAddresses.length === 0 || isAddingNewAddress;
 
@@ -524,19 +537,46 @@ function BookingContent() {
     return days;
   }, [calendarMonth]);
 
+  // Show only available Emirates with active coverage (currently Dubai only)
+  const availableEmirates = useMemo(() => {
+    const activeFromZones = new Set<string>();
+    serviceZones
+      .filter((z) => z.isActive)
+      .forEach((z) => {
+        const em = (z.city || z.emirate || "").trim();
+        if (em) activeFromZones.add(em);
+      });
+    const list = Array.from(activeFromZones);
+    // Currently only Dubai is available for at-home salon & wellness services
+    return list.length > 0 ? list : ["Dubai"];
+  }, [serviceZones]);
+
   const availableLocationsForEmirate = useMemo(() => {
-    const emirate = (newAddress.city || "Dubai").trim().toLowerCase();
+    const emirateKey = newAddress.city || "Dubai";
+    const emirateLower = emirateKey.trim().toLowerCase();
     const set = new Set<string>();
+
+    // 1. Locations from admin-configured active service zones
     serviceZones
       .filter((z) => {
         if (!z.isActive) return false;
-        return (z.city || z.emirate || "Dubai").trim().toLowerCase() === emirate;
+        return (z.city || z.emirate || "Dubai").trim().toLowerCase() === emirateLower;
       })
       .forEach((z) => {
         if (z.name?.trim()) set.add(z.name.trim());
         if (Array.isArray(z.supportedAreas))
           z.supportedAreas.forEach((a) => a?.trim() && set.add(a.trim()));
       });
+
+    // 2. Predefined standard coverage locations for the selected emirate
+    const defaults =
+      DEFAULT_EMIRATE_LOCATIONS[emirateKey] ||
+      DEFAULT_EMIRATE_LOCATIONS["Dubai"] ||
+      [];
+    defaults.forEach((loc) => {
+      if (loc?.trim()) set.add(loc.trim());
+    });
+
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [serviceZones, newAddress.city]);
 
@@ -681,7 +721,7 @@ function BookingContent() {
       const pkgNotes = selectedPackages.map((p) => `[Package: ${p.name}]`).join(" ");
       const combinedNotes = [pkgNotes, specialRequests].filter(Boolean).join(" ").trim();
 
-      const payload = {
+      const basePayload = {
         serviceIds:
           allServiceIds.length > 0
             ? allServiceIds
@@ -712,14 +752,54 @@ function BookingContent() {
           : { addressId: selectedAddressId }),
       };
 
-      const res = await bookingApi.create(payload as any);
-      if (res.success && res.booking) {
-        setConfirmedBooking(res.booking);
-        setCurrentStep(5);
+      if (paymentMethod === "noon") {
+        if (!isNoonCardValid || !noonBookingPaymentRef.current?.isValid) {
+          throw new Error("Please enter complete and valid card details before confirming payment.");
+        }
+        if (!noonBookingPaymentRef.current) {
+          throw new Error("Payment form is not ready yet. Please wait a moment.");
+        }
+
+        const sessionIdentifier = await noonBookingPaymentRef.current.executePayment();
+        if (!sessionIdentifier) {
+          throw new Error("Could not obtain payment session token. Please verify your card details.");
+        }
+
+        const noonPayload = {
+          ...basePayload,
+          sessionIdentifier,
+          paymentMethod: "noon",
+          returnUrl: `${window.location.origin}/payment/noon-return`,
+        };
+
+        const res = await noonPaymentApi.initiateBookingPayment(noonPayload);
+
+        if (res.requiresRedirect && res.redirectUrl) {
+          window.location.href = res.redirectUrl;
+          return;
+        }
+
+        if (res.success && res.booking) {
+          setConfirmedBooking(res.booking);
+          setCurrentStep(5);
+        } else {
+          setBookingError(res.message || "Could not complete payment. Please try again.");
+        }
       } else {
-        setBookingError(res.message || "Could not confirm booking. Please try again.");
+        const res = await bookingApi.create({
+          ...basePayload,
+          paymentMethod: "cash",
+        } as any);
+
+        if (res.success && res.booking) {
+          setConfirmedBooking(res.booking);
+          setCurrentStep(5);
+        } else {
+          setBookingError(res.message || "Could not confirm booking. Please try again.");
+        }
       }
     } catch (err: any) {
+      console.error("Booking submission error:", err);
       setBookingError(
         err?.response?.data?.message || err?.message || "Failed to confirm booking."
       );
@@ -784,9 +864,22 @@ function BookingContent() {
         disabled: !selectedDate || !selectedSlot || !selectedSlot.isAvailable,
         onClick: () => goTo(4),
       };
+
+    const isCardMode = paymentMethod === "noon";
+    const isDisabled =
+      isSubmitting ||
+      !selectedDate ||
+      !selectedSlot ||
+      !selectedSlot.isAvailable ||
+      (isCardMode && !isNoonCardValid);
+
     return {
-      label: isSubmitting ? "Confirming…" : "Confirm booking",
-      disabled: isSubmitting || !selectedDate || !selectedSlot || !selectedSlot.isAvailable,
+      label: isSubmitting
+        ? "Processing…"
+        : isCardMode
+          ? `Pay AED ${totalPrice.toFixed(0)} with Card`
+          : "Confirm booking",
+      disabled: isDisabled,
       onClick: handleConfirmBooking,
     };
   })();
@@ -1269,38 +1362,48 @@ function BookingContent() {
 
                     <div className="grid sm:grid-cols-2 gap-3.5">
                       <Field label="Emirate" required>
-                        <select
-                          className={inputCls}
-                          value={newAddress.city}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              city: e.target.value,
-                              area: "",
-                            })
-                          }
-                        >
-                          {UAE_EMIRATES.map((em) => (
-                            <option key={em} value={em}>
-                              {em}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            className={`${inputCls} appearance-none pr-10 cursor-pointer bg-white`}
+                            value={newAddress.city}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                city: e.target.value,
+                                area: "",
+                              })
+                            }
+                          >
+                            {availableEmirates.map((em) => (
+                              <option key={em} value={em}>
+                                {em} (Active Service Area)
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-[#746D69] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                        <span className="text-[11px] text-[#059669] flex items-center gap-1 mt-1 font-medium">
+                          <CheckCircle2 className="w-3 h-3 text-[#059669] shrink-0" />
+                          Currently serving Dubai with therapist home visits
+                        </span>
                       </Field>
 
                       <Field label="Service Area / Community" required>
-                        <input
-                          className={inputCls}
-                          list="area-suggestions"
+                        <ServiceAreaSelect
                           value={newAddress.area}
-                          onChange={(e) => setNewAddress({ ...newAddress, area: e.target.value })}
-                          placeholder="e.g. Dubai Marina, Downtown, JVC"
+                          onChange={(selectedArea) =>
+                            setNewAddress({ ...newAddress, area: selectedArea })
+                          }
+                          options={availableLocationsForEmirate}
+                          emirate={newAddress.city || "Dubai"}
+                          placeholder="Select or search community (e.g. Dubai Marina)..."
                         />
-                        <datalist id="area-suggestions">
-                          {availableLocationsForEmirate.map((loc) => (
-                            <option key={loc} value={loc} />
-                          ))}
-                        </datalist>
+                        {newAddress.area && (
+                          <span className="text-[11px] text-[#059669] flex items-center gap-1 mt-1 font-medium">
+                            <CheckCircle2 className="w-3 h-3 text-[#059669] shrink-0" />
+                            Confirmed therapist route coverage for {newAddress.area}
+                          </span>
+                        )}
                       </Field>
 
                       <Field label="Apartment / Villa Number" required>
@@ -1637,7 +1740,7 @@ function BookingContent() {
 
           {/* ================= STEP 4: REVIEW & CONFIRM ================= */}
           {currentStep === 4 && (
-            <div className="grid lg:grid-cols-[1fr_360px] gap-6 sm:gap-8 items-start">
+            <div className="grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_430px] gap-6 sm:gap-8 items-start">
               <div className="w-full max-w-full min-w-0 space-y-6">
                 <div className="flex items-center gap-3 mb-2">
                   <button
@@ -1775,36 +1878,134 @@ function BookingContent() {
                 )}
               </div>
 
-              {/* Sidebar */}
-              <aside className="hidden lg:block sticky top-6">
-                <div className="bg-[#F5F3F8] rounded-2xl sm:rounded-3xl border border-[#E8E2EE] p-5 space-y-4">
+              {/* Sidebar: Order Summary & Choose Payment Method */}
+              <aside className="w-full lg:sticky lg:top-6 space-y-4">
+                <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#E8E2EE] p-5 sm:p-6 space-y-5 shadow-xs">
                   <div>
-                    <h3 className="font-bold text-base text-[#1E293B]">Rose Essence Booking</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-base text-[#1E293B]">Rose Essence Booking</h3>
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Secure Checkout
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#64748B] mt-0.5">
+                      {selectedPackages.length + selectedServices.length} {selectedPackages.length + selectedServices.length === 1 ? "treatment" : "treatments"} selected
+                    </p>
                   </div>
-                  <div className="pt-2 flex items-baseline justify-between border-t border-[#E8E2EE]">
-                    <span className="font-bold text-sm text-[#1E293B]">Total</span>
-                    <span className="font-bold text-lg text-[#1E293B]">
+
+                  <div className="pt-3 flex items-baseline justify-between border-t border-[#E8E2EE]">
+                    <span className="font-semibold text-sm text-[#1E293B]">Total Due</span>
+                    <span className="font-bold text-xl text-[#E11D74]">
                       AED {totalPrice.toFixed(0)}
                     </span>
                   </div>
-                  <p className="text-xs text-[#64748B]">
-                    Payment is collected in cash or card upon completion of service.
-                  </p>
-                  <button
-                    type="button"
-                    disabled={cta.disabled}
-                    onClick={handleConfirmBooking}
-                    className="w-full h-11 rounded-lg bg-[#E11D74] hover:bg-[#c91866] text-white text-sm font-semibold transition active:scale-[0.98] shadow-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {isSubmitting ? (
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <span>Confirm booking</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
+
+                  {/* Payment Method Selector in Sidebar */}
+                  <div className="pt-3 border-t border-[#E8E2EE] space-y-3">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#1E293B]">
+                      Choose Payment Method
+                    </label>
+
+                    {/* Option 1: Card Online via Noon Payments */}
+                    <div
+                      onClick={() => setPaymentMethod("noon")}
+                      className={`p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === "noon"
+                          ? "border-[#E11D74] bg-[#FAF8FC] shadow-xs ring-1 ring-[#E11D74]"
+                          : "border-[#E8E2EE] bg-white hover:border-[#E11D74]/40"
+                        }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="bookingPaymentMethod"
+                          checked={paymentMethod === "noon"}
+                          onChange={() => setPaymentMethod("noon")}
+                          className="mt-1 text-[#E11D74] focus:ring-[#E11D74]"
+                        />
+                        <div className="flex-1 space-y-1.5 min-w-0">
+                          <div className="flex items-center justify-between flex-wrap gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <CreditCard className="w-4 h-4 text-[#E11D74]" />
+                              <span className="font-semibold text-xs sm:text-sm text-[#1E293B]">
+                                Credit / Debit Card (noon)
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-[#7C3AED] bg-[#FAF5FF] px-2 py-0.5 rounded-full border border-[#DDD5EA]">
+                              Instant
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#64748B] leading-relaxed">
+                            Pay securely using Visa, Mastercard, Mada, or Amex with 256-bit encryption.
+                          </p>
+
+                          {paymentMethod === "noon" && (
+                            <div className="pt-3 mt-2 border-t border-[#E8E2EE]">
+                              <NoonPaymentForm
+                                ref={noonBookingPaymentRef}
+                                containerId="noon-booking-payment-mount"
+                                onValidityChange={setIsNoonCardValid}
+                                accentColor="#E11D74"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Pay at Appointment */}
+                    <div
+                      onClick={() => setPaymentMethod("cash")}
+                      className={`p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === "cash"
+                          ? "border-[#E11D74] bg-[#FAF8FC] shadow-xs ring-1 ring-[#E11D74]"
+                          : "border-[#E8E2EE] bg-white hover:border-[#E11D74]/40"
+                        }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="bookingPaymentMethod"
+                          checked={paymentMethod === "cash"}
+                          onChange={() => setPaymentMethod("cash")}
+                          className="mt-1 text-[#E11D74] focus:ring-[#E11D74]"
+                        />
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <Banknote className="w-4 h-4 text-[#64748B]" />
+                            <span className="font-semibold text-xs sm:text-sm text-[#1E293B]">
+                              Pay at Appointment
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#64748B] leading-relaxed">
+                            Pay in cash or card directly to your aesthetician upon completion of the service.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pay Button */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      disabled={cta.disabled}
+                      onClick={handleConfirmBooking}
+                      className="w-full h-12 rounded-xl bg-[#E11D74] hover:bg-[#c91866] text-white text-sm font-semibold transition active:scale-[0.98] shadow-xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {isSubmitting ? (
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span>{cta.label}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                    <p className="text-[11px] text-center text-[#64748B] mt-2">
+                      {paymentMethod === "noon"
+                        ? "Charged securely online via Noon Payments."
+                        : "Payment is collected in cash or card upon completion of service."}
+                    </p>
+                  </div>
                 </div>
               </aside>
             </div>
@@ -1839,6 +2040,12 @@ function BookingContent() {
                   [
                     "Location",
                     `${confirmedBooking.serviceAddress.unitNumber}, ${confirmedBooking.serviceAddress.buildingName}, ${confirmedBooking.serviceAddress.area}`,
+                  ],
+                  [
+                    "Payment method",
+                    (confirmedBooking as any).paymentMethod === "noon" || (confirmedBooking as any).noonOrderId
+                      ? "Paid Online via noon payments"
+                      : "Pay at Appointment (Cash / Card)",
                   ],
                   ...(confirmedBooking.assignedStaff
                     ? [["Your specialist", confirmedBooking.assignedStaff.name]]

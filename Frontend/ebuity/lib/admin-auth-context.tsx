@@ -39,7 +39,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
             setAdmin(parsed);
             return true;
           }
-        } catch {}
+        } catch { }
       }
       setAdmin(null);
       return false;
@@ -95,12 +95,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await adminAuthApi.logout();
-    } catch {}
+    } catch { }
     setAdmin(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("rose_admin_session");
     }
-    router.push("/admin/login");
+    router.push("/ownadmin");
   };
 
   return (

@@ -4,7 +4,15 @@ import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
 import cors from "cors";
-import "dotenv/config";
+import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Explicitly load .env from backend directory first, then fallback to cwd
+dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config();
 import debug from "debug";
 import connectDB from "./config/mongodb-connection.config.js";
 import cookieParser from 'cookie-parser';
@@ -85,6 +93,8 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
+// Capture raw text for Noon Payments Webhook V2 (JWS) before generic JSON parsing
+app.use("/api/payment/noon/webhook", express.text({ type: "*/*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -115,7 +115,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     if (!res.ok) {
       const errorMessage =
         (data && (data.message || data.error)) ||
-        `Request failed with status ${res.status}`;
+        (res.status === 500 || res.status === 502 || res.status === 503
+          ? `Backend server error (${res.status}). Please verify server connectivity.`
+          : `Request failed with status ${res.status}`);
       throw new ApiError(errorMessage, res.status);
     }
 
@@ -2320,6 +2322,120 @@ export const userProfileApi = {
     });
   },
 };
+
+// ==========================================
+// Noon Payments JavaScript SDK & API Client
+// Official Reference: https://docs.noonpayments.com/sdk/reference/js
+// ==========================================
+export interface NoonConfigStatusResponse {
+  success: boolean;
+  configured: boolean;
+  currency?: string;
+  endpoint?: string;
+  message?: string;
+}
+
+export interface NoonSessionResponse {
+  success: boolean;
+  configured?: boolean;
+  jwt?: string;
+  endPoint?: string;
+  message?: string;
+  resultCode?: number;
+  requestReference?: string;
+}
+
+export interface NoonProductOrderPayload {
+  products: Array<{
+    productId: string;
+    variantId?: string;
+    quantity: number;
+    price?: number;
+  }>;
+  address: any;
+  sessionIdentifier: string;
+  guestToken?: string;
+}
+
+export interface NoonBookingOrderPayload {
+  serviceIds: string[];
+  packageId?: string;
+  address?: any;
+  addressId?: string;
+  saveAddress?: boolean;
+  scheduledDate: string;
+  scheduledTime: string;
+  specialRequests?: string;
+  sessionIdentifier: string;
+  paymentMethod?: string;
+  returnUrl?: string;
+}
+
+export interface NoonInitiateResponse {
+  success: boolean;
+  orderId?: string;
+  bookingId?: string;
+  bookingNumber?: string;
+  noonOrderId?: string;
+  guestToken?: string;
+  requiresRedirect?: boolean;
+  redirectUrl?: string;
+  status?: string;
+  message?: string;
+  order?: any;
+  booking?: any;
+}
+
+export interface NoonVerifyResponse {
+  success: boolean;
+  isPaid?: boolean;
+  status?: string;
+  type?: "product" | "booking";
+  orderId?: string;
+  bookingId?: string;
+  bookingNumber?: string;
+  noonOrderId?: string;
+  message?: string;
+  order?: any;
+  booking?: any;
+}
+
+export const noonPaymentApi = {
+  async getConfigStatus(): Promise<NoonConfigStatusResponse> {
+    return request<NoonConfigStatusResponse>("/payment/noon/config-status", { method: "GET" });
+  },
+
+  async createSession(): Promise<NoonSessionResponse> {
+    return request<NoonSessionResponse>("/payment/noon/create-session", { method: "POST" });
+  },
+
+  async initiateProductOrder(payload: NoonProductOrderPayload): Promise<NoonInitiateResponse> {
+    return request<NoonInitiateResponse>("/payment/noon/initiate-product-order", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async initiateBookingPayment(payload: NoonBookingOrderPayload): Promise<NoonInitiateResponse> {
+    return request<NoonInitiateResponse>("/payment/noon/initiate-booking-payment", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async verify(payload: {
+    noonOrderId?: string;
+    orderId?: string;
+    bookingId?: string;
+    type?: "product" | "booking";
+  }): Promise<NoonVerifyResponse> {
+    return request<NoonVerifyResponse>("/payment/noon/verify", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+};
+
 
 
 

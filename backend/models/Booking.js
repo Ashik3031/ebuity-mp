@@ -266,12 +266,21 @@ const bookingSchema = new mongoose.Schema(
       reviewedBy: { type: String, default: "" },
       adminNote: { type: String, default: "" },
     },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "cod", "online", "card", "stripe", "razorpay", "noon", "noon_payments"],
+      default: "cash",
+      index: true,
+    },
     paymentStatus: {
       type: String,
-      enum: ["unpaid", "pending", "paid", "refunded"],
+      enum: ["unpaid", "pending", "paid", "refunded", "authorized", "failed", "cancelled"],
       default: "unpaid",
       index: true,
     },
+    noonOrderId: { type: String, default: null },
+    noonPaymentStatus: { type: String, default: null },
+    noonReference: { type: String, default: null },
   },
   {
     timestamps: true,

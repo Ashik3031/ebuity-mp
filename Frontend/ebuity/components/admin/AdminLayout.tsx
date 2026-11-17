@@ -111,10 +111,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     clearAll,
   } = useDashboardNotifications("admin");
 
-  // Authentication protection
+  // Authentication protection: redirect unauthenticated users to /ownadmin
   useEffect(() => {
     if (!isLoading && !isAuthenticated && pathname !== "/admin/login") {
-      router.push("/admin/login");
+      router.push("/ownadmin");
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
@@ -153,9 +153,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           1. SLIM VERTICAL ICON SIDEBAR (Desktop)
          ======================================================== */}
       <aside
-        className={`hidden md:flex flex-col justify-between items-center bg-white dark:bg-[#181515] rounded-3xl border border-[#E8D8C8]/70 dark:border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all duration-300 py-6 px-3 z-30 shrink-0 ${
-          sidebarExpanded ? "w-64" : "w-20"
-        }`}
+        className={`hidden md:flex flex-col justify-between items-center bg-white dark:bg-[#181515] rounded-3xl border border-[#E8D8C8]/70 dark:border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all duration-300 py-6 px-3 z-30 shrink-0 ${sidebarExpanded ? "w-64" : "w-20"
+          }`}
       >
         {/* Top: Logo & Toggle */}
         <div className="flex flex-col items-center w-full">
@@ -183,11 +182,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setTheme("light")}
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                theme === "light"
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${theme === "light"
                   ? "bg-white text-[#CF565D] shadow-xs"
                   : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-              }`}
+                }`}
               title="Light Mode"
             >
               <Sun className="w-4 h-4" />
@@ -195,11 +193,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setTheme("dark")}
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                theme === "dark"
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${theme === "dark"
                   ? "bg-[#292525] dark:bg-[#CF565D] text-white shadow-xs"
                   : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-              }`}
+                }`}
               title="Dark Mode"
             >
               <Moon className="w-4 h-4" />
@@ -220,16 +217,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   title={item.name}
-                  className={`relative flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group ${
-                    isActive
+                  className={`relative flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group ${isActive
                       ? "bg-[#292525] dark:bg-[#282323] text-white dark:text-[#FAF7F2] shadow-sm"
                       : "text-[#746D69] dark:text-[#A89F9A] hover:bg-[#FAF7F2] dark:hover:bg-[#252020] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-                  } ${sidebarExpanded ? "justify-start px-4" : "justify-center"}`}
+                    } ${sidebarExpanded ? "justify-start px-4" : "justify-center"}`}
                 >
                   <Icon
-                    className={`w-5 h-5 shrink-0 ${
-                      isActive ? "text-[#CF565D]" : "group-hover:text-[#CF565D]"
-                    }`}
+                    className={`w-5 h-5 shrink-0 ${isActive ? "text-[#CF565D]" : "group-hover:text-[#CF565D]"
+                      }`}
                   />
 
                   {sidebarExpanded && (
@@ -256,9 +251,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             title={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
           >
             <ChevronRight
-              className={`w-4 h-4 transition-transform duration-200 ${
-                sidebarExpanded ? "rotate-180" : ""
-              }`}
+              className={`w-4 h-4 transition-transform duration-200 ${sidebarExpanded ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -319,11 +313,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={pill.name}
                   href={pill.href}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${
-                    isSelected
+                  className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${isSelected
                       ? "bg-[#292525] dark:bg-[#CF565D] text-white shadow-xs"
                       : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-                  }`}
+                    }`}
                 >
                   {pill.name}
                 </Link>
@@ -428,11 +421,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                         <div
                           key={n.id}
                           onClick={() => markAsRead(n.id)}
-                          className={`py-2.5 px-2 rounded-xl transition-colors cursor-pointer ${
-                            n.read
+                          className={`py-2.5 px-2 rounded-xl transition-colors cursor-pointer ${n.read
                               ? "opacity-75 hover:bg-[#FAF7F2]/50 dark:hover:bg-white/5"
                               : "bg-[#FAF7F2]/70 dark:bg-white/5 hover:bg-[#FAF7F2] dark:hover:bg-white/10"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start gap-2.5">
                             <div className="w-6 h-6 rounded-lg bg-white dark:bg-[#1a1717] border border-[#E8D8C8] dark:border-white/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -595,11 +587,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Overview */}
         <Link
           href="/admin"
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
-            pathname === "/admin"
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${pathname === "/admin"
               ? "text-[#CF565D] font-bold"
               : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-          }`}
+            }`}
         >
           <div className={`p-1 rounded-xl transition-all ${pathname === "/admin" ? "bg-[#CF565D]/10 text-[#CF565D]" : ""}`}>
             <LayoutDashboard className="w-5 h-5" />
@@ -610,11 +601,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Bookings */}
         <Link
           href="/admin/bookings"
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
-            pathname.startsWith("/admin/bookings")
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${pathname.startsWith("/admin/bookings")
               ? "text-[#CF565D] font-bold"
               : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-          }`}
+            }`}
         >
           <div className={`p-1 rounded-xl transition-all ${pathname.startsWith("/admin/bookings") ? "bg-[#CF565D]/10 text-[#CF565D]" : ""}`}>
             <CalendarDays className="w-5 h-5" />
@@ -625,11 +615,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Orders */}
         <Link
           href="/admin/orders"
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
-            pathname.startsWith("/admin/orders")
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${pathname.startsWith("/admin/orders")
               ? "text-[#CF565D] font-bold"
               : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-          }`}
+            }`}
         >
           <div className={`p-1 rounded-xl transition-all ${pathname.startsWith("/admin/orders") ? "bg-[#CF565D]/10 text-[#CF565D]" : ""}`}>
             <Receipt className="w-5 h-5" />
@@ -640,11 +629,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Inventory */}
         <Link
           href="/admin/inventory"
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
-            pathname.startsWith("/admin/inventory")
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${pathname.startsWith("/admin/inventory")
               ? "text-[#CF565D] font-bold"
               : "text-[#746D69] dark:text-[#A89F9A] hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-          }`}
+            }`}
         >
           <div className={`p-1 rounded-xl transition-all ${pathname.startsWith("/admin/inventory") ? "bg-[#CF565D]/10 text-[#CF565D]" : ""}`}>
             <Package className="w-5 h-5" />
@@ -750,17 +738,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                             key={item.href}
                             href={item.href}
                             onClick={() => setMobileMenuOpen(false)}
-                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                              isActive
+                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${isActive
                                 ? "bg-[#292525] dark:bg-[#CF565D] text-white"
                                 : "text-[#746D69] dark:text-[#C4BBB7] hover:bg-[#FAF7F2] dark:hover:bg-white/5 hover:text-[#292525] dark:hover:text-[#FAF7F2]"
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-2.5">
                               <Icon
-                                className={`w-4 h-4 ${
-                                  isActive ? "text-[#CF565D] dark:text-white" : "text-[#746D69] dark:text-[#A89F9A]"
-                                }`}
+                                className={`w-4 h-4 ${isActive ? "text-[#CF565D] dark:text-white" : "text-[#746D69] dark:text-[#A89F9A]"
+                                  }`}
                               />
                               <span>{item.name}</span>
                             </div>

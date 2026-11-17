@@ -29,13 +29,60 @@ export function formatMinutesToTime(totalMins) {
 /**
  * Helper: Construct accurate UTC Date for a given UAE local date and time
  * UAE is GST (UTC+4) without Daylight Saving Time.
- * @param {string} dateStr YYYY-MM-DD
- * @param {string} timeStr HH:mm
+ * Handles both "HH:mm" strings (including 12-hour AM/PM and unpadded hours)
+ * as well as (dateStr, hour, minute) arguments gracefully.
+ * @param {string|Date} dateStr YYYY-MM-DD
+ * @param {string|number} timeStr HH:mm or hour
+ * @param {string|number} [minuteArg] minute (optional, if hour/minute are split)
  * @returns {Date} Date object corresponding to that exact point in time
  */
-export function createUAEDate(dateStr, timeStr = "00:00") {
-  // ISO format with UAE explicit offset: 2026-10-25T14:30:00+04:00
-  return new Date(`${dateStr}T${timeStr}:00+04:00`);
+export function createUAEDate(dateStr, timeStr = "00:00", minuteArg) {
+  if (!dateStr) return new Date(NaN);
+
+  const cleanDate = typeof dateStr === "string"
+    ? dateStr.trim()
+    : (dateStr instanceof Date ? dateStr.toISOString().split("T")[0] : String(dateStr));
+
+  let formattedTime = "00:00";
+
+  // Case: minuteArg is provided (e.g. createUAEDate(dateStr, 9, 30))
+  if (minuteArg !== undefined) {
+    const h = String(parseInt(timeStr, 10) || 0).padStart(2, "0");
+    const m = String(parseInt(minuteArg, 10) || 0).padStart(2, "0");
+    formattedTime = `${h}:${m}`;
+  } else if (typeof timeStr === "number") {
+    // Single number passed e.g. hour
+    const h = String(timeStr).padStart(2, "0");
+    formattedTime = `${h}:00`;
+  } else if (typeof timeStr === "string") {
+    const trimmed = timeStr.trim();
+    if (/AM|PM/i.test(trimmed)) {
+      const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        if (h === 12) h = 0;
+        if (match[3].toUpperCase() === "PM") h += 12;
+        formattedTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      } else {
+        formattedTime = trimmed;
+      }
+    } else {
+      const parts = trimmed.split(":");
+      if (parts.length >= 2) {
+        const h = String(parseInt(parts[0], 10) || 0).padStart(2, "0");
+        const m = String(parseInt(parts[1], 10) || 0).padStart(2, "0");
+        formattedTime = `${h}:${m}`;
+      } else if (parts.length === 1 && parts[0]) {
+        const h = String(parseInt(parts[0], 10) || 0).padStart(2, "0");
+        formattedTime = `${h}:00`;
+      } else {
+        formattedTime = trimmed;
+      }
+    }
+  }
+
+  return new Date(`${cleanDate}T${formattedTime}:00+04:00`);
 }
 
 /**

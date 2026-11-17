@@ -2,7 +2,7 @@
 import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default : null },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   guestToken: { type: String, default: null, index: true },
 
   products: [{
@@ -16,63 +16,74 @@ const orderSchema = new mongoose.Schema({
   paymentIntentId: { type: String },
 
 
-    paymentMethod: { type: String, 
-    enum: ["COD", "STRIPE", "RAZORPAY"], 
-    required: true },
-  paymentStatus: { type: String, 
-    enum: ["Pending","Authorized", "Paid", "Failed", "Refunded","Cancelled"], 
-    default: "Pending" },
+  paymentMethod: {
+    type: String,
+    enum: ["COD", "STRIPE", "RAZORPAY", "NOON", "NOON_PAYMENTS"],
+    required: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ["Pending", "Authorized", "Paid", "Failed", "Refunded", "Cancelled"],
+    default: "Pending"
+  },
+  noonOrderId: { type: String, default: null },
+  noonPaymentStatus: { type: String, default: null },
+  noonReference: { type: String, default: null },
   cod: {
     confirmed: { type: Boolean, default: false },
     confirmedAt: { type: Date },
   },
 
-  status: { type: String,
-  enum: ["Pending","Pending_Confirmation", "Shipped", "Delivered", "Cancelled"], 
-  default: "Pending" },
+  status: {
+    type: String,
+    enum: ["Pending", "Pending_Confirmation", "Shipped", "Delivered", "Cancelled"],
+    default: "Pending"
+  },
   cancelledAt: { type: Date },
 
   tracking: { carrier: String, trackingNumber: String, eta: Date },
   statusHistory: [{
-    status: { type: String, 
-      enum: ["Pending","Pending_Confirmation","Shipped","Delivered","Cancelled"] },
+    status: {
+      type: String,
+      enum: ["Pending", "Pending_Confirmation", "Shipped", "Delivered", "Cancelled"]
+    },
     note: String,
     at: { type: Date, default: Date.now }
   }],
 
- // address: { street: String, city: String, state: String, zip: String, country: String },
+  // address: { street: String, city: String, state: String, zip: String, country: String },
 
- address: {
-  label: { type: String, default: "Home" },
+  address: {
+    label: { type: String, default: "Home" },
 
-  fullName: { type: String, required: true, trim: true },
+    fullName: { type: String, required: true, trim: true },
 
-  // ✅ ADD THIS
-  email: { type: String, trim: true, lowercase: true, default: "" },
+    // ✅ ADD THIS
+    email: { type: String, trim: true, lowercase: true, default: "" },
 
-  phone: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
 
-  addressType: { type: String, enum: ["apartment", "villa", "office"] },
+    addressType: { type: String, enum: ["apartment", "villa", "office"] },
 
-  unitNumber: { type: String, required: true, trim: true },
-  buildingName: { type: String, required: true, trim: true },
+    unitNumber: { type: String, required: true, trim: true },
+    buildingName: { type: String, required: true, trim: true },
 
-  area: { type: String, required: true, trim: true },
-  city: { type: String, required: true, trim: true },
+    area: { type: String, required: true, trim: true },
+    city: { type: String, required: true, trim: true },
 
-  state: {
-    type: String,
-    required: true,
-    trim: true,
+    state: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    street: { type: String, trim: true, default: "" },
+    landmark: { type: String, trim: true, default: "" },
+    poBox: { type: String, trim: true, default: "" },
+    postalCode: { type: String, trim: true, default: "" },
+
+    formatted: String,
   },
-
-  street: { type: String, trim: true, default: "" },
-  landmark: { type: String, trim: true, default: "" },
-  poBox: { type: String, trim: true, default: "" },
-  postalCode: { type: String, trim: true, default: "" },
-
-  formatted: String,
-},
 
 
 

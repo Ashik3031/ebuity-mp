@@ -516,16 +516,24 @@ export const createBooking = async (req, res) => {
     let customerId = req.user?.id;
     let user = req.user;
 
-    // Normalize scheduledTime: support 12-hour format ("02:30 PM") and 24-hour format ("14:30")
+    // Normalize scheduledTime: support 12-hour format ("02:30 PM", "9:30 AM") and 24-hour format ("14:30", "9:30")
     let scheduledTime = (rawScheduledTime || "").trim();
     if (/AM|PM/i.test(scheduledTime)) {
-      const parts = scheduledTime.split(/\s+/);
-      const timePart = parts[0];
-      const modifier = parts[1]?.toUpperCase();
-      let [h, m] = timePart.split(":");
-      if (h === "12") h = "00";
-      if (modifier === "PM") h = String(parseInt(h, 10) + 12);
-      scheduledTime = `${h.padStart(2, "0")}:${(m || "00").padStart(2, "0")}`;
+      const match = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        if (h === 12) h = 0;
+        if (match[3].toUpperCase() === "PM") h += 12;
+        scheduledTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+    } else {
+      const match = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+      if (match) {
+        const h = parseInt(match[1], 10);
+        const m = parseInt(match[2], 10);
+        scheduledTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
     }
 
     // Guest / Live Chat Booking: auto-resolve or create customer record if unauthenticated
@@ -748,6 +756,24 @@ export const createBooking = async (req, res) => {
     const scheduledEndTime = new Date(
       scheduledStartTime.getTime() + totalDurationMinutes * 60000
     );
+
+    if (!scheduledStartTime || Number.isNaN(scheduledStartTime.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid scheduled appointment start time",
+      });
+    }
+
+    if (
+      !scheduledEndTime ||
+      Number.isNaN(scheduledEndTime.getTime()) ||
+      totalDurationMinutes <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid scheduled appointment end time or duration",
+      });
+    }
 
     const now = new Date();
     const leadTimeMs = (config.leadTimeHours || 2) * 3600 * 1000;

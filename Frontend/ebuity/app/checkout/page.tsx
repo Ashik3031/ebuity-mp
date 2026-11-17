@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,9 +12,11 @@ import {
   customerAddressApi,
   orderApi,
   settingsApi,
+  noonPaymentApi,
   CustomerAddress,
   ApiError,
 } from "../../lib/api-client";
+import { NoonPaymentForm, NoonPaymentFormHandle } from "../../components/payment/NoonPaymentForm";
 import {
   ShieldCheck,
   Truck,
@@ -74,8 +76,10 @@ export default function CheckoutPage() {
   });
 
   // Payment Selection
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "ONLINE">("COD");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "NOON">("NOON");
   const [codConfirmed, setCodConfirmed] = useState(true);
+  const noonPaymentRef = useRef<NoonPaymentFormHandle>(null);
+  const [isNoonCardValid, setIsNoonCardValid] = useState(false);
 
   // Submission State
   const [submitting, setSubmitting] = useState(false);
@@ -175,15 +179,13 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (paymentMethod === "ONLINE") {
-      setErrorMessage(
-        "Online payment gateway integration is currently deferred. Please select Cash on Delivery to place your order now."
-      );
+    if (paymentMethod === "COD" && !codConfirmed) {
+      setErrorMessage("Please confirm that you agree to pay upon delivery (Cash on Delivery).");
       return;
     }
 
-    if (!codConfirmed) {
-      setErrorMessage("Please confirm that you agree to pay upon delivery (Cash on Delivery).");
+    if (paymentMethod === "NOON" && !isNoonCardValid) {
+      setErrorMessage("Please complete and verify your card details before confirming payment.");
       return;
     }
 
@@ -238,6 +240,58 @@ export default function CheckoutPage() {
           price: it.unitPrice,
         }));
 
+      // ==========================================
+      // NOON PAYMENTS FLOW
+      // ==========================================
+      if (paymentMethod === "NOON") {
+        let sessionIdentifier = "";
+        try {
+          sessionIdentifier = (await noonPaymentRef.current?.executePayment()) || "";
+        } catch (cardErr: any) {
+          setErrorMessage(cardErr?.message || "Failed to tokenize card details with Noon Payments.");
+          return;
+        }
+
+        if (!sessionIdentifier) {
+          setErrorMessage("Failed to generate a valid Noon Payments session token. Please try again.");
+          return;
+        }
+
+        const noonRes = await noonPaymentApi.initiateProductOrder({
+          products: orderProducts,
+          address: addressPayload,
+          sessionIdentifier,
+        });
+
+        if (!noonRes.success) {
+          setErrorMessage(noonRes.message || "Failed to process payment with Noon Payments.");
+          return;
+        }
+
+        // Store guest token if returned
+        if (noonRes.guestToken && typeof window !== "undefined") {
+          try {
+            const storedTokens = JSON.parse(localStorage.getItem("rose_guest_tokens") || "{}");
+            storedTokens[noonRes.orderId!] = noonRes.guestToken;
+            localStorage.setItem("rose_guest_tokens", JSON.stringify(storedTokens));
+          } catch { }
+        }
+
+        // 3DS Redirect flow
+        if (noonRes.requiresRedirect && noonRes.redirectUrl) {
+          window.location.href = noonRes.redirectUrl;
+          return;
+        }
+
+        // Direct success
+        await clearCart();
+        router.push(`/account/orders/${noonRes.orderId}`);
+        return;
+      }
+
+      // ==========================================
+      // CASH ON DELIVERY (COD) FLOW
+      // ==========================================
       const createdOrder = await orderApi.placeOrder({
         products: orderProducts,
         address: addressPayload,
@@ -434,11 +488,10 @@ export default function CheckoutPage() {
                           <div
                             key={addr._id}
                             onClick={() => setSelectedAddressId(addr._id || "new")}
-                            className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                              isSelected
-                                ? "border-[#CF565D] bg-[#FCF4F2] shadow-sm ring-1 ring-[#CF565D]"
-                                : "border-[#E8D8C8] bg-white hover:border-[#CF565D]/50"
-                            }`}
+                            className={`p-4 rounded-2xl border cursor-pointer transition-all ${isSelected
+                              ? "border-[#CF565D] bg-[#FCF4F2] shadow-sm ring-1 ring-[#CF565D]"
+                              : "border-[#E8D8C8] bg-white hover:border-[#CF565D]/50"
+                              }`}
                           >
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="font-semibold text-xs text-[#292525] uppercase tracking-wider">
@@ -463,11 +516,10 @@ export default function CheckoutPage() {
 
                       <div
                         onClick={() => setSelectedAddressId("new")}
-                        className={`p-4 rounded-2xl border-2 border-dashed cursor-pointer flex flex-col items-center justify-center text-center transition-all ${
-                          selectedAddressId === "new"
-                            ? "border-[#CF565D] bg-[#FCF4F2]"
-                            : "border-[#E8D8C8] hover:border-[#CF565D]/50 bg-white"
-                        }`}
+                        className={`p-4 rounded-2xl border-2 border-dashed cursor-pointer flex flex-col items-center justify-center text-center transition-all ${selectedAddressId === "new"
+                          ? "border-[#CF565D] bg-[#FCF4F2]"
+                          : "border-[#E8D8C8] hover:border-[#CF565D]/50 bg-white"
+                          }`}
                       >
                         <Plus className="w-5 h-5 text-[#CF565D] mb-1" />
                         <span className="text-xs font-semibold text-[#292525]">Enter New Address</span>
@@ -490,11 +542,10 @@ export default function CheckoutPage() {
                             key={type}
                             type="button"
                             onClick={() => setAddressType(type)}
-                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold capitalize border transition-all ${
-                              addressType === type
-                                ? "bg-[#CF565D] text-white border-[#CF565D] shadow-sm"
-                                : "bg-white text-[#746D69] border-[#E8D8C8] hover:border-[#CF565D]"
-                            }`}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold capitalize border transition-all ${addressType === type
+                              ? "bg-[#CF565D] text-white border-[#CF565D] shadow-sm"
+                              : "bg-white text-[#746D69] border-[#E8D8C8] hover:border-[#CF565D]"
+                              }`}
                           >
                             {type}
                           </button>
@@ -549,17 +600,17 @@ export default function CheckoutPage() {
                         <label className="block text-xs font-semibold uppercase tracking-wider text-[#746D69] mb-1.5">
                           City & Emirate *
                         </label>
-                        <input
-                          type="text"
+                        <select
                           required
                           value={city}
                           onChange={(e) => {
                             setCity(e.target.value);
                             setState(e.target.value);
                           }}
-                          placeholder="Dubai"
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#E8D8C8] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#CF565D]/30 focus:border-[#CF565D]"
-                        />
+                          className="w-full px-4 py-2.5 rounded-xl border border-[#E8D8C8] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#CF565D]/30 focus:border-[#CF565D] cursor-pointer"
+                        >
+                          <option value="Dubai">Dubai (Available)</option>
+                        </select>
                       </div>
 
                       <div>
@@ -619,7 +670,7 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              {/* Step 3: Payment Options (Notice: Online Payment Deferred, COD Active) */}
+              {/* Step 3: Payment Options */}
               <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border border-[#F5DAD6] shadow-sm space-y-6">
                 <div className="flex items-center justify-between pb-3 border-b border-[#F5DAD6]/60">
                   <div className="flex items-center gap-3">
@@ -630,19 +681,66 @@ export default function CheckoutPage() {
                       Payment Method
                     </h2>
                   </div>
-                  <span className="text-xs text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full font-medium">
-                    Payment Gateway Deferred
+                  <span className="text-xs text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full font-medium">
+                    Secure Checkout
                   </span>
                 </div>
 
-                {/* Payment Option: Cash on Delivery (ACTIVE) */}
+                {/* Payment Option 1: Online via Noon Payments */}
+                <div
+                  onClick={() => setPaymentMethod("NOON")}
+                  className={`p-5 rounded-2xl border cursor-pointer transition-all ${paymentMethod === "NOON"
+                    ? "border-[#CF565D] bg-[#FCF4F2] shadow-sm ring-1 ring-[#CF565D]"
+                    : "border-[#E8D8C8] bg-white hover:border-[#CF565D]/40"
+                    }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        checked={paymentMethod === "NOON"}
+                        onChange={() => setPaymentMethod("NOON")}
+                        className="text-[#CF565D] focus:ring-[#CF565D]"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-[#CF565D]" />
+                          <span className="font-semibold text-sm text-[#292525]">
+                            Credit / Debit Card (noon payments)
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          Recommended • Instant
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#746D69]">
+                        Pay securely using Visa, Mastercard, Mada, or Amex via noon payments hosted checkout. 256-bit encryption.
+                      </p>
+
+                      {paymentMethod === "NOON" && (
+                        <div className="pt-4 mt-3 border-t border-[#F5DAD6]">
+                          <NoonPaymentForm
+                            ref={noonPaymentRef}
+                            containerId="noon-checkout-product-container"
+                            onValidityChange={setIsNoonCardValid}
+                            accentColor="#CF565D"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Option 2: Cash on Delivery (ACTIVE) */}
                 <div
                   onClick={() => setPaymentMethod("COD")}
-                  className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                    paymentMethod === "COD"
-                      ? "border-[#CF565D] bg-[#FCF4F2] shadow-sm ring-1 ring-[#CF565D]"
-                      : "border-[#E8D8C8] bg-white"
-                  }`}
+                  className={`p-5 rounded-2xl border cursor-pointer transition-all ${paymentMethod === "COD"
+                    ? "border-[#CF565D] bg-[#FCF4F2] shadow-sm ring-1 ring-[#CF565D]"
+                    : "border-[#E8D8C8] bg-white hover:border-[#CF565D]/40"
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5">
@@ -662,8 +760,8 @@ export default function CheckoutPage() {
                             Cash on Delivery (COD)
                           </span>
                         </div>
-                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                          Active & Supported
+                        <span className="text-[11px] font-semibold text-stone-700 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200">
+                          Pay at Handover
                         </span>
                       </div>
                       <p className="text-xs text-[#746D69]">
@@ -685,36 +783,6 @@ export default function CheckoutPage() {
                           </label>
                         </div>
                       )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment Option: Online Payment (DEFERRED NOTICE) */}
-                <div className="p-5 rounded-2xl border border-dashed border-[#E8D8C8] bg-stone-50/70 opacity-90 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5">
-                      <input
-                        type="radio"
-                        disabled
-                        checked={paymentMethod === "ONLINE"}
-                        className="text-stone-400 cursor-not-allowed"
-                      />
-                    </div>
-                    <div className="flex-1 space-y-1.5">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="w-4 h-4 text-stone-400" />
-                          <span className="font-semibold text-sm text-stone-600 line-through">
-                            Online Credit / Debit Card & Apple Pay
-                          </span>
-                        </div>
-                        <span className="text-[10px] uppercase font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-full">
-                          Deferred / In Progress
-                        </span>
-                      </div>
-                      <p className="text-xs text-stone-500 leading-relaxed">
-                        Online credit card gateway processing is temporarily deferred in this deployment. All boutique orders are currently fulfilled via <strong>Cash on Delivery</strong> with verified courier receipts.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -813,6 +881,7 @@ export default function CheckoutPage() {
                       </span>
                       <span className="block text-[10px] text-[#746D69]">
                         (Payment method: Cash on Delivery)
+                        (Payment: {paymentMethod === "NOON" ? "Card via noon payments" : "Cash on Delivery"})
                       </span>
                     </div>
                   </div>
@@ -832,8 +901,13 @@ export default function CheckoutPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={submitting || items.length === 0 || !codConfirmed}
-                    className="w-full py-4 px-6 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={
+                      submitting ||
+                      items.length === 0 ||
+                      (paymentMethod === "COD" ? !codConfirmed : false) ||
+                      (paymentMethod === "NOON" ? !isNoonCardValid : false)
+                    }
+                    className="w-full py-4 px-6 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md active:scale-98 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {submitting ? (
                       <>
@@ -843,12 +917,18 @@ export default function CheckoutPage() {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4" />
-                        <span>Confirm & Place Order (AED {grandTotal.toFixed(2)})</span>
+                        <span>
+                          {paymentMethod === "NOON"
+                            ? `Pay AED ${grandTotal.toFixed(2)} with Card`
+                            : `Confirm & Place Order (AED ${grandTotal.toFixed(2)})`}
+                        </span>
                       </>
                     )}
                   </button>
                   <p className="text-[11px] text-center text-[#746D69] mt-2">
-                    Payment is collected upon arrival via cash or courier terminal.
+                    {paymentMethod === "NOON"
+                      ? "Encrypted 256-bit checkout powered by noon payments."
+                      : "Payment is collected upon arrival via cash or courier terminal."}
                   </p>
                 </div>
 
