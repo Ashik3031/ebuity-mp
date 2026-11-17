@@ -1910,8 +1910,8 @@ function BookingContent() {
                     <div
                       onClick={() => setPaymentMethod("noon")}
                       className={`p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === "noon"
-                          ? "border-[#E11D74] bg-[#FAF8FC] shadow-xs ring-1 ring-[#E11D74]"
-                          : "border-[#E8E2EE] bg-white hover:border-[#E11D74]/40"
+                        ? "border-[#E11D74] bg-[#FAF8FC] shadow-xs ring-1 ring-[#E11D74]"
+                        : "border-[#E8E2EE] bg-white hover:border-[#E11D74]/40"
                         }`}
                     >
                       <div className="flex items-start gap-3">
@@ -1956,8 +1956,8 @@ function BookingContent() {
                     <div
                       onClick={() => setPaymentMethod("cash")}
                       className={`p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === "cash"
-                          ? "border-[#E11D74] bg-[#FAF8FC] shadow-xs ring-1 ring-[#E11D74]"
-                          : "border-[#E8E2EE] bg-white hover:border-[#E11D74]/40"
+                        ? "border-[#E11D74] bg-[#FAF8FC] shadow-xs ring-1 ring-[#E11D74]"
+                        : "border-[#E8E2EE] bg-white hover:border-[#E11D74]/40"
                         }`}
                     >
                       <div className="flex items-start gap-3">
