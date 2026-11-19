@@ -709,7 +709,7 @@ export default function CheckoutPage() {
                         <div className="flex items-center gap-2">
                           <CreditCard className="w-4 h-4 text-[#CF565D]" />
                           <span className="font-semibold text-sm text-[#292525]">
-                            Credit / Debit Card (noon payments)
+                            Credit or Debit Card
                           </span>
                         </div>
                         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -717,11 +717,11 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                       <p className="text-xs text-[#746D69]">
-                        Pay securely using Visa, Mastercard, Mada, or Amex via noon payments hosted checkout. 256-bit encryption.
+                        Pay securely using Visa, Mastercard, Mada, or Amex with 256-bit encryption.
                       </p>
 
                       {paymentMethod === "NOON" && (
-                        <div className="pt-4 mt-3 border-t border-[#F5DAD6]">
+                        <div className="pt-3 mt-2 border-t border-[#F5DAD6]">
                           <NoonPaymentForm
                             ref={noonPaymentRef}
                             containerId="noon-checkout-product-container"
@@ -927,7 +927,7 @@ export default function CheckoutPage() {
                   </button>
                   <p className="text-[11px] text-center text-[#746D69] mt-2">
                     {paymentMethod === "NOON"
-                      ? "Encrypted 256-bit checkout powered by noon payments."
+                      ? "Encrypted 256-bit secure card checkout."
                       : "Payment is collected upon arrival via cash or courier terminal."}
                   </p>
                 </div>

@@ -1984,13 +1984,13 @@ function BookingContent() {
                         />
                         <div className="flex-1 space-y-1.5 min-w-0">
                           <div className="flex items-center justify-between flex-wrap gap-1.5">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                               <CreditCard className="w-4 h-4 text-[#E11D74]" />
                               <span className="font-semibold text-xs sm:text-sm text-[#1E293B]">
-                                Credit / Debit Card (noon)
+                                Credit or Debit Card
                               </span>
                             </div>
-                            <span className="text-[10px] font-semibold text-[#7C3AED] bg-[#FAF5FF] px-2 py-0.5 rounded-full border border-[#DDD5EA]">
+                            <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
                               Instant
                             </span>
                           </div>
@@ -1999,7 +1999,7 @@ function BookingContent() {
                           </p>
 
                           {paymentMethod === "noon" && (
-                            <div className="pt-3 mt-2 border-t border-[#E8E2EE]">
+                            <div className="pt-2 mt-1.5 border-t border-[#E8E2EE]">
                               <NoonPaymentForm
                                 ref={noonBookingPaymentRef}
                                 containerId="noon-booking-payment-mount"
@@ -2062,7 +2062,7 @@ function BookingContent() {
                     </button>
                     <p className="text-[11px] text-center text-[#64748B] mt-2">
                       {paymentMethod === "noon"
-                        ? "Charged securely online via Noon Payments."
+                        ? "Charged securely online with 256-bit card encryption."
                         : "Payment is collected in cash or card upon completion of service."}
                     </p>
                   </div>
@@ -2105,7 +2105,7 @@ function BookingContent() {
                   [
                     "Payment method",
                     (confirmedBooking as any).paymentMethod === "noon" || (confirmedBooking as any).noonOrderId
-                      ? "Paid Online via noon payments"
+                      ? "Paid Online (Credit / Debit Card)"
                       : "Pay at Appointment (Cash / Card)",
                   ],
                   [

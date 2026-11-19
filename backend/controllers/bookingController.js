@@ -261,8 +261,9 @@ export const getAvailableSlots = async (req, res) => {
     const targetDate = new Date(`${date}T00:00:00.000Z`);
     const now = new Date();
 
-    // Check if date is in the past
-    const todayStr = now.toISOString().split("T")[0];
+    // Check if date is in the past in UAE local time (+04:00)
+    const nowUAE = new Date(now.getTime() + 4 * 3600 * 1000);
+    const todayStr = nowUAE.toISOString().split("T")[0];
     if (date < todayStr) {
       return res.status(200).json({
         success: true,
