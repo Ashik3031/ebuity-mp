@@ -678,9 +678,10 @@ export const verifyPaymentHandler = async (req, res) => {
       const order = targetOrder || (await Order.findById(orderId));
       if (order) {
         const wasAlreadyPaid = order.paymentStatus === "Paid";
-        order.noonPaymentStatus = verification.status;
+        const wasAlreadyRefunded = order.paymentStatus === "Refunded";
 
         if (verification.isPaid) {
+          order.noonPaymentStatus = verification.status || "CAPTURED";
           order.paymentStatus = "Paid";
           if (!wasAlreadyPaid) {
             order.statusHistory.push({
@@ -709,7 +710,9 @@ export const verifyPaymentHandler = async (req, res) => {
 
             broadcastOrderCreated(order);
           }
-        } else if (verification.status === "FAILED" || verification.status === "CANCELLED") {
+        } else if (!wasAlreadyPaid && !wasAlreadyRefunded && (verification.status === "FAILED" || verification.status === "CANCELLED")) {
+          // Never downgrade an already paid order from verify handler
+          order.noonPaymentStatus = verification.status;
           order.paymentStatus = "Failed";
           order.statusHistory.push({
             status: "Cancelled",
@@ -735,9 +738,10 @@ export const verifyPaymentHandler = async (req, res) => {
       const booking = targetBooking || (await Booking.findById(bookingId));
       if (booking) {
         const wasAlreadyPaid = booking.paymentStatus === "paid";
-        booking.noonPaymentStatus = verification.status;
+        const wasAlreadyRefunded = booking.paymentStatus === "refunded";
 
         if (verification.isPaid) {
+          booking.noonPaymentStatus = verification.status || "CAPTURED";
           booking.paymentStatus = "paid";
           if (!wasAlreadyPaid) {
             const populatedBooking = await Booking.findById(booking._id)
@@ -747,7 +751,9 @@ export const verifyPaymentHandler = async (req, res) => {
             notifyBookingConfirmed(populatedBooking).catch(() => { });
             broadcastBookingCreated(populatedBooking);
           }
-        } else if (verification.status === "FAILED" || verification.status === "CANCELLED") {
+        } else if (!wasAlreadyPaid && !wasAlreadyRefunded && (verification.status === "FAILED" || verification.status === "CANCELLED")) {
+          // Never downgrade an already paid booking from verify handler
+          booking.noonPaymentStatus = verification.status;
           booking.paymentStatus = "unpaid";
         }
 
@@ -785,12 +791,18 @@ export const verifyPaymentHandler = async (req, res) => {
  * POST /api/payment/noon/webhook
  * Public endpoint for Noon Payments Webhook V2 (JWS)
  * Handles asynchronous payment updates for both Product Orders and Service Bookings
+ * Follows official Noon Payments Webhook V2 specification:
+ * - JWS compact serialization (Header.Payload.Signature) with HS256
+ * - Deterministic idempotency tracking
+ * - Ambiguous status reconciliation via GET ORDER API
+ * - Strict anti-downgrade lifecycle protection
+ * - Sanitized logging and storage
  */
 export const handleNoonWebhook = async (req, res) => {
   const versionHeader = req.headers["np-webhook-version"] || req.headers["webhook-version"];
   const rawBody = req.body;
 
-  // 1. Signature Verification
+  // 1. Signature Verification using exact Noon Webhook V2 specification
   const verification = verifyNoonWebhookSignature(
     rawBody,
     process.env.NOON_PAYMENTS_WEBHOOK_SECRET,
@@ -807,22 +819,77 @@ export const handleNoonWebhook = async (req, res) => {
   }
 
   const payload = verification.payload || {};
-  const eventId = String(
-    payload.eventId || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-  );
-  const eventType = String(payload.eventType || payload.type || "");
-  const orderId = String(payload.orderId || payload.order?.id || "");
+
+  // Extract core parameters from payload
+  const rawOrderId =
+    payload.orderId ??
+    payload.order?.id ??
+    payload.order?.orderId ??
+    payload.id ??
+    "";
+  const orderId = String(rawOrderId).trim();
+
   const merchantOrderRef = String(
     payload.merchantOrderRef ||
     payload.merchantReference ||
     payload.orderReference ||
     payload.order?.reference ||
+    payload.order?.merchantOrderRef ||
+    payload.order?.merchantReference ||
     ""
-  );
-  const orderStatus = String(payload.orderStatus || payload.order?.status || "").toUpperCase();
-  const txnStatus = String(payload.txnStatus || "").toUpperCase();
+  ).trim();
 
-  // 2. Persistent Idempotency Check & Atomic Registration
+  const orderStatus = String(payload.orderStatus || payload.order?.status || "").trim().toUpperCase();
+  const txnStatus = String(payload.txnStatus || "").trim().toUpperCase();
+  const eventType = String(payload.eventType || payload.type || "").trim();
+  const timeStamp = payload.timeStamp || payload.timestamp || payload.date || "";
+
+  // 2. Deterministic Event Identification for Idempotency
+  // If Noon sends eventId/id/notificationId, use it. Otherwise, compute deterministic key from
+  // orderId + orderStatus + txnStatus/timeStamp so webhook retries always resolve to the same ID!
+  let eventId = String(payload.eventId || payload.id || payload.notificationId || "").trim();
+  if (!eventId) {
+    if (orderId && orderStatus) {
+      eventId = `evt_${orderId}_${orderStatus}_${txnStatus || timeStamp || "static"}`;
+    } else {
+      const hash = crypto
+        .createHash("sha256")
+        .update(typeof rawBody === "string" ? rawBody : JSON.stringify(payload))
+        .digest("hex")
+        .substring(0, 24);
+      eventId = `evt_hash_${hash}`;
+    }
+  }
+
+  // Sanitize payload before database persistence (strip card/security tokens)
+  const sanitizePayload = (obj) => {
+    if (!obj || typeof obj !== "object") return obj;
+    const sanitized = Array.isArray(obj) ? [...obj] : { ...obj };
+    const sensitiveKeys = [
+      "sessionidentifier",
+      "sessionjwt",
+      "jwt",
+      "authorizationkey",
+      "appkey",
+      "secret",
+      "cvv",
+      "securitycode",
+    ];
+    for (const key of Object.keys(sanitized)) {
+      if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
+        sanitized[key] = "[REDACTED]";
+      } else if (typeof sanitized[key] === "object" && sanitized[key] !== null) {
+        sanitized[key] = sanitizePayload(sanitized[key]);
+      }
+    }
+    return sanitized;
+  };
+
+  const safePayload = sanitizePayload(payload);
+  const eventDate = timeStamp ? new Date(timeStamp) : null;
+  const validEventDate = eventDate && !Number.isNaN(eventDate.getTime()) ? eventDate : null;
+
+  // 3. Persistent Idempotency Check & Atomic Registration
   let eventRecord;
   try {
     eventRecord = await NoonWebhookEvent.create({
@@ -832,8 +899,11 @@ export const handleNoonWebhook = async (req, res) => {
       merchantOrderRef,
       orderStatus,
       txnStatus,
+      txnId: String(payload.txnId || "").trim(),
+      txnAmount: Number(payload.txnAmount) || 0,
+      timeStamp: validEventDate,
       status: "PROCESSING",
-      rawPayload: payload,
+      rawPayload: safePayload,
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -853,11 +923,36 @@ export const handleNoonWebhook = async (req, res) => {
   }
 
   try {
-    // 3. Locate Target Entity (Product Order or Service Booking)
+    // 4. Out-of-order Chronological Sequence Check (per Noon V2 timeStamp specification)
+    if (orderId && validEventDate) {
+      const priorProcessedEvent = await NoonWebhookEvent.findOne({
+        orderId,
+        status: "PROCESSED",
+        timeStamp: { $gt: validEventDate },
+      });
+
+      if (priorProcessedEvent) {
+        console.warn(
+          `[NoonWebhook] Out-of-order event skipped: Event ${eventId} (timestamp: ${validEventDate.toISOString()}) is older than already processed event ${priorProcessedEvent.eventId} (timestamp: ${priorProcessedEvent.timeStamp.toISOString()}).`
+        );
+        eventRecord.status = "IGNORED";
+        eventRecord.errorMessage = "Out-of-order event skipped (older timestamp than already processed event)";
+        eventRecord.processedAt = new Date();
+        await eventRecord.save();
+
+        return res.status(200).json({
+          success: true,
+          message: "Out-of-order event acknowledged and skipped",
+          eventId,
+        });
+      }
+    }
+
+    // 5. Locate Target Entity (Product Order or Service Booking)
     let targetOrder = null;
     let targetBooking = null;
 
-    // Search by noonOrderId if available
+    // A. Match by Noon Order ID
     if (orderId) {
       targetOrder = await Order.findOne({ noonOrderId: orderId });
       if (!targetOrder) {
@@ -865,16 +960,21 @@ export const handleNoonWebhook = async (req, res) => {
       }
     }
 
-    // Search by merchant reference if not yet matched
+    // B. Match by Merchant Reference variants (e.g. BKG-RB-xxx vs RB-xxx, ORD-xxx)
     if (!targetOrder && !targetBooking && merchantOrderRef) {
       const isObjectId = mongoose.Types.ObjectId.isValid(merchantOrderRef);
+      const cleanRef = merchantOrderRef.trim();
+      const strippedBookingRef = cleanRef.replace(/^BKG-/, "");
+      const strippedOrderRef = cleanRef.replace(/^ORD-/, "");
 
       // Check Order
       targetOrder = await Order.findOne({
         $or: [
-          { orderNumber: merchantOrderRef },
-          { noonReference: merchantOrderRef },
-          ...(isObjectId ? [{ _id: merchantOrderRef }] : []),
+          { orderNumber: cleanRef },
+          { noonReference: cleanRef },
+          { orderNumber: strippedOrderRef },
+          { noonReference: `ORD-${strippedOrderRef}` },
+          ...(isObjectId ? [{ _id: cleanRef }] : []),
         ],
       });
 
@@ -882,53 +982,123 @@ export const handleNoonWebhook = async (req, res) => {
       if (!targetOrder) {
         targetBooking = await Booking.findOne({
           $or: [
-            { bookingNumber: merchantOrderRef },
-            { noonReference: merchantOrderRef },
-            ...(isObjectId ? [{ _id: merchantOrderRef }] : []),
+            { bookingNumber: cleanRef },
+            { noonReference: cleanRef },
+            { bookingNumber: strippedBookingRef },
+            { noonReference: `BKG-${strippedBookingRef}` },
+            ...(isObjectId ? [{ _id: cleanRef }] : []),
           ],
         });
       }
     }
 
-    // Determine normalized status
-    const isSuccess =
-      ["CAPTURED", "PAID", "SUCCESS", "AUTHORIZED"].includes(orderStatus) ||
-      txnStatus === "SUCCESS";
-    const isRefund =
-      ["REFUNDED", "REVERSED"].includes(orderStatus) ||
-      ["REFUND", "REVERSE"].includes(eventType.toUpperCase());
-    const isFailed =
-      ["FAILED", "REJECTED"].includes(orderStatus) || txnStatus === "FAILED";
-    const isCancelled =
-      ["CANCELLED", "CANCELED"].includes(orderStatus) || txnStatus === "CANCELLED";
+    // 5. Ambiguous Notification & GET ORDER Reconciliation
+    // Per official Noon Payments best practice and audit requirements:
+    // When orderStatus is non-final, ambiguous (e.g. MARKED_FOR_REVIEW, AUTHORIZED, PENDING),
+    // or when reconciliation is needed, query GET ORDER for the authoritative gateway state.
+    const ambiguousStatuses = [
+      "MARKED_FOR_REVIEW",
+      "AUTHORIZED",
+      "AUTHENTICATED",
+      "PENDING",
+      "INITIATED",
+      "UNKNOWN",
+      "",
+    ];
+    const isAmbiguous =
+      ambiguousStatuses.includes(orderStatus) ||
+      !orderStatus ||
+      (orderStatus === "PENDING" && txnStatus === "SUCCESS");
 
-    // 4. Handle Product Order
+    let effectiveStatus = orderStatus;
+    let isGatewayVerifiedPaid = false;
+
+    if (isAmbiguous && orderId) {
+      try {
+        console.log(
+          `[NoonWebhook] Ambiguous status ("${orderStatus || "none"}") for orderId "${orderId}". Querying GET ORDER for reconciliation...`
+        );
+        const verification = await verifyOrderPayment(orderId);
+        if (verification && verification.success) {
+          effectiveStatus = (verification.rawStatus || verification.status || "").toUpperCase();
+          isGatewayVerifiedPaid = Boolean(verification.isPaid);
+          console.log(
+            `[NoonWebhook] Reconciliation result for ${orderId}: effectiveStatus="${effectiveStatus}", isPaid=${isGatewayVerifiedPaid}`
+          );
+        }
+      } catch (reconErr) {
+        console.warn(`[NoonWebhook] GET ORDER reconciliation error for ${orderId}:`, reconErr.message);
+      }
+    }
+
+    // Determine normalized transaction lifecycle statuses
+    const isSuccess =
+      isGatewayVerifiedPaid ||
+      ["CAPTURED", "PAID", "SUCCESS"].includes(effectiveStatus) ||
+      (effectiveStatus === "AUTHORIZED" && txnStatus === "SUCCESS");
+
+    const isRefund =
+      ["REFUNDED", "REVERSED", "PARTIALLY_REFUNDED"].includes(effectiveStatus) ||
+      ["REFUND", "REVERSE"].includes(eventType.toUpperCase());
+
+    const isFailed =
+      ["FAILED", "REJECTED"].includes(effectiveStatus) || txnStatus === "FAILED";
+
+    const isCancelled =
+      ["CANCELLED", "CANCELED", "EXPIRED"].includes(effectiveStatus) || txnStatus === "CANCELLED";
+
+    // 6. Handle Product Order with Anti-Downgrade Protection
     if (targetOrder) {
       eventRecord.targetType = "ORDER";
       eventRecord.targetId = targetOrder._id;
 
       const wasAlreadyPaid = targetOrder.paymentStatus === "Paid";
-      targetOrder.noonPaymentStatus = orderStatus || targetOrder.noonPaymentStatus;
+      const wasAlreadyRefunded = targetOrder.paymentStatus === "Refunded";
+
       if (orderId && !targetOrder.noonOrderId) {
         targetOrder.noonOrderId = orderId;
       }
 
-      if (isSuccess) {
-        if (!wasAlreadyPaid) {
+      if (wasAlreadyRefunded) {
+        // Terminal state: never modify refunded orders
+        console.log(
+          `[NoonWebhook] Order ${targetOrder.orderNumber || targetOrder._id} is already Refunded; ignoring event ${eventId}.`
+        );
+      } else if (wasAlreadyPaid) {
+        // Already Paid: only a valid REFUND/REVERSAL can transition status
+        if (isRefund) {
+          targetOrder.paymentStatus = "Refunded";
+          targetOrder.status = "Cancelled";
+          targetOrder.noonPaymentStatus = effectiveStatus || "REFUNDED";
+          targetOrder.statusHistory.push({
+            status: "Cancelled",
+            note: `Noon Webhook payment refunded/reversed (${orderId || eventId})`,
+          });
+          await targetOrder.save();
+        } else {
+          // Prevent accidental downgrade from delayed FAILED / CANCELLED / PENDING notification
+          console.log(
+            `[NoonWebhook] Order ${targetOrder.orderNumber || targetOrder._id} is already Paid; ignoring delayed "${effectiveStatus}" notification to prevent downgrade.`
+          );
+        }
+      } else {
+        // Order is currently unpaid / Pending
+        if (isSuccess) {
           targetOrder.paymentStatus = "Paid";
+          targetOrder.noonPaymentStatus = effectiveStatus || "CAPTURED";
           targetOrder.statusHistory.push({
             status: targetOrder.status,
-            note: `Noon Webhook V2 payment confirmed (${orderId || eventId}) - Status: ${orderStatus}`,
+            note: `Noon Webhook payment confirmed (${orderId || eventId}) - Status: ${effectiveStatus}`,
           });
 
-          // Decrement stock
+          // Decrement stock atomically
           try {
             await checkAndDecrementStock(targetOrder.products, null);
           } catch (err) {
             console.warn("[NoonWebhook] Inventory update note:", err.message);
           }
 
-          // Clear cart
+          // Clear cart if user logged in
           if (targetOrder.user) {
             await removePurchasedFromCart(targetOrder.user, targetOrder.products, null).catch(
               () => { }
@@ -943,55 +1113,85 @@ export const handleNoonWebhook = async (req, res) => {
           }).catch(() => { });
 
           broadcastOrderCreated(targetOrder);
-        }
-      } else if (isRefund) {
-        targetOrder.paymentStatus = "Refunded";
-        targetOrder.status = "Cancelled";
-        targetOrder.statusHistory.push({
-          status: "Cancelled",
-          note: `Noon Webhook V2 payment refunded/reversed (${orderId || eventId})`,
-        });
-      } else if (isFailed || isCancelled) {
-        if (!wasAlreadyPaid) {
-          targetOrder.paymentStatus = isCancelled ? "Cancelled" : "Failed";
+          await targetOrder.save();
+        } else if (isRefund) {
+          targetOrder.paymentStatus = "Refunded";
           targetOrder.status = "Cancelled";
+          targetOrder.noonPaymentStatus = effectiveStatus || "REFUNDED";
           targetOrder.statusHistory.push({
             status: "Cancelled",
-            note: `Noon Webhook V2 payment ${orderStatus || "failed"} (${orderId || eventId})`,
+            note: `Noon Webhook payment refunded (${orderId || eventId})`,
           });
+          await targetOrder.save();
+        } else if (isFailed || isCancelled) {
+          targetOrder.paymentStatus = isCancelled ? "Cancelled" : "Failed";
+          targetOrder.status = "Cancelled";
+          targetOrder.noonPaymentStatus = effectiveStatus || (isCancelled ? "CANCELLED" : "FAILED");
+          targetOrder.statusHistory.push({
+            status: "Cancelled",
+            note: `Noon Webhook payment ${effectiveStatus || "failed"} (${orderId || eventId})`,
+          });
+          await targetOrder.save();
+        } else {
+          // Non-final pending state: record gateway status without failing order
+          targetOrder.noonPaymentStatus = effectiveStatus || targetOrder.noonPaymentStatus;
+          await targetOrder.save();
         }
       }
 
-      await targetOrder.save();
       eventRecord.status = "PROCESSED";
       eventRecord.processedAt = new Date();
       await eventRecord.save();
 
       console.log(
-        `[NoonWebhook] Successfully processed event ${eventId} for Order ${targetOrder.orderNumber || targetOrder._id}`
+        `[NoonWebhook] Successfully processed event ${eventId} for Order ${targetOrder.orderNumber || targetOrder._id} (final paymentStatus: ${targetOrder.paymentStatus})`
       );
       return res.status(200).json({
         success: true,
         message: "Webhook processed successfully for Order",
         eventId,
         orderId: targetOrder._id,
+        paymentStatus: targetOrder.paymentStatus,
       });
     }
 
-    // 5. Handle Service Booking
+    // 7. Handle Service Booking with Anti-Downgrade Protection
     if (targetBooking) {
       eventRecord.targetType = "BOOKING";
       eventRecord.targetId = targetBooking._id;
 
       const wasAlreadyPaid = targetBooking.paymentStatus === "paid";
-      targetBooking.noonPaymentStatus = orderStatus || targetBooking.noonPaymentStatus;
+      const wasAlreadyRefunded = targetBooking.paymentStatus === "refunded";
+
       if (orderId && !targetBooking.noonOrderId) {
         targetBooking.noonOrderId = orderId;
       }
 
-      if (isSuccess) {
-        if (!wasAlreadyPaid) {
+      if (wasAlreadyRefunded) {
+        // Terminal state: never modify refunded bookings
+        console.log(
+          `[NoonWebhook] Booking ${targetBooking.bookingNumber || targetBooking._id} is already refunded; ignoring event ${eventId}.`
+        );
+      } else if (wasAlreadyPaid) {
+        // Already Paid: only a valid REFUND/REVERSAL can transition status
+        if (isRefund) {
+          targetBooking.paymentStatus = "refunded";
+          targetBooking.status = "cancelled";
+          targetBooking.noonPaymentStatus = effectiveStatus || "REFUNDED";
+          targetBooking.cancellationReason = `Refunded via Noon Payments (${orderId || eventId})`;
+          await targetBooking.save();
+        } else {
+          // Prevent accidental downgrade from delayed FAILED / CANCELLED / PENDING notification
+          console.log(
+            `[NoonWebhook] Booking ${targetBooking.bookingNumber || targetBooking._id} is already paid; ignoring delayed "${effectiveStatus}" notification to prevent downgrade.`
+          );
+        }
+      } else {
+        // Booking is currently unpaid / pending
+        if (isSuccess) {
           targetBooking.paymentStatus = "paid";
+          targetBooking.status = "confirmed";
+          targetBooking.noonPaymentStatus = effectiveStatus || "CAPTURED";
           await targetBooking.save();
 
           const populatedBooking = await Booking.findById(targetBooking._id)
@@ -1000,22 +1200,22 @@ export const handleNoonWebhook = async (req, res) => {
 
           notifyBookingConfirmed(populatedBooking).catch(() => { });
           broadcastBookingCreated(populatedBooking);
-        } else {
+        } else if (isRefund) {
+          targetBooking.paymentStatus = "refunded";
+          targetBooking.status = "cancelled";
+          targetBooking.noonPaymentStatus = effectiveStatus || "REFUNDED";
+          targetBooking.cancellationReason = `Refunded via Noon Payments (${orderId || eventId})`;
           await targetBooking.save();
-        }
-      } else if (isRefund) {
-        targetBooking.paymentStatus = "refunded";
-        targetBooking.status = "cancelled";
-        targetBooking.cancellationReason = `Refunded via Noon Payments (${orderId || eventId})`;
-        await targetBooking.save();
-      } else if (isFailed || isCancelled) {
-        if (!wasAlreadyPaid) {
+        } else if (isFailed || isCancelled) {
           targetBooking.paymentStatus = isCancelled ? "cancelled" : "failed";
           targetBooking.status = "cancelled";
+          targetBooking.noonPaymentStatus = effectiveStatus || (isCancelled ? "CANCELLED" : "FAILED");
+          await targetBooking.save();
+        } else {
+          // Non-final pending state: record gateway status without failing booking
+          targetBooking.noonPaymentStatus = effectiveStatus || targetBooking.noonPaymentStatus;
           await targetBooking.save();
         }
-      } else {
-        await targetBooking.save();
       }
 
       eventRecord.status = "PROCESSED";
@@ -1023,17 +1223,18 @@ export const handleNoonWebhook = async (req, res) => {
       await eventRecord.save();
 
       console.log(
-        `[NoonWebhook] Successfully processed event ${eventId} for Booking ${targetBooking.bookingNumber || targetBooking._id}`
+        `[NoonWebhook] Successfully processed event ${eventId} for Booking ${targetBooking.bookingNumber || targetBooking._id} (final paymentStatus: ${targetBooking.paymentStatus})`
       );
       return res.status(200).json({
         success: true,
         message: "Webhook processed successfully for Booking",
         eventId,
         bookingId: targetBooking._id,
+        paymentStatus: targetBooking.paymentStatus,
       });
     }
 
-    // 6. Target Not Found (Unknown Noon Order)
+    // 8. Target Not Found (Unknown Noon Order)
     console.warn(
       `[NoonWebhook] No matching Order or Booking found for Noon orderId: "${orderId}", ref: "${merchantOrderRef}"`
     );
@@ -1050,9 +1251,11 @@ export const handleNoonWebhook = async (req, res) => {
     });
   } catch (error) {
     console.error(`[NoonWebhook] Processing error for event ${eventId}:`, error);
-    eventRecord.status = "FAILED";
-    eventRecord.errorMessage = error.message || "Unknown error";
-    await eventRecord.save().catch(() => { });
+    if (eventRecord) {
+      eventRecord.status = "FAILED";
+      eventRecord.errorMessage = error.message || "Unknown error";
+      await eventRecord.save().catch(() => { });
+    }
 
     return res.status(500).json({
       success: false,

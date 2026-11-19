@@ -475,7 +475,7 @@ export async function verifyOrderPayment(noonOrderId) {
  * @returns {{ valid: boolean, payload?: Object, error?: string, code?: number }}
  */
 export function verifyNoonWebhookSignature(rawBody, secret, versionHeader) {
-  const webhookSecret = (secret || process.env.NOON_PAYMENTS_WEBHOOK_SECRET || "").trim();
+  const webhookSecret = (secret !== undefined && secret !== null ? secret : process.env.NOON_PAYMENTS_WEBHOOK_SECRET || "").trim();
 
   if (!webhookSecret) {
     return {
@@ -499,12 +499,37 @@ export function verifyNoonWebhookSignature(rawBody, secret, versionHeader) {
 
   let token = "";
   if (typeof rawBody === "string") {
-    token = rawBody.trim();
+    const trimmed = rawBody.trim();
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        token = String(parsed.token || parsed.jws || parsed.data || parsed.payload || "").trim();
+      } catch {
+        // Fall back to raw string
+      }
+    }
+    if (!token) {
+      token = trimmed;
+    }
   } else if (Buffer.isBuffer(rawBody)) {
-    token = rawBody.toString("utf8").trim();
+    const str = rawBody.toString("utf8").trim();
+    if (str.startsWith("{") && str.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(str);
+        token = String(parsed.token || parsed.jws || parsed.data || parsed.payload || "").trim();
+      } catch {
+        // Fall back to raw string
+      }
+    }
+    if (!token) {
+      token = str;
+    }
   } else if (rawBody && typeof rawBody === "object") {
-    token = String(rawBody.token || rawBody.jws || rawBody.data || "").trim();
+    token = String(rawBody.token || rawBody.jws || rawBody.data || rawBody.payload || "").trim();
   }
+
+  // Strip optional surrounding quotes
+  token = token.replace(/^"(.*)"$/, "$1");
 
   if (!token) {
     return {

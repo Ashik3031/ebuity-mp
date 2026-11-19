@@ -31,6 +31,18 @@ const noonWebhookEventSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    txnId: {
+      type: String,
+      default: "",
+    },
+    txnAmount: {
+      type: Number,
+      default: 0,
+    },
+    timeStamp: {
+      type: Date,
+      default: null,
+    },
     targetType: {
       type: String,
       enum: ["ORDER", "BOOKING", "UNKNOWN"],
