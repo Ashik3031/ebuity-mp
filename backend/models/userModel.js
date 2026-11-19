@@ -72,6 +72,7 @@ const userSchema = new mongoose.Schema({
     verifyOtp: { type: String, default: "" },
     verifyOtpExpiry: { type: Date, default: 0 },
     isAccountVerified: { type: Boolean, default: false },
+    isGuest: { type: Boolean, default: false },
     resetOtp: { type: String, default: "" }, 
     resetOtpExpiryAt: { type: Number, default: 0 },
     //to check isAdmin

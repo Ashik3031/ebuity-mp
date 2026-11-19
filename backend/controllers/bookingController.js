@@ -23,6 +23,17 @@ import {
   broadcastBookingCreated,
   broadcastBookingUpdated,
 } from "../services/realtimeService.js";
+import {
+  associateGuestBookingsWithAccount,
+  canUserAccessBooking,
+  extractPhoneDigits,
+} from "../services/bookingClaimService.js";
+import {
+  resolveCustomerAndServiceAddress,
+  validateBookingServices,
+  validateBookingSchedule,
+  generateUniqueBookingNumber,
+} from "../services/bookingCreationService.js";
 
 // Helper: Get or initialize availability configuration
 async function getEffectiveConfig() {
@@ -508,273 +519,58 @@ export const createBooking = async (req, res) => {
       address,
       addressId,
       scheduledDate,
-      scheduledTime: rawScheduledTime, // accepts "14:30" or "02:30 PM"
+      scheduledTime: rawScheduledTime,
       specialRequests,
       saveAddressToProfile,
     } = req.body;
 
-    let customerId = req.user?.id;
-    let user = req.user;
-
-    // Normalize scheduledTime: support 12-hour format ("02:30 PM", "9:30 AM") and 24-hour format ("14:30", "9:30")
-    let scheduledTime = (rawScheduledTime || "").trim();
-    if (/AM|PM/i.test(scheduledTime)) {
-      const match = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
-      if (match) {
-        let h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        if (h === 12) h = 0;
-        if (match[3].toUpperCase() === "PM") h += 12;
-        scheduledTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      }
-    } else {
-      const match = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-      if (match) {
-        const h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        scheduledTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      }
-    }
-
-    // Guest / Live Chat Booking: auto-resolve or create customer record if unauthenticated
-    if (!customerId) {
-      const guestPhone = (address?.phone || "").trim();
-      const guestName = (address?.fullName || "Guest Customer").trim();
-      const sanitizedPhone = guestPhone.replace(/[^0-9]/g, "");
-      const guestEmail = (address?.email || `${sanitizedPhone || Date.now()}@guest.ebuity.com`).trim();
-
-      if (!guestPhone) {
-        return res.status(400).json({
-          success: false,
-          message: "A contact phone number is required to book a service",
-        });
-      }
-
-      // Check if user already exists with this phone or email
-      let existingUser = await userModel.findOne({
-        $or: [{ phone: guestPhone }, { email: guestEmail }],
-      });
-
-      if (!existingUser) {
-        let hashedPassword = "";
-        try {
-          const bcrypt = (await import("bcryptjs")).default;
-          hashedPassword = await bcrypt.hash(`Guest#${Date.now()}`, 10);
-        } catch {
-          hashedPassword = "guest_no_password";
-        }
-
-        existingUser = await userModel.create({
-          name: guestName,
-          phone: guestPhone,
-          email: guestEmail,
-          password: hashedPassword,
-          role: "user",
-          isAccountVerified: false,
-        });
-      }
-
-      user = existingUser;
-      customerId = existingUser._id;
-    }
-
-    // 1. Validate service list
-    if (!Array.isArray(serviceIds) || serviceIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Please select at least one service to book",
-      });
-    }
-
-    // Fetch services from DB
-    const validIds = serviceIds
-      .map((id) => (typeof id === "string" ? id.trim() : id))
-      .filter((id) => mongoose.Types.ObjectId.isValid(id));
-
-    if (validIds.length !== serviceIds.length) {
-      return res.status(400).json({
-        success: false,
-        message: "One or more service IDs are invalid",
-      });
-    }
-
-    const services = await Service.find({
-      _id: { $in: validIds },
-      $or: [{ isActive: true }, { active: true }],
-    }).lean();
-
-    if (services.length !== validIds.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Some selected services are no longer active or available",
-      });
-    }
-
-    // Build service snapshots and totals
-    let totalDurationMinutes = 0;
-    let totalPrice = 0;
-
-    const serviceSnapshots = services.map((srv) => {
-      const dur = srv.durationMinutes || srv.duration || 30;
-      // Use Today's Exclusive Deal price if active on this service
-      const isDealActive = Boolean(
-        srv.isExclusiveDeal &&
-        srv.dealPrice !== null &&
-        srv.dealPrice !== undefined &&
-        Number(srv.dealPrice) >= 0
-      );
-      const prc = isDealActive ? Number(srv.dealPrice) : (Number(srv.price) || 0);
-      totalDurationMinutes += dur;
-      totalPrice += prc;
-
-      return {
-        serviceId: srv._id,
-        name: srv.name,
-        slug: srv.slug,
-        price: prc,
-        durationMinutes: dur,
-        currency: srv.currency || "AED",
-      };
+    // 1. Resolve Customer and Service Address (Unified for Guest & Logged-in)
+    const {
+      customerId,
+      customerDetails,
+      serviceAddress,
+      isGuestBooking,
+      guestClaimToken,
+    } = await resolveCustomerAndServiceAddress({
+      user: req.user,
+      address,
+      addressId,
+      saveAddressToProfile: Boolean(saveAddressToProfile || req.body.saveAddress),
     });
 
-    // 2. Validate Address & Service Zone
-    user = await userModel.findById(customerId);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
+    // 2. Validate Service Selection
+    const {
+      validIds,
+      services,
+      serviceSnapshots,
+      totalDurationMinutes,
+      totalPrice,
+    } = await validateBookingServices(serviceIds);
 
-    let finalAddress = null;
+    // 3. Validate Date & Time Schedule
+    const {
+      scheduledTime,
+      scheduledStartTime,
+      scheduledEndTime,
+    } = validateBookingSchedule({
+      scheduledDate,
+      rawScheduledTime,
+      totalDurationMinutes,
+    });
 
-    if (addressId) {
-      const saved = user.addresses?.id(addressId);
-      if (!saved) {
-        return res.status(404).json({
-          success: false,
-          message: "Selected saved address not found",
-        });
-      }
-      finalAddress = {
-        label: saved.label || "Home",
-        fullName: saved.fullName,
-        phone: saved.phone,
-        email: saved.email || user.email,
-        unitNumber: saved.unitNumber,
-        buildingName: saved.buildingName,
-        street: saved.street || "",
-        area: saved.area,
-        city: saved.city || "Dubai",
-        state: saved.state || "Dubai",
-        postalCode: saved.postalCode || "",
-        landmark: saved.landmark || "",
-        coordinates: saved.coordinates || { lat: null, lng: null },
-        accessInstructions:
-          address?.accessInstructions || saved.accessInstructions || "",
-      };
-    } else if (address) {
-      const finalName = (address.fullName || user.name || "Customer").trim();
-      const finalPhone = (address.phone || user.phone || "").trim();
-      const finalArea = (address.area || "Dubai").trim();
-      const finalUnit = (address.unitNumber || "Residence").trim();
-      const finalBuilding = (address.buildingName || address.area || "Dubai Residence").trim();
-
-      if (!finalPhone) {
-        return res.status(400).json({
-          success: false,
-          message: "A contact phone number is required for service booking",
-        });
-      }
-
-      finalAddress = {
-        label: address.label || "Home",
-        fullName: finalName,
-        phone: finalPhone,
-        email: (address.email || user.email || "").trim(),
-        unitNumber: finalUnit,
-        buildingName: finalBuilding,
-        street: address.street ? address.street.trim() : `${finalArea}, Dubai`,
-        area: finalArea,
-        city: address.city ? address.city.trim() : "Dubai",
-        state: address.state ? address.state.trim() : "Dubai",
-        postalCode: address.postalCode ? address.postalCode.trim() : "",
-        landmark: address.landmark ? address.landmark.trim() : "",
-        coordinates:
-          address.coordinates && typeof address.coordinates === "object"
-            ? {
-              lat: Number(address.coordinates.lat) || null,
-              lng: Number(address.coordinates.lng) || null,
-            }
-            : { lat: null, lng: null },
-        accessInstructions: address.accessInstructions
-          ? address.accessInstructions.trim()
-          : "",
-      };
-
-      // Optionally save to user's address book if requested
-      if (saveAddressToProfile) {
-        user.addresses.push({
-          ...finalAddress,
-          isDefault: user.addresses.length === 0,
-        });
-        await user.save();
-      }
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "A service delivery address is required",
-      });
-    }
-
-    // Validate Zone
-    const matchedZone = await matchActiveServiceZone(finalAddress.area);
+    // 4. Validate Service Zone
+    const matchedZone = await matchActiveServiceZone(serviceAddress.area, serviceAddress.city);
     if (!matchedZone) {
       return res.status(400).json({
         success: false,
-        message: `We currently do not offer services in "${finalAddress.area}". Please pick an address within our active Dubai zones.`,
+        message: `We currently do not offer services in "${serviceAddress.area}". Please pick an address within our active Dubai zones.`,
       });
     }
 
-    finalAddress.zoneId = matchedZone._id;
-    finalAddress.zoneName = matchedZone.name;
-
-    // 3. Validate Date & Time
-    if (!scheduledDate || !/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid scheduledDate (YYYY-MM-DD) is required",
-      });
-    }
-
-    if (!scheduledTime || !/^\d{2}:\d{2}$/.test(scheduledTime)) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid scheduledTime (HH:mm) is required",
-      });
-    }
+    serviceAddress.zoneId = matchedZone._id;
+    serviceAddress.zoneName = matchedZone.name;
 
     const config = await getEffectiveConfig();
-    const scheduledStartTime = createUAEDate(scheduledDate, scheduledTime);
-    const scheduledEndTime = new Date(
-      scheduledStartTime.getTime() + totalDurationMinutes * 60000
-    );
-
-    if (!scheduledStartTime || Number.isNaN(scheduledStartTime.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid scheduled appointment start time",
-      });
-    }
-
-    if (
-      !scheduledEndTime ||
-      Number.isNaN(scheduledEndTime.getTime()) ||
-      totalDurationMinutes <= 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid scheduled appointment end time or duration",
-      });
-    }
-
     const now = new Date();
     const leadTimeMs = (config.leadTimeHours || 2) * 3600 * 1000;
 
@@ -787,8 +583,7 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // 4. ATOMIC DOUBLE-BOOKING RECHECK & AUTOMATIC STAFF ASSIGNMENT (Level 5)
-    // Buffer between services
+    // 5. ATOMIC DOUBLE-BOOKING RECHECK & AUTOMATIC STAFF ASSIGNMENT (Level 5)
     const bufferMins = config.bufferMinutes || 30;
     const startBuffered = new Date(
       scheduledStartTime.getTime() - bufferMins * 60000
@@ -849,8 +644,6 @@ export const createBooking = async (req, res) => {
           timestamp: new Date(),
         });
       } else {
-        // Fallback: If no staff is auto-assigned (all busy, leave, or off-duty),
-        // keep booking as unassigned so Admin can see it in /admin/bookings and manually assign staff!
         staffAssignmentStatus = "unassigned";
         assignmentHistory.push({
           action: "unassigned",
@@ -861,30 +654,28 @@ export const createBooking = async (req, res) => {
       }
     }
 
-    // 5. Generate Unique Booking Reference Number
-    const dateCode = scheduledDate.replace(/-/g, "");
-    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const bookingNumber = `RB-${dateCode}-${randomSuffix}`;
+    // 6. Generate Unique Booking Reference Number
+    const bookingNumber = generateUniqueBookingNumber(scheduledDate);
 
-    // 6. Create Booking Document
+    // 7. Create Booking Document
     const booking = await Booking.create({
       bookingNumber,
       customer: customerId,
-      customerDetails: {
-        name: user.name || finalAddress.fullName,
-        email: user.email || finalAddress.email,
-        phone: finalAddress.phone,
-      },
+      customerDetails,
       services: serviceSnapshots,
       totalDurationMinutes,
       totalPrice,
       currency: "AED",
-      serviceAddress: finalAddress,
+      serviceAddress,
       scheduledDate,
       scheduledTime,
       scheduledStartTime,
       scheduledEndTime,
       status: "confirmed",
+      paymentMethod: "cash",
+      paymentStatus: "pending",
+      isGuestBooking,
+      guestClaimToken: isGuestBooking ? guestClaimToken : null,
       specialRequests: specialRequests ? String(specialRequests).trim() : "",
       slotLockKey: `${scheduledDate}_${scheduledTime}_${assignedStaff || "unassigned"}`,
       assignedStaff,
@@ -897,26 +688,30 @@ export const createBooking = async (req, res) => {
       .populate("assignedStaff", "name email phone profileImage")
       .lean();
 
-    // Trigger asynchronous booking confirmation notifications (customer & assigned therapist)
+    // Trigger asynchronous booking confirmation notifications
     notifyBookingConfirmed(populatedBooking).catch((nErr) => {
       console.warn("[createBooking] Notification dispatch warning:", nErr.message);
     });
 
     const enriched = enrichBookingWithScheduledTime(populatedBooking);
 
-    // Broadcast new booking in real time to Admin and assigned Staff!
+    // Broadcast new booking in real time to Admin and assigned Staff
     broadcastBookingCreated(enriched);
 
     return res.status(201).json({
       success: true,
       message: "At-home beauty appointment confirmed successfully!",
-      booking: enriched,
+      booking: {
+        ...enriched,
+        guestClaimToken: isGuestBooking ? guestClaimToken : undefined,
+      },
+      guestClaimToken: isGuestBooking ? guestClaimToken : undefined,
     });
   } catch (error) {
     console.error("[createBooking] error:", error);
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
-      message: "Failed to create booking",
+      message: error.message || "Failed to create booking",
       error: error.message,
     });
   }
@@ -927,13 +722,23 @@ export const createBooking = async (req, res) => {
 // ==========================================
 export const getMyBookings = async (req, res) => {
   try {
-    const customerId = req.user?.id;
+    const customerId = req.user?.id || req.user?._id;
     if (!customerId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
+    // Auto-claim any guest bookings (via session claim token or verified email)
+    const { bookingId, claimToken } = req.query;
+    try {
+      await claimGuestBookings(req.user, { bookingId, claimToken });
+    } catch (claimErr) {
+      console.warn("[getMyBookings] claimGuestBookings error:", claimErr.message);
+    }
+
     const { status } = req.query;
-    const filter = { customer: customerId };
+    const filter = {
+      $or: [{ customer: customerId }, { associatedWithUser: customerId }],
+    };
     if (status && ["pending", "confirmed", "cancelled", "completed"].includes(status)) {
       filter.status = status;
     }
@@ -958,12 +763,44 @@ export const getMyBookings = async (req, res) => {
 };
 
 // ==========================================
+// 4b. Customer: Explicitly Claim Guest Bookings
+// ==========================================
+export const claimGuestBookingsEndpoint = async (req, res) => {
+  try {
+    const customerId = req.user?.id || req.user?._id;
+    if (!customerId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const { bookingIds, bookingId, claimToken } = req.body;
+    const ids = Array.isArray(bookingIds) ? bookingIds : (bookingId ? [bookingId] : []);
+    const result = await claimGuestBookings(req.user, {
+      bookingIds: ids,
+      bookingId: bookingId || (ids.length === 1 ? ids[0] : undefined),
+      claimToken,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully linked ${result.associatedBookings || 0} appointment(s).`,
+      ...result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to link guest appointments",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
 // 5. Get Booking Detail by ID or Number
 // ==========================================
 export const getBookingById = async (req, res) => {
   try {
     const { id } = req.params;
-    const customerId = req.user?.id;
+    const customerId = req.user?.id || req.user?._id;
 
     let query = {};
     if (mongoose.Types.ObjectId.isValid(id)) {
@@ -982,9 +819,16 @@ export const getBookingById = async (req, res) => {
       });
     }
 
-    // Ensure customer owns booking or is admin
-    const isOwner = String(booking.customer) === String(customerId);
+    // Ensure customer owns booking or is admin; auto-link if email/phone matches
+    let isOwner = String(booking.customer?._id || booking.customer) === String(customerId);
     const isAdmin = req.user?.role === "admin";
+    if (!isOwner && !isAdmin && req.user) {
+      if (canUserAccessBooking(req.user, booking)) {
+        await Booking.updateOne({ _id: booking._id }, { $set: { customer: customerId } });
+        isOwner = true;
+      }
+    }
+
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
@@ -1029,8 +873,15 @@ export const cancelBooking = async (req, res) => {
       });
     }
 
-    const isOwner = String(booking.customer) === String(customerId);
+    let isOwner = String(booking.customer) === String(customerId);
     const isAdmin = req.user?.role === "admin";
+    if (!isOwner && !isAdmin && req.user) {
+      if (canUserAccessBooking(req.user, booking)) {
+        booking.customer = customerId;
+        await booking.save();
+        isOwner = true;
+      }
+    }
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
@@ -1276,8 +1127,15 @@ export const requestReschedule = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    const isOwner = String(booking.customer) === String(customerId);
+    let isOwner = String(booking.customer) === String(customerId);
     const isAdmin = req.user?.role === "admin";
+    if (!isOwner && !isAdmin && req.user) {
+      if (canUserAccessBooking(req.user, booking)) {
+        booking.customer = customerId;
+        await booking.save();
+        isOwner = true;
+      }
+    }
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
@@ -1395,8 +1253,15 @@ export const requestCancel = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    const isOwner = String(booking.customer) === String(customerId);
+    let isOwner = String(booking.customer) === String(customerId);
     const isAdmin = req.user?.role === "admin";
+    if (!isOwner && !isAdmin && req.user) {
+      if (canUserAccessBooking(req.user, booking)) {
+        booking.customer = customerId;
+        await booking.save();
+        isOwner = true;
+      }
+    }
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,

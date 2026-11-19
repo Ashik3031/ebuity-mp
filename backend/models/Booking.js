@@ -281,6 +281,27 @@ const bookingSchema = new mongoose.Schema(
     noonOrderId: { type: String, default: null },
     noonPaymentStatus: { type: String, default: null },
     noonReference: { type: String, default: null },
+    // Guest Booking & Verified Account Association Tracking
+    isGuestBooking: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    guestClaimToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    associatedWithUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    associatedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -302,6 +323,11 @@ bookingSchema.index({
 bookingSchema.index({
   scheduledDate: 1,
   status: 1,
+});
+
+bookingSchema.index({
+  isGuestBooking: 1,
+  "customerDetails.email": 1,
 });
 
 export default mongoose.models.Booking ||

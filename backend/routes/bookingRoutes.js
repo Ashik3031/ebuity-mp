@@ -4,6 +4,7 @@ import {
   validateAddressZone,
   createBooking,
   getMyBookings,
+  claimGuestBookingsEndpoint,
   getBookingById,
   cancelBooking,
   requestReschedule,
@@ -29,6 +30,7 @@ router.post("/validate-zone", validateAddressZone);
 
 // Booking creation route (supports both logged-in users and live chat / guest booking)
 router.post("/", optionalUserAuth, createBooking);
+router.post("/claim-guest", userAuth, claimGuestBookingsEndpoint);
 router.get("/my-bookings", userAuth, getMyBookings);
 router.get("/:id", userAuth, getBookingById);
 router.patch("/:id/cancel", userAuth, cancelBooking);

@@ -21,11 +21,22 @@ function info(msg, extra) {
 }
 
 function createTransport() {
+  const host = (SMTP_HOST || "smtp.gmail.com").trim();
+  const port = Number(SMTP_PORT) || 587;
+  const isGmail = host.includes("gmail.com");
+
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: (SMTP_USER || "").trim(), pass: (SMTP_PASS || "").trim() },
+    });
+  }
+
   return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT) || 587,
-    secure: String(SMTP_SECURE) === "true",
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    host,
+    port,
+    secure: String(SMTP_SECURE) === "true" || port === 465,
+    auth: { user: (SMTP_USER || "").trim(), pass: (SMTP_PASS || "").trim() },
   });
 }
 
@@ -88,7 +99,7 @@ export async function emailOrderRequested({ to, order, user }) {
 
   const subject = `Order request received #${id}`;
   const text =
-`Hi ${user?.name || ""},
+    `Hi ${user?.name || ""},
 
 We received your order request.
 Payment is authorized (not charged yet). We’ll confirm availability and then capture the payment.
@@ -127,7 +138,7 @@ export async function emailOrderConfirmed({ to, order, user }) {
 
   const subject = `Order confirmed #${id}`;
   const text =
-`Hi ${user?.name || ""},
+    `Hi ${user?.name || ""},
 
 Thanks for your order!
 Order #${id}
@@ -158,7 +169,7 @@ export async function emailOrderCancelled({ to, order, user }) {
 
   const subject = `Order cancelled #${id}`;
   const text =
-`Hi ${user?.name || ""},
+    `Hi ${user?.name || ""},
 
 Your order #${id} has been cancelled.
 View details: ${link}`;

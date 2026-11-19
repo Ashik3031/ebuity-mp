@@ -37,6 +37,12 @@ import {
   broadcastOrderCreated,
 } from "../services/realtimeService.js";
 import { emailOrderConfirmed } from "../services/email.service.js";
+import {
+  resolveCustomerAndServiceAddress,
+  validateBookingServices,
+  validateBookingSchedule,
+  generateUniqueBookingNumber,
+} from "../services/bookingCreationService.js";
 
 // Helper: remove purchased items from user's cart
 async function removePurchasedFromCart(userId, purchased, session = null) {
@@ -299,14 +305,13 @@ export const initiateBookingPayment = async (req, res) => {
     const {
       serviceIds,
       address,
+      addressId,
+      saveAddressToProfile,
       scheduledDate,
       scheduledTime: rawScheduledTime,
       specialRequests,
       sessionIdentifier,
     } = req.body;
-
-    let customerId = req.user?.id || req.user?._id;
-    let user = req.user;
 
     if (!sessionIdentifier) {
       return res.status(400).json({
@@ -315,154 +320,38 @@ export const initiateBookingPayment = async (req, res) => {
       });
     }
 
-    if (!Array.isArray(serviceIds) || serviceIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Please select at least one treatment service.",
-      });
-    }
-
-    if (!scheduledDate || !rawScheduledTime) {
-      return res.status(400).json({
-        success: false,
-        message: "Scheduled date and time are required.",
-      });
-    }
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid scheduled appointment date format. Expected YYYY-MM-DD.",
-      });
-    }
-
-    // Normalize scheduledTime to "HH:mm"
-    let scheduledTime = (rawScheduledTime || "").trim();
-    if (/AM|PM/i.test(scheduledTime)) {
-      const match = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
-      if (match) {
-        let h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        if (h === 12) h = 0;
-        if (match[3].toUpperCase() === "PM") h += 12;
-        scheduledTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      }
-    } else {
-      const match = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-      if (match) {
-        const h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        scheduledTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      }
-    }
-
-    if (!/^\d{2}:\d{2}$/.test(scheduledTime)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid scheduled appointment time format. Expected HH:mm.",
-      });
-    }
-
-    // Guest booking auto-resolution
-    if (!customerId) {
-      const guestPhone = (address?.phone || "").trim();
-      const guestName = (address?.fullName || "Guest Customer").trim();
-      const sanitizedPhone = guestPhone.replace(/[^0-9]/g, "");
-      const guestEmail = (address?.email || `${sanitizedPhone || Date.now()}@guest.ebuity.com`).trim();
-
-      if (!guestPhone) {
-        return res.status(400).json({
-          success: false,
-          message: "A contact phone number is required to book a service",
-        });
-      }
-
-      let existingUser = await userModel.findOne({
-        $or: [{ phone: guestPhone }, { email: guestEmail }],
-      });
-
-      if (!existingUser) {
-        const bcrypt = (await import("bcryptjs")).default;
-        const hashedPassword = await bcrypt.hash(`Guest#${Date.now()}`, 10);
-        existingUser = await userModel.create({
-          name: guestName,
-          phone: guestPhone,
-          email: guestEmail,
-          password: hashedPassword,
-          role: "user",
-          isAccountVerified: false,
-        });
-      }
-
-      user = existingUser;
-      customerId = existingUser._id;
-    }
-
-    // Fetch and validate services
-    const validIds = serviceIds
-      .map((id) => (typeof id === "string" ? id.trim() : id))
-      .filter((id) => mongoose.Types.ObjectId.isValid(id));
-
-    const services = await Service.find({
-      _id: { $in: validIds },
-      $or: [{ isActive: true }, { active: true }],
-    }).lean();
-
-    if (services.length !== validIds.length) {
-      return res.status(400).json({
-        success: false,
-        message: "One or more selected services are no longer active",
-      });
-    }
-
-    let totalDurationMinutes = 0;
-    let totalPrice = 0;
-
-    const serviceSnapshots = services.map((srv) => {
-      const dur = srv.durationMinutes || srv.duration || 30;
-      const isDealActive = Boolean(
-        srv.isExclusiveDeal &&
-        srv.dealPrice !== null &&
-        srv.dealPrice !== undefined &&
-        Number(srv.dealPrice) >= 0
-      );
-      const prc = isDealActive ? Number(srv.dealPrice) : (Number(srv.price) || 0);
-      totalDurationMinutes += dur;
-      totalPrice += prc;
-
-      return {
-        serviceId: srv._id,
-        name: srv.name,
-        slug: srv.slug,
-        price: prc,
-        durationMinutes: dur,
-        currency: "AED",
-      };
+    // 1. Resolve Customer and Service Address (Unified for Guest & Logged-in)
+    const {
+      customerId,
+      customerDetails,
+      serviceAddress,
+      isGuestBooking,
+      guestClaimToken,
+    } = await resolveCustomerAndServiceAddress({
+      user: req.user,
+      address,
+      addressId,
+      saveAddressToProfile: Boolean(saveAddressToProfile || req.body.saveAddress),
     });
 
-    const scheduledStartTime = createUAEDate(scheduledDate, scheduledTime);
-    const scheduledEndTime = new Date(
-      scheduledStartTime.getTime() + totalDurationMinutes * 60000
-    );
+    // 2. Validate Service Selection
+    const {
+      validIds,
+      serviceSnapshots,
+      totalDurationMinutes,
+      totalPrice,
+    } = await validateBookingServices(serviceIds);
 
-    // Validate date objects before proceeding
-    if (!scheduledStartTime || Number.isNaN(scheduledStartTime.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid scheduled appointment start time.",
-      });
-    }
-
-    if (
-      !scheduledEndTime ||
-      Number.isNaN(scheduledEndTime.getTime()) ||
-      totalDurationMinutes <= 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid scheduled appointment end time or service duration.",
-      });
-    }
+    // 3. Validate Date & Time Schedule
+    const {
+      scheduledTime,
+      scheduledStartTime,
+      scheduledEndTime,
+    } = validateBookingSchedule({
+      scheduledDate,
+      rawScheduledTime,
+      totalDurationMinutes,
+    });
 
     // Config & Staff assignment
     let config = await AvailabilityConfig.findOne({ key: "default_config" });
@@ -495,24 +384,18 @@ export const initiateBookingPayment = async (req, res) => {
       }
     }
 
-    const dateCode = scheduledDate.replace(/-/g, "");
-    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const bookingNumber = `RB-${dateCode}-${randomSuffix}`;
+    const bookingNumber = generateUniqueBookingNumber(scheduledDate);
     const merchantReference = `BKG-${bookingNumber}`;
 
     const booking = await Booking.create({
       bookingNumber,
       customer: customerId,
-      customerDetails: {
-        name: user.name || address?.fullName,
-        email: user.email || address?.email,
-        phone: address?.phone,
-      },
+      customerDetails,
       services: serviceSnapshots,
       totalDurationMinutes,
       totalPrice,
       currency: "AED",
-      serviceAddress: address,
+      serviceAddress,
       scheduledDate,
       scheduledTime,
       scheduledStartTime,
@@ -521,17 +404,27 @@ export const initiateBookingPayment = async (req, res) => {
       paymentMethod: "noon",
       paymentStatus: "pending",
       noonReference: merchantReference,
+      isGuestBooking,
+      guestClaimToken: isGuestBooking ? guestClaimToken : null,
       specialRequests: specialRequests ? String(specialRequests).trim() : "",
       slotLockKey: `${scheduledDate}_${scheduledTime}_${assignedStaff || "unassigned"}`,
       assignedStaff,
       staffAssignmentStatus,
       assignmentHistory,
       travelBufferMinutes: bufferMins,
+      statusHistory: [
+        {
+          status: "pending",
+          note: isGuestBooking
+            ? "Guest booking initiated awaiting Noon Payments authorization"
+            : "Customer booking initiated awaiting Noon Payments authorization",
+        },
+      ],
     });
 
     // Initiate payment with Noon Payments
     const clientUrl = (process.env.CLIENT_URL || "http://localhost:3000").replace(/\/+$/, "");
-    const returnUrl = `${clientUrl}/payment/noon-return?type=booking&bookingId=${booking._id}`;
+    const returnUrl = `${clientUrl}/payment/noon-return?type=booking&bookingId=${booking._id}${guestClaimToken ? `&claimToken=${guestClaimToken}` : ""}`;
 
     const noonResult = await initiatePaymentOrder({
       reference: merchantReference,
@@ -574,6 +467,7 @@ export const initiateBookingPayment = async (req, res) => {
         noonOrderId: noonResult.noonOrderId,
         requiresRedirect: true,
         redirectUrl: noonResult.redirectUrl,
+        guestClaimToken: isGuestBooking ? guestClaimToken : undefined,
       });
     }
 
@@ -595,7 +489,11 @@ export const initiateBookingPayment = async (req, res) => {
         bookingNumber,
         noonOrderId: noonResult.noonOrderId,
         requiresRedirect: false,
-        booking: populatedBooking,
+        booking: {
+          ...populatedBooking,
+          guestClaimToken: isGuestBooking ? guestClaimToken : undefined,
+        },
+        guestClaimToken: isGuestBooking ? guestClaimToken : undefined,
       });
     }
 
@@ -607,12 +505,14 @@ export const initiateBookingPayment = async (req, res) => {
       noonOrderId: noonResult.noonOrderId,
       requiresRedirect: false,
       status: noonResult.status,
+      guestClaimToken: isGuestBooking ? guestClaimToken : undefined,
     });
   } catch (error) {
     console.error("[NoonPaymentController] initiateBookingPayment error:", error);
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Failed to process booking payment",
+      error: error.message,
     });
   }
 };
