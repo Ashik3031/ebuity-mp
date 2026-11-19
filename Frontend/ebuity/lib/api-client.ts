@@ -515,14 +515,50 @@ export const bookingApi = {
     });
   },
 
-  async getMyBookings(status?: string): Promise<{
+  async getMyBookings(
+    status?: string,
+    guestBookingIds?: string[],
+    hints?: { bookingId?: string; claimToken?: string }
+  ): Promise<{
     success: boolean;
     count: number;
     bookings: Booking[];
   }> {
-    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (guestBookingIds && guestBookingIds.length > 0) {
+      params.set("guestBookingIds", guestBookingIds.join(","));
+    }
+    if (hints?.bookingId) params.set("bookingId", hints.bookingId);
+    if (hints?.claimToken) params.set("claimToken", hints.claimToken);
+    const qs = params.toString() ? `?${params.toString()}` : "";
     return request<{ success: boolean; count: number; bookings: Booking[] }>(
       `/v1/bookings/my-bookings${qs}`
+    );
+  },
+
+  async claimGuestBookings(payload: string[] | { bookingIds?: string[]; bookingId?: string; claimToken?: string }): Promise<{
+    success: boolean;
+    associatedBookings?: number;
+    claimedBookings?: number;
+    claimedOrders?: number;
+    requiresVerification?: boolean;
+    message?: string;
+  }> {
+    const body = Array.isArray(payload) ? { bookingIds: payload } : payload;
+    return request<{
+      success: boolean;
+      associatedBookings?: number;
+      claimedBookings?: number;
+      claimedOrders?: number;
+      requiresVerification?: boolean;
+      message?: string;
+    }>(
+      "/v1/bookings/claim-guest",
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      }
     );
   },
 

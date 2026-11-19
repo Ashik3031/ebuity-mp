@@ -40,6 +40,7 @@ import {
   Banknote,
   ShieldCheck,
   Lock,
+  Sparkles,
 } from "lucide-react";
 import { UAE_EMIRATES, DEFAULT_EMIRATE_LOCATIONS } from "../../lib/locations";
 import { ServiceAreaSelect } from "../../components/booking/ServiceAreaSelect";
@@ -378,10 +379,15 @@ function BookingContent() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (user && !newAddress.fullName) {
-      setNewAddress((prev) => ({ ...prev, fullName: user.name || "" }));
+    if (user) {
+      setNewAddress((prev) => ({
+        ...prev,
+        fullName: prev.fullName || user.name || "",
+        email: prev.email || user.email || "",
+        phone: prev.phone || user.phone || "",
+      }));
     }
-  }, [user, newAddress.fullName]);
+  }, [user]);
 
   /* ---------- derived state ---------- */
   const selectedPackages = useMemo(
@@ -701,6 +707,11 @@ function BookingContent() {
         );
         return;
       }
+      const emailToValidate = (newAddress.email || user?.email || "").trim();
+      if (!emailToValidate || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToValidate)) {
+        setAddressError("Please provide a valid email address to receive your appointment confirmation.");
+        return;
+      }
     } else if (!selectedAddressId) {
       setAddressError("Choose a saved address or enter your location.");
       return;
@@ -738,7 +749,7 @@ function BookingContent() {
               label: newAddress.label,
               fullName: newAddress.fullName,
               phone: newAddress.phone,
-              email: newAddress.email,
+              email: (newAddress.email || user?.email || "").trim(),
               unitNumber: newAddress.unitNumber,
               buildingName: newAddress.buildingName,
               street: newAddress.street,
@@ -748,6 +759,7 @@ function BookingContent() {
               accessInstructions: newAddress.accessInstructions,
             },
             saveAddress: newAddress.saveToProfile,
+            saveAddressToProfile: newAddress.saveToProfile,
           }
           : { addressId: selectedAddressId }),
       };
@@ -781,6 +793,25 @@ function BookingContent() {
 
         if (res.success && res.booking) {
           setConfirmedBooking(res.booking);
+          if (typeof window !== "undefined") {
+            try {
+              const raw = localStorage.getItem("rose_guest_bookings");
+              let stored: any[] = [];
+              try { stored = JSON.parse(raw || "[]"); } catch { stored = []; }
+              if (!Array.isArray(stored)) stored = [];
+              const bId = res.booking._id || res.booking.bookingNumber;
+              const bNum = res.booking.bookingNumber || "";
+              const cToken = (res.booking as any).guestClaimToken || (res as any).guestClaimToken || "";
+              const bEmail = res.booking.customerDetails?.email || "";
+              const existingIdx = stored.findIndex((item: any) =>
+                typeof item === "string" ? item === bId : item.id === bId || item.number === bNum
+              );
+              const entry = { id: bId, number: bNum, claimToken: cToken, email: bEmail };
+              if (existingIdx > -1) stored[existingIdx] = entry;
+              else stored.push(entry);
+              localStorage.setItem("rose_guest_bookings", JSON.stringify(stored));
+            } catch { }
+          }
           setCurrentStep(5);
         } else {
           setBookingError(res.message || "Could not complete payment. Please try again.");
@@ -793,6 +824,25 @@ function BookingContent() {
 
         if (res.success && res.booking) {
           setConfirmedBooking(res.booking);
+          if (typeof window !== "undefined") {
+            try {
+              const raw = localStorage.getItem("rose_guest_bookings");
+              let stored: any[] = [];
+              try { stored = JSON.parse(raw || "[]"); } catch { stored = []; }
+              if (!Array.isArray(stored)) stored = [];
+              const bId = res.booking._id || res.booking.bookingNumber;
+              const bNum = res.booking.bookingNumber || "";
+              const cToken = (res.booking as any).guestClaimToken || (res as any).guestClaimToken || "";
+              const bEmail = res.booking.customerDetails?.email || "";
+              const existingIdx = stored.findIndex((item: any) =>
+                typeof item === "string" ? item === bId : item.id === bId || item.number === bNum
+              );
+              const entry = { id: bId, number: bNum, claimToken: cToken, email: bEmail };
+              if (existingIdx > -1) stored[existingIdx] = entry;
+              else stored.push(entry);
+              localStorage.setItem("rose_guest_bookings", JSON.stringify(stored));
+            } catch { }
+          }
           setCurrentStep(5);
         } else {
           setBookingError(res.message || "Could not confirm booking. Please try again.");
@@ -1456,6 +1506,16 @@ function BookingContent() {
                         />
                       </Field>
 
+                      <Field label="Email Address" required>
+                        <input
+                          type="email"
+                          className={inputCls}
+                          value={newAddress.email}
+                          onChange={(e) => setNewAddress({ ...newAddress, email: e.target.value })}
+                          placeholder="your.email@example.com"
+                        />
+                      </Field>
+
                       <Field label="Address label">
                         <input
                           className={inputCls}
@@ -2027,6 +2087,7 @@ function BookingContent() {
               <div className="bg-white rounded-2xl border border-[#E8E2EE] p-5 text-left text-xs sm:text-sm divide-y divide-[#E8E2EE] shadow-xs">
                 {[
                   ["Booking reference", confirmedBooking.bookingNumber],
+                  ["Customer name", confirmedBooking.customerDetails?.name || "Valued Customer"],
                   [
                     "Date & arrival",
                     `${confirmedBooking.scheduledDate} · ${format12Hour(
@@ -2047,6 +2108,14 @@ function BookingContent() {
                       ? "Paid Online via noon payments"
                       : "Pay at Appointment (Cash / Card)",
                   ],
+                  [
+                    "Payment status",
+                    (confirmedBooking.paymentStatus || "pending").toUpperCase(),
+                  ],
+                  [
+                    "Booking status",
+                    (confirmedBooking.status || "confirmed").toUpperCase(),
+                  ],
                   ...(confirmedBooking.assignedStaff
                     ? [["Your specialist", confirmedBooking.assignedStaff.name]]
                     : []),
@@ -2063,6 +2132,45 @@ function BookingContent() {
                   </span>
                 </div>
               </div>
+
+              {!isAuthenticated && (
+                <div className="w-full max-w-xl mx-auto my-4 p-6 sm:p-7 rounded-3xl bg-amber-50/90 border border-amber-200 text-center space-y-4 shadow-sm">
+                  <div className="flex items-center justify-center gap-2 text-amber-900 font-semibold text-sm sm:text-base">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Create Account & View Booking</span>
+                  </div>
+                  <p className="text-xs text-amber-800/90 leading-relaxed max-w-md mx-auto">
+                    You completed this booking as a guest. Create an account with a password now to view this appointment in your dashboard, monitor therapist arrival, and easily manage your bookings.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                    <Link
+                      href={`/signup?redirect=/my-bookings&email=${encodeURIComponent(confirmedBooking.customerDetails?.email || "")}&name=${encodeURIComponent(confirmedBooking.customerDetails?.name || "")}&phone=${encodeURIComponent(confirmedBooking.customerDetails?.phone || "")}&bookingId=${encodeURIComponent(confirmedBooking._id || "")}&claimToken=${encodeURIComponent((confirmedBooking as any).guestClaimToken || "")}`}
+                      className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs sm:text-sm font-semibold transition-all shadow-md inline-flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <span>Create Account & View Booking</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+
+                    <Link
+                      href={`/login?redirect=/my-bookings&email=${encodeURIComponent(confirmedBooking.customerDetails?.email || "")}&bookingId=${encodeURIComponent(confirmedBooking._id || "")}&claimToken=${encodeURIComponent((confirmedBooking as any).guestClaimToken || "")}`}
+                      className="text-xs font-semibold text-[#CF565D] hover:underline px-3 py-2 cursor-pointer"
+                    >
+                      Already have an account? Sign In
+                    </Link>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-200/60">
+                    <button
+                      type="button"
+                      onClick={() => router.push("/")}
+                      className="text-xs text-[#746D69] hover:text-[#1E293B] font-medium transition cursor-pointer"
+                    >
+                      Continue Without Account
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-center pt-2">
                 <a
@@ -2088,14 +2196,12 @@ function BookingContent() {
                   Book another treatment
                 </button>
 
-                {isAuthenticated && (
-                  <Link
-                    href="/my-bookings"
-                    className="h-11 px-6 rounded-full bg-white border border-[#E8E2EE] text-[#1E293B] text-xs sm:text-sm font-medium inline-flex items-center justify-center hover:bg-[#F7F5FA] transition cursor-pointer"
-                  >
-                    View my bookings
-                  </Link>
-                )}
+                <Link
+                  href="/my-bookings"
+                  className="h-11 px-6 rounded-full bg-white border border-[#E8E2EE] text-[#1E293B] text-xs sm:text-sm font-medium inline-flex items-center justify-center hover:bg-[#F7F5FA] transition cursor-pointer"
+                >
+                  View my bookings
+                </Link>
 
                 <Link
                   href="/services"

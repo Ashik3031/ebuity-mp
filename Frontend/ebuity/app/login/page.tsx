@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 import { authApi } from "../../lib/api-client";
 import { PasswordInput } from "../../components/auth/PasswordInput";
@@ -14,16 +14,28 @@ import {
 } from "../../schemas/auth.schema";
 import { AlertCircle, CheckCircle2, Loader2, ArrowLeft, KeyRound } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/";
+  const emailParam = searchParams.get("email") || "";
+  const bookingIdParam = searchParams.get("bookingId") || "";
+  const claimTokenParam = searchParams.get("claimToken") || "";
+
   const { login } = useAuth();
 
   // Form states
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (emailParam && !email) {
+      setEmail(emailParam);
+    }
+  }, [emailParam]);
 
   // Password reset modal states
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -53,11 +65,16 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      await login({ email: email.trim(), password });
+      await login({
+        email: email.trim(),
+        password,
+        bookingId: bookingIdParam || undefined,
+        claimToken: claimTokenParam || undefined,
+      });
       setSuccessMessage("Welcome back to Rose Essence! Redirecting...");
       setTimeout(() => {
-        router.push("/");
-      }, 1000);
+        router.push(redirectUrl);
+      }, 800);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Invalid credentials or network issue.";
       setErrors({ general: msg });
@@ -238,7 +255,10 @@ export default function LoginPage() {
           <div className="mt-6 pt-6 border-t border-[#E8D8C8] text-center">
             <p className="text-sm text-[#746D69]">
               New to Rose Essence?{" "}
-              <Link href="/signup" className="font-semibold text-[#CF565D] hover:underline">
+              <Link
+                href={`/signup?redirect=${encodeURIComponent(redirectUrl)}&email=${encodeURIComponent(email)}${bookingIdParam ? `&bookingId=${encodeURIComponent(bookingIdParam)}` : ""}${claimTokenParam ? `&claimToken=${encodeURIComponent(claimTokenParam)}` : ""}`}
+                className="font-semibold text-[#CF565D] hover:underline"
+              >
                 Create an Account
               </Link>
             </p>
@@ -363,5 +383,19 @@ export default function LoginPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#CF565D]" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

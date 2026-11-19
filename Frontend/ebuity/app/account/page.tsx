@@ -121,9 +121,20 @@ function AccountContent() {
     if (!isAuthenticated) return;
     try {
       setLoadingData(true);
+      let guestIds: string[] = [];
+      if (typeof window !== "undefined") {
+        try {
+          guestIds = JSON.parse(localStorage.getItem("rose_guest_bookings") || "[]");
+          if (guestIds.length > 0) {
+            await bookingApi.claimGuestBookings(guestIds).catch(() => { });
+            localStorage.removeItem("rose_guest_bookings");
+          }
+        } catch { }
+      }
+
       const [profRes, bookRes, ordRes, addrRes] = await Promise.allSettled([
         userProfileApi.getProfile(),
-        bookingApi.getMyBookings(),
+        bookingApi.getMyBookings(undefined, guestIds),
         orderApi.getUserOrders(),
         customerAddressApi.getAddresses(),
       ]);

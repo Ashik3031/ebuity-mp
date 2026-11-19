@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../lib/auth-context";
 import { PasswordInput } from "../../components/auth/PasswordInput";
 import { BrandLogo } from "../../components/layout/BrandLogo";
@@ -15,21 +15,38 @@ import {
 } from "../../schemas/auth.schema";
 import { AlertCircle, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/";
+  const emailParam = searchParams.get("email") || "";
+  const nameParam = searchParams.get("name") || "";
+  const phoneParam = searchParams.get("phone") || "";
+  const bookingIdParam = searchParams.get("bookingId") || "";
+  const claimTokenParam = searchParams.get("claimToken") || "";
+
   const { register } = useAuth();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(nameParam);
+  const [email, setEmail] = useState(emailParam);
+  const [phone, setPhone] = useState(phoneParam);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [alreadyExists, setAlreadyExists] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (nameParam && !name) setName(nameParam);
+    if (emailParam && !email) setEmail(emailParam);
+    if (phoneParam && !phone) setPhone(phoneParam);
+  }, [nameParam, emailParam, phoneParam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setAlreadyExists(false);
     setSuccessMessage(null);
 
     const nameErr = validateName(name);
@@ -53,15 +70,26 @@ export default function SignupPage() {
         name: name.trim(),
         email: email.trim(),
         password,
+        phone: (phone || phoneParam || "").trim() || undefined,
+        bookingId: bookingIdParam || undefined,
+        claimToken: claimTokenParam || undefined,
       });
 
-      setSuccessMessage("Your Rose Essence account has been created! Redirecting...");
+      setSuccessMessage("Your Rose Essence account has been created! Redirecting to your bookings...");
       setTimeout(() => {
-        router.push("/");
-      }, 1200);
+        router.push(redirectUrl);
+      }, 1000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registration failed. Please try again.";
-      setErrors({ general: msg });
+      if (
+        msg.toLowerCase().includes("already exists") ||
+        msg.toLowerCase().includes("sign in") ||
+        msg.toLowerCase().includes("already registered")
+      ) {
+        setAlreadyExists(true);
+      } else {
+        setErrors({ general: msg });
+      }
     } finally {
       setLoading(false);
     }
@@ -91,6 +119,29 @@ export default function SignupPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
         <div className="bg-white py-8 px-6 sm:px-10 rounded-3xl border border-[#E8D8C8] shadow-sm">
+          {alreadyExists && (
+            <div
+              className="mb-5 p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-2.5 shadow-xs"
+              role="alert"
+            >
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <span className="font-semibold text-sm">
+                  This email already has an account. Please sign in to view your booking.
+                </span>
+              </div>
+              <div className="pt-1">
+                <Link
+                  href={`/login?redirect=${encodeURIComponent(redirectUrl)}&email=${encodeURIComponent(email)}${bookingIdParam ? `&bookingId=${encodeURIComponent(bookingIdParam)}` : ""}${claimTokenParam ? `&claimToken=${encodeURIComponent(claimTokenParam)}` : ""}`}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold transition shadow-xs"
+                >
+                  <span>Sign In to View Booking</span>
+                  <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+                </Link>
+              </div>
+            </div>
+          )}
+
           {errors.general && (
             <div
               className="mb-5 p-3.5 rounded-2xl bg-[#F5DAD6]/50 border border-[#CF565D]/40 text-[#292525] text-xs flex items-start gap-2.5"
@@ -123,9 +174,8 @@ export default function SignupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Eleanor Vance"
-                className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm text-[#292525] placeholder:text-[#746D69]/50 transition-colors focus:border-[#CF565D] focus:outline-none focus:ring-1 focus:ring-[#CF565D] ${
-                  errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-[#E8D8C8]"
-                }`}
+                className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm text-[#292525] placeholder:text-[#746D69]/50 transition-colors focus:border-[#CF565D] focus:outline-none focus:ring-1 focus:ring-[#CF565D] ${errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-[#E8D8C8]"
+                  }`}
               />
               {errors.name && (
                 <p className="mt-1.5 text-xs text-red-600 font-medium" role="alert">
@@ -145,15 +195,29 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="eleanor@example.com"
-                className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm text-[#292525] placeholder:text-[#746D69]/50 transition-colors focus:border-[#CF565D] focus:outline-none focus:ring-1 focus:ring-[#CF565D] ${
-                  errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-[#E8D8C8]"
-                }`}
+                className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm text-[#292525] placeholder:text-[#746D69]/50 transition-colors focus:border-[#CF565D] focus:outline-none focus:ring-1 focus:ring-[#CF565D] ${errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-[#E8D8C8]"
+                  }`}
               />
               {errors.email && (
                 <p className="mt-1.5 text-xs text-red-600 font-medium" role="alert">
                   {errors.email}
                 </p>
               )}
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-[#292525] mb-1.5">
+                Phone Number (optional)
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+971 50 123 4567"
+                className="w-full px-4 py-2.5 bg-white border border-[#E8D8C8] rounded-xl text-sm text-[#292525] placeholder:text-[#746D69]/50 transition-colors focus:border-[#CF565D] focus:outline-none focus:ring-1 focus:ring-[#CF565D]"
+              />
             </div>
 
             <PasswordInput
@@ -197,7 +261,10 @@ export default function SignupPage() {
           <div className="mt-6 pt-6 border-t border-[#E8D8C8] text-center">
             <p className="text-sm text-[#746D69]">
               Already registered?{" "}
-              <Link href="/login" className="font-semibold text-[#CF565D] hover:underline">
+              <Link
+                href={`/login?redirect=${encodeURIComponent(redirectUrl)}&email=${encodeURIComponent(email)}${bookingIdParam ? `&bookingId=${encodeURIComponent(bookingIdParam)}` : ""}${claimTokenParam ? `&claimToken=${encodeURIComponent(claimTokenParam)}` : ""}`}
+                className="font-semibold text-[#CF565D] hover:underline"
+              >
                 Sign In
               </Link>
             </p>
@@ -205,5 +272,19 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#CF565D]" />
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
   );
 }

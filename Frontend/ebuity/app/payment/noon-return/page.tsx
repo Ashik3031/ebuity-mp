@@ -6,19 +6,23 @@ import Link from "next/link";
 import { Header } from "../../../components/layout/Header";
 import { Footer } from "../../../components/layout/Footer";
 import { useCart } from "../../../lib/cart-context";
+import { useAuth } from "../../../lib/auth-context";
 import { noonPaymentApi } from "../../../lib/api-client";
-import { CheckCircle2, AlertCircle, Loader2, ArrowRight, ShieldCheck, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, ArrowRight, ShieldCheck, RefreshCw, UserPlus } from "lucide-react";
 
 function NoonReturnContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { clearCart } = useCart();
+  const { isAuthenticated } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"SUCCESS" | "FAILED" | "PENDING">("PENDING");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [type, setType] = useState<"product" | "booking">("product");
   const [referenceId, setReferenceId] = useState<string>("");
+  const [bookingId, setBookingId] = useState<string>("");
+  const [claimToken, setClaimToken] = useState<string>("");
 
   useEffect(() => {
     let isMounted = true;
@@ -27,12 +31,35 @@ function NoonReturnContent() {
       const orderIdParam = searchParams.get("orderId");
       const bookingIdParam = searchParams.get("bookingId");
       const noonOrderIdParam = searchParams.get("noonOrderId") || searchParams.get("order_id");
+      const claimTokenParam = searchParams.get("claimToken");
       const typeParam = (searchParams.get("type") || (bookingIdParam ? "booking" : "product")) as
         | "product"
         | "booking";
 
       setType(typeParam);
       setReferenceId(orderIdParam || bookingIdParam || noonOrderIdParam || "");
+      if (bookingIdParam) setBookingId(bookingIdParam);
+      if (claimTokenParam) setClaimToken(claimTokenParam);
+
+      // If guest booking return, ensure hint with claimToken is preserved locally
+      if (typeof window !== "undefined" && bookingIdParam) {
+        try {
+          const raw = JSON.parse(localStorage.getItem("rose_guest_bookings") || "[]");
+          const hints = Array.isArray(raw)
+            ? raw.map((i: any) => (typeof i === "string" ? { id: i } : i))
+            : [];
+          const idx = hints.findIndex((h: any) => h.id === bookingIdParam || h.number === bookingIdParam);
+          if (idx >= 0) {
+            if (claimTokenParam) hints[idx].claimToken = claimTokenParam;
+          } else {
+            hints.push({
+              id: bookingIdParam,
+              claimToken: claimTokenParam || undefined,
+            });
+          }
+          localStorage.setItem("rose_guest_bookings", JSON.stringify(hints));
+        } catch { }
+      }
 
       if (!orderIdParam && !bookingIdParam && !noonOrderIdParam) {
         if (isMounted) {
@@ -67,7 +94,7 @@ function NoonReturnContent() {
           setStatus("FAILED");
           setErrorMessage(
             res.message ||
-              "Your payment was not completed or was cancelled by the card issuer. Please try again."
+            "Your payment was not completed or was cancelled by the card issuer. Please try again."
           );
         } else {
           setStatus("PENDING");
@@ -140,10 +167,36 @@ function NoonReturnContent() {
                     <span>View Your Order</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
+                ) : !isAuthenticated ? (
+                  <div className="space-y-3">
+                    <Link
+                      href={`/signup?redirect=/my-bookings&bookingId=${bookingId || referenceId}&claimToken=${claimToken}`}
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Create Account &amp; View Booking</span>
+                    </Link>
+
+                    <div className="flex items-center justify-center gap-3 text-xs pt-1">
+                      <Link
+                        href={`/login?redirect=/my-bookings&bookingId=${bookingId || referenceId}&claimToken=${claimToken}`}
+                        className="font-medium text-[#CF565D] hover:underline"
+                      >
+                        Already have an account? Sign In
+                      </Link>
+                      <span className="text-[#E8D8C8]">•</span>
+                      <Link
+                        href="/my-bookings"
+                        className="text-[#746D69] hover:text-[#292525] underline"
+                      >
+                        Continue Without Account
+                      </Link>
+                    </div>
+                  </div>
                 ) : (
                   <Link
                     href="/my-bookings"
-                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#E11D74] hover:bg-[#c91866] text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md"
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold uppercase tracking-wider transition-all shadow-md"
                   >
                     <span>View Booking Details</span>
                     <ArrowRight className="w-4 h-4" />

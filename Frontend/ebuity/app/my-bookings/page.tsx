@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Header } from "../../components/layout/Header";
 import { Footer } from "../../components/layout/Footer";
 import { useAuth } from "../../lib/auth-context";
-import { bookingApi } from "../../lib/api-client";
+import { bookingApi, userProfileApi } from "../../lib/api-client";
 import { Booking, TimeSlot } from "../../types/booking";
 import { formatBookingTime, format12Hour } from "../../lib/booking-utils";
 import {
@@ -25,8 +25,15 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+interface GuestBookingHint {
+  id: string;
+  number?: string;
+  claimToken?: string;
+  email?: string;
+}
+
 export default function MyBookingsPage() {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -48,31 +55,137 @@ export default function MyBookingsPage() {
   const [isSubmittingReschedule, setIsSubmittingReschedule] = useState<boolean>(false);
   const [rescheduleError, setRescheduleError] = useState<string | null>(null);
   const [rescheduleSuccess, setRescheduleSuccess] = useState<string | null>(null);
+  const [hasLocalGuestBookings, setHasLocalGuestBookings] = useState<boolean>(false);
+
+  // Email OTP verification state for unverified accounts with guest bookings
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpSuccess, setOtpSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    if (typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(localStorage.getItem("rose_guest_bookings") || "[]");
+        if (Array.isArray(stored) && stored.length > 0) {
+          setHasLocalGuestBookings(true);
+        }
+      } catch { }
+    }
+  }, []);
+
+  const loadBookings = async () => {
+    let rawItems: any[] = [];
+    if (typeof window !== "undefined") {
+      try {
+        rawItems = JSON.parse(localStorage.getItem("rose_guest_bookings") || "[]");
+      } catch { }
+    }
+    const hints: GuestBookingHint[] = Array.isArray(rawItems)
+      ? rawItems
+        .map((item) => (typeof item === "string" ? { id: item } : item))
+        .filter((h) => h && (h.id || h.number))
+      : [];
+
+    const guestIds = hints.map((h) => h.id || h.number).filter(Boolean) as string[];
+    const firstWithToken = hints.find((h) => h.claimToken);
+
+    try {
+      // Attempt atomic claim using stored session claim tokens if available
+      for (const hint of hints) {
+        if (hint.claimToken && (hint.id || hint.number)) {
+          await bookingApi.claimGuestBookings({
+            bookingId: hint.id || hint.number,
+            claimToken: hint.claimToken,
+          }).catch(() => { });
+        }
+      }
+
+      const res = await bookingApi.getMyBookings(undefined, guestIds, {
+        bookingId: firstWithToken?.id,
+        claimToken: firstWithToken?.claimToken,
+      });
+
+      if (res.bookings) {
+        setBookings(res.bookings);
+
+        // Preserve guest hints in localStorage until confirmed returned in user's bookings
+        try {
+          const returnedIdentifiers = new Set(
+            res.bookings.flatMap((b) => [String(b._id), String(b.bookingNumber)])
+          );
+          const remaining = hints.filter(
+            (h) => !returnedIdentifiers.has(String(h.id)) && !returnedIdentifiers.has(String(h.number))
+          );
+          if (remaining.length === 0) {
+            localStorage.removeItem("rose_guest_bookings");
+            setHasLocalGuestBookings(false);
+          } else {
+            localStorage.setItem("rose_guest_bookings", JSON.stringify(remaining));
+            setHasLocalGuestBookings(true);
+          }
+        } catch { }
+      }
+    } catch (err) {
+      console.error("Failed to load customer bookings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (isAuthenticated) {
       setLoading(true);
-      bookingApi
-        .getMyBookings()
-        .then((res) => {
-          if (isMounted && res.bookings) {
-            setBookings(res.bookings);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to load customer bookings:", err);
-        })
-        .finally(() => {
-          if (isMounted) setLoading(false);
-        });
+      loadBookings();
     } else if (!authLoading) {
       setLoading(false);
     }
-    return () => {
-      isMounted = false;
-    };
   }, [isAuthenticated, authLoading]);
+
+  const handleSendVerificationCode = async () => {
+    try {
+      setOtpSending(true);
+      setOtpError(null);
+      setOtpSuccess(null);
+      const res = await userProfileApi.sendVerifyOtp();
+      if (res.success) {
+        setOtpSuccess("6-digit verification code sent to your email!");
+      } else {
+        setOtpError(res.message || "Could not send verification code.");
+      }
+    } catch (err: any) {
+      setOtpError(err?.message || "Failed to send verification code.");
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyOtpForGuestClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setOtpError("Please enter the 6-digit verification code.");
+      return;
+    }
+    try {
+      setOtpVerifying(true);
+      setOtpError(null);
+      setOtpSuccess(null);
+      const res = await userProfileApi.verifyOtp(otpCode.trim());
+      if (res.success) {
+        setOtpSuccess("Account verified! Your guest appointments are now linked.");
+        setOtpCode("");
+        if (refreshUser) await refreshUser();
+        await loadBookings();
+      } else {
+        setOtpError(res.message || "Invalid or expired verification code.");
+      }
+    } catch (err: any) {
+      setOtpError(err?.message || "Verification failed. Please try again.");
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
 
   // Handle Cancellation Request / Direct Cancel
   const handleCancelBooking = async () => {
@@ -223,15 +336,33 @@ export default function MyBookingsPage() {
               <h2 className="font-serif text-2xl font-medium text-[#292525]">
                 Sign In to View Your Appointments
               </h2>
-              <p className="text-xs text-[#746D69] leading-relaxed">
-                Log into your Rose Essence account to manage upcoming home appointments, view therapist details, or reschedule.
-              </p>
-              <div className="pt-2">
+              {hasLocalGuestBookings ? (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs text-left space-y-1.5">
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Recent Guest Booking Found!</span>
+                  </p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Sign in or create an account with the phone or email you used during booking to immediately view and manage your appointment.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-[#746D69] leading-relaxed">
+                  Log into your Rose Essence account to manage upcoming home appointments, view therapist details, or reschedule.
+                </p>
+              )}
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <Link
                   href="/login?redirect=/my-bookings"
-                  className="inline-flex px-8 py-3 rounded-full bg-[#CF565D] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#b8454c] transition-colors"
+                  className="inline-flex px-7 py-3 rounded-full bg-[#CF565D] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#b8454c] transition-colors shadow-xs"
                 >
                   Sign In
+                </Link>
+                <Link
+                  href="/signup?redirect=/my-bookings"
+                  className="inline-flex px-7 py-3 rounded-full bg-white border border-[#CF565D] text-[#CF565D] text-xs font-semibold uppercase tracking-wider hover:bg-[#FAF7F2] transition-colors shadow-xs"
+                >
+                  Create Account
                 </Link>
               </div>
             </div>
@@ -240,6 +371,46 @@ export default function MyBookingsPage() {
           {/* Authenticated View */}
           {isAuthenticated && (
             <div className="space-y-6">
+              {/* Unverified Account Guest Bookings OTP Claim Banner */}
+              {user && !user.isAccountVerified && hasLocalGuestBookings && (
+                <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-3 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
+                    <h3 className="font-semibold text-sm">Guest Booking Found for {user.email}!</h3>
+                  </div>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    To protect your privacy and link this at-home service appointment to your account, please enter the 6-digit verification code sent to your email.
+                  </p>
+                  {otpError && <p className="text-xs text-red-600 font-medium">{otpError}</p>}
+                  {otpSuccess && <p className="text-xs text-emerald-700 font-medium">{otpSuccess}</p>}
+                  <form onSubmit={handleVerifyOtpForGuestClaim} className="flex flex-wrap items-center gap-2 pt-1">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                      placeholder="6-digit OTP"
+                      className="w-32 px-3 py-2 bg-white border border-amber-300 rounded-xl text-sm tracking-widest text-center font-mono focus:outline-none focus:ring-1 focus:ring-[#CF565D]"
+                    />
+                    <button
+                      type="submit"
+                      disabled={otpVerifying || otpCode.length !== 6}
+                      className="px-5 py-2 rounded-full bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold transition disabled:opacity-50 cursor-pointer shadow-xs"
+                    >
+                      {otpVerifying ? "Verifying..." : "Verify & Link Appointment"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendVerificationCode}
+                      disabled={otpSending}
+                      className="text-xs text-amber-800 hover:text-amber-950 underline px-2 py-1 cursor-pointer font-medium"
+                    >
+                      {otpSending ? "Sending code..." : "Send / Resend Code"}
+                    </button>
+                  </form>
+                </div>
+              )}
+
               {/* Status Filter Tabs */}
               <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#E8D8C8]/60">
                 {[
@@ -253,8 +424,8 @@ export default function MyBookingsPage() {
                     type="button"
                     onClick={() => setActiveFilter(tab.key)}
                     className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors shrink-0 ${activeFilter === tab.key
-                        ? "bg-[#CF565D] text-white shadow-xs"
-                        : "bg-white text-[#746D69] border border-[#E8D8C8] hover:border-[#CF565D]"
+                      ? "bg-[#CF565D] text-white shadow-xs"
+                      : "bg-white text-[#746D69] border border-[#E8D8C8] hover:border-[#CF565D]"
                       }`}
                   >
                     {tab.label}
@@ -370,10 +541,10 @@ export default function MyBookingsPage() {
                         {b.rescheduleRequest && b.rescheduleRequest.status !== "none" && (
                           <div
                             className={`p-3.5 rounded-2xl text-xs flex items-start gap-2.5 ${b.rescheduleRequest.status === "pending"
-                                ? "bg-amber-50 border border-amber-200 text-amber-900"
-                                : b.rescheduleRequest.status === "approved"
-                                  ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
-                                  : "bg-rose-50 border border-rose-200 text-rose-900"
+                              ? "bg-amber-50 border border-amber-200 text-amber-900"
+                              : b.rescheduleRequest.status === "approved"
+                                ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
+                                : "bg-rose-50 border border-rose-200 text-rose-900"
                               }`}
                           >
                             <RotateCcw className="w-4 h-4 mt-0.5 shrink-0" />
@@ -691,8 +862,8 @@ export default function MyBookingsPage() {
                               type="button"
                               onClick={() => setRescheduleTime(slot.time)}
                               className={`py-2 px-2.5 rounded-xl text-xs font-medium transition-all text-center border ${isSelected
-                                  ? "bg-[#CF565D] text-white border-[#CF565D] shadow-xs"
-                                  : "bg-[#FAF7F2]/60 hover:bg-[#FAF7F2] text-[#292525] border-[#E8D8C8]"
+                                ? "bg-[#CF565D] text-white border-[#CF565D] shadow-xs"
+                                : "bg-[#FAF7F2]/60 hover:bg-[#FAF7F2] text-[#292525] border-[#E8D8C8]"
                                 }`}
                             >
                               {format12Hour(slot.time)}

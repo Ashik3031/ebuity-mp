@@ -161,14 +161,20 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-14 pt-8 border-t border-[#E8D8C8] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#746D69]">
+        <div className="mt-14 pt-8 border-t border-[#E8D8C8] flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-[#746D69]">
           <p>© 2026 Rose Essence Luxury At-Home Services. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <Link href="#privacy" className="hover:text-[#CF565D] transition-colors">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link href="/privacy" className="hover:text-[#CF565D] transition-colors">
               Privacy Policy
             </Link>
-            <Link href="#terms" className="hover:text-[#CF565D] transition-colors">
-              Terms of Service
+            <Link href="/terms" className="hover:text-[#CF565D] transition-colors">
+              Terms &amp; Conditions
+            </Link>
+            <Link href="/refund-policy" className="hover:text-[#CF565D] transition-colors">
+              Refund &amp; Returns
+            </Link>
+            <Link href="/cancellation-policy" className="hover:text-[#CF565D] transition-colors">
+              Cancellation &amp; Delivery
             </Link>
           </div>
         </div>

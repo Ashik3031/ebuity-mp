@@ -24,13 +24,18 @@ export interface UserDataResponse {
 export interface LoginPayload {
   email: string;
   password: string;
+  bookingId?: string;
+  claimToken?: string;
 }
 
 export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
+  phone?: string;
   role?: string;
+  bookingId?: string;
+  claimToken?: string;
 }
 
 export interface SendOtpPayload {
