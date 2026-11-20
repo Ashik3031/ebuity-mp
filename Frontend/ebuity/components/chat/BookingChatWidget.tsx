@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, Suspense, useMemo } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -16,6 +16,11 @@ import {
   RotateCcw,
   User,
   Phone,
+  Mail,
+  Building,
+  CreditCard,
+  Lock,
+  AlertCircle,
   ShieldCheck,
   ArrowRight,
   ChevronLeft,
@@ -248,6 +253,7 @@ function classifyServiceCategory(serviceName: string, categoryName: string, cate
 
 function BookingChatWidgetContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
 
   // Hide widget in admin and staff portals
@@ -266,7 +272,12 @@ function BookingChatWidgetContent() {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [unitNumber, setUnitNumber] = useState("");
+  const [buildingName, setBuildingName] = useState("");
+  const [street, setStreet] = useState("");
   const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingReference, setBookingReference] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -395,11 +406,12 @@ function BookingChatWidgetContent() {
     };
   }, []);
 
-  // Preload logged-in user profile name & phone if available
+  // Preload logged-in user profile name, phone & email if available
   useEffect(() => {
     if (user) {
       if (user.name && !customerName) setCustomerName(user.name);
       if (user.phone && !customerPhone) setCustomerPhone(user.phone);
+      if (user.email && !customerEmail) setCustomerEmail(user.email);
     }
   }, [user]);
 
@@ -412,6 +424,10 @@ function BookingChatWidgetContent() {
     setSelectedDate("");
     setSelectedTime("");
     setContactSubmitted(false);
+    setAddressError(null);
+    setUnitNumber("");
+    setBuildingName("");
+    setStreet("");
     setBookingConfirmed(false);
     setBookingReference("");
 
@@ -707,7 +723,7 @@ function BookingChatWidgetContent() {
     });
   };
 
-  // Step 5: User selected time slot -> Ask for Contact Details
+  // Step 5: User selected time slot -> Ask for Contact & Address Details
   const handleSelectTime = (time: string) => {
     setSelectedTime(time);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -723,7 +739,7 @@ function BookingChatWidgetContent() {
     ]);
 
     botReply({
-      text: `Almost ready! Please enter your name and phone number for booking confirmation:`,
+      text: `Wonderful! To coordinate our licensed specialist's visit to your door, please enter your contact and home address details:`,
       type: "contact-form",
     });
   };
@@ -742,10 +758,38 @@ function BookingChatWidgetContent() {
     return `${String(hours).padStart(2, "0")}:${minutes}`;
   };
 
-  // Step 6: User submitted contact details -> Show Summary Card & Confirmation question
+  // Step 6: User submitted contact & address details -> Show Summary Card & Checkout Options
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerName.trim() || !customerPhone.trim()) return;
+    setAddressError(null);
+
+    const name = customerName.trim();
+    const phone = customerPhone.trim();
+    const email = customerEmail.trim();
+    const unit = unitNumber.trim();
+    const building = buildingName.trim();
+    const area = selectedLocation || "Dubai Marina";
+
+    if (!name) {
+      setAddressError("Please enter your full name.");
+      return;
+    }
+    if (!phone || phone.length < 7) {
+      setAddressError("Please enter a valid phone number.");
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAddressError("Please enter a valid email address for booking confirmation & receipts.");
+      return;
+    }
+    if (!building) {
+      setAddressError("Please enter your building name or villa community.");
+      return;
+    }
+    if (!unit) {
+      setAddressError("Please enter your apartment or villa number.");
+      return;
+    }
 
     setContactSubmitted(true);
     const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -754,33 +798,19 @@ function BookingChatWidgetContent() {
       {
         id: `user-${Date.now()}`,
         sender: "user",
-        text: `${customerName.trim()} · ${customerPhone.trim()}`,
+        text: `${name} · ${phone}\n📍 ${unit}, ${building}, ${area}`,
         timestamp: timeStr,
       },
     ]);
 
     botReply({
-      text: `Thank you, ${customerName.trim()}! Here is your booking summary.\n\n**Would you like to confirm your booking?**`,
+      text: `Thank you, ${name}! Your service details and home address are set.\n\n**Please review and proceed to payment:**`,
       type: "summary-card",
     });
   };
 
-  // Step 7: Confirm Booking
-  const handleConfirmBooking = async () => {
-    setIsSubmitting(true);
-    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `user-${Date.now()}`,
-        sender: "user",
-        text: "Yes, confirm my booking! ✨",
-        timestamp: timeStr,
-      },
-    ]);
-
-    // 1. Ensure we have database services loaded for valid ObjectId matching
+  // Helper: Resolve database service ObjectIds for all selected chat treatments
+  const resolveDatabaseServiceIds = async (): Promise<string[]> => {
     let allDbServices = dbServices;
     if (allDbServices.length === 0) {
       try {
@@ -794,7 +824,6 @@ function BookingChatWidgetContent() {
       }
     }
 
-    // 2. Resolve real 24-character MongoDB ObjectIds for all selected services
     const finalServiceIds: string[] = [];
     for (const srv of selectedServices) {
       if (srv.id && /^[0-9a-fA-F]{24}$/.test(srv.id)) {
@@ -818,11 +847,91 @@ function BookingChatWidgetContent() {
       }
     }
 
-    // Fallback: If any service was not matched, pick first active DB service so creation succeeds in MongoDB
     if (finalServiceIds.length === 0 && allDbServices.length > 0) {
       finalServiceIds.push(allDbServices[0]._id);
     }
+    return finalServiceIds;
+  };
 
+  // Step 7A: Take user to the booking checkout page for payment
+  const handleProceedToPayment = async () => {
+    setIsSubmitting(true);
+    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    const finalServiceIds = await resolveDatabaseServiceIds();
+    const time24 = convert12To24(selectedTime || "12:00 PM");
+    const serviceArea = selectedLocation || "Dubai Marina";
+    const bookingDate = selectedDate || new Date().toISOString().split("T")[0];
+
+    const pendingBookingPayload = {
+      serviceIds: finalServiceIds,
+      scheduledDate: bookingDate,
+      scheduledTime: time24,
+      totalPrice: totalChatPrice,
+      totalDuration: totalChatDuration,
+      address: {
+        fullName: customerName.trim() || "Valued Client",
+        phone: customerPhone.trim(),
+        email: customerEmail.trim() || user?.email || "",
+        unitNumber: unitNumber.trim() || "Apt 1",
+        buildingName: buildingName.trim() || (serviceArea ? `${serviceArea} Tower` : "Dubai Residence"),
+        street: street.trim() || `${serviceArea}, Dubai`,
+        area: serviceArea,
+        city: "Dubai",
+        state: "Dubai",
+        accessInstructions: street.trim() ? `Landmark: ${street.trim()}` : "",
+      },
+      specialRequests: `[Booked via Rose Chat Assistant]\nSelected Services: ${selectedServices.map((s) => s.name).join(", ")}`,
+    };
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(
+          "rose_pending_chat_booking",
+          JSON.stringify(pendingBookingPayload)
+        );
+      } catch (e) {
+        console.warn("Could not save pending chat booking to localStorage:", e);
+      }
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: "Proceed to Payment / Checkout 💳",
+        timestamp: timeStr,
+      },
+    ]);
+
+    botReply({
+      text: "Taking you to the booking checkout page for payment... 🌸",
+    });
+
+    setTimeout(() => {
+      setIsOpen(false);
+      setIsSubmitting(false);
+      router.push("/book?step=4");
+    }, 600);
+  };
+
+  // Step 7B: Direct in-chat booking confirmation (Pay at Appointment)
+  const handleConfirmBooking = async () => {
+    setIsSubmitting(true);
+    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: "Confirm booking (Pay at Appointment) ✨",
+        timestamp: timeStr,
+      },
+    ]);
+
+    const finalServiceIds = await resolveDatabaseServiceIds();
     const time24 = convert12To24(selectedTime || "12:00 PM");
     const serviceArea = selectedLocation || "Dubai Marina";
     const bookingDate = selectedDate || new Date().toISOString().split("T")[0];
@@ -836,16 +945,17 @@ function BookingChatWidgetContent() {
         serviceIds: finalServiceIds,
         scheduledDate: bookingDate,
         scheduledTime: time24,
+        paymentMethod: "cash",
         isLiveChat: true,
         address: {
           fullName: customerName.trim() || "Live Chat Customer",
           phone: customerPhone.trim(),
-          email: `${customerPhone.trim().replace(/[^0-9]/g, "") || Date.now()}@chat.ebuity.com`,
-          unitNumber: "Residence",
-          buildingName: selectedLocation ? `${selectedLocation} Tower` : "Dubai Residence",
+          email: customerEmail.trim() || `${customerPhone.trim().replace(/[^0-9]/g, "") || Date.now()}@chat.ebuity.com`,
+          unitNumber: unitNumber.trim() || "Apt 1",
+          buildingName: buildingName.trim() || (selectedLocation ? `${selectedLocation} Tower` : "Dubai Residence"),
           area: serviceArea,
           city: "Dubai",
-          street: `${serviceArea}, Dubai`,
+          street: street.trim() || `${serviceArea}, Dubai`,
         },
         specialRequests: `[Booked via Live Chat Assistant]\nSelected Services: ${selectedServices.map((s) => s.name).join(", ")}`,
       });
@@ -856,8 +966,29 @@ function BookingChatWidgetContent() {
         setIsSubmitting(false);
         setBookingConfirmed(true);
 
+        // Store guest booking ID if guest
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem("rose_guest_bookings");
+            let stored: any[] = [];
+            try { stored = JSON.parse(raw || "[]"); } catch { stored = []; }
+            if (!Array.isArray(stored)) stored = [];
+            const bId = res.booking._id || res.booking.bookingNumber;
+            const bNum = res.booking.bookingNumber || "";
+            const cToken = (res.booking as any).guestClaimToken || (res as any).guestClaimToken || "";
+            const bEmail = res.booking.customerDetails?.email || customerEmail.trim() || "";
+            const existingIdx = stored.findIndex((item: any) =>
+              typeof item === "string" ? item === bId : item.id === bId || item.number === bNum
+            );
+            const entry = { id: bId, number: bNum, claimToken: cToken, email: bEmail };
+            if (existingIdx > -1) stored[existingIdx] = entry;
+            else stored.push(entry);
+            localStorage.setItem("rose_guest_bookings", JSON.stringify(stored));
+          } catch { }
+        }
+
         botReply({
-          text: `🎉 **Booking Confirmed!**\n\nYour official booking reference number is **#${realRef}**.\n\nA verified female specialist will arrive at your home in **${serviceArea}** on **${bookingDate}** at **${selectedTime}** for your ${selectedServices.length} treatment${selectedServices.length > 1 ? "s" : ""}.\n\nThis appointment is registered directly in our salon management system. Pay cash or card upon service completion.`,
+          text: `🎉 **Booking Confirmed!**\n\nYour official booking reference number is **#${realRef}**.\n\nA verified female specialist will arrive at your home (**${unitNumber.trim() ? `${unitNumber.trim()}, ` : ""}${buildingName.trim() ? `${buildingName.trim()}, ` : ""}${serviceArea}**) on **${bookingDate}** at **${selectedTime}** for your ${selectedServices.length} treatment${selectedServices.length > 1 ? "s" : ""}.\n\nThis appointment is registered directly in our salon management system. Pay cash or card upon service completion.`,
           type: "confirmation",
         });
         return;
@@ -892,13 +1023,13 @@ function BookingChatWidgetContent() {
       `• Treatments (${selectedServices.length}):\n${servicesList}\n` +
       `• Total Price: AED ${totalChatPrice}\n` +
       `• Total Duration: ~${totalChatDuration} mins\n` +
-      `• Location: ${selectedLocation || "Dubai"}\n` +
+      `• Address: ${unitNumber ? `${unitNumber}, ` : ""}${buildingName ? `${buildingName}, ` : ""}${selectedLocation || "Dubai"}\n` +
       `• Date: ${selectedDate}\n` +
       `• Time: ${selectedTime}\n` +
       `• Name: ${customerName}\n` +
       `• Phone: ${customerPhone}`
     );
-    window.open(`https://wa.me/971501234567?text=${text}`, "_blank");
+    window.open(`https://wa.me/971567108485?text=${text}`, "_blank");
   };
 
   if (isBackOffice) {
@@ -908,49 +1039,86 @@ function BookingChatWidgetContent() {
   return (
     <>
       {/* ==================================================================== */}
-      {/* FLOATING LAUNCHER BUTTON                                            */}
+      {/* FLOATING LAUNCHERS CONTAINER (STACKED VERTICALLY ON BOTTOM-RIGHT)    */}
       {/* ==================================================================== */}
       {!isOpen && (
         <div
-          className={`fixed z-50 flex items-center gap-2 transition-all duration-300 ${hasStickyBottomCTA
+          className={`fixed z-50 flex flex-col items-end gap-2.5 sm:gap-3 transition-all duration-300 ${hasStickyBottomCTA
             ? "hidden sm:flex sm:bottom-6 sm:right-6"
             : "bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 sm:bottom-6 sm:right-6"
             }`}
         >
-          {/* Friendly floating speech bubble teaser on desktop */}
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-[#292525] border border-[#E8D8C8] shadow-md hover:shadow-lg hover:border-[#CF565D]/40 transition-all text-xs font-semibold group cursor-pointer animate-in fade-in slide-in-from-right-4 duration-300"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-medium text-[#292525]">Chat with <strong className="font-semibold text-[#CF565D]">Rose</strong></span>
-            <span className="text-[#CF565D] group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-          </button>
+          {/* Top: Chat with Rose Assistant Launcher */}
+          <div className="flex items-center gap-2">
+            {/* Friendly floating speech bubble teaser on desktop */}
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-[#292525] border border-[#E8D8C8] shadow-md hover:shadow-lg hover:border-[#CF565D]/40 transition-all text-xs font-semibold group cursor-pointer animate-in fade-in slide-in-from-right-4 duration-300"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-medium text-[#292525]">
+                Chat with <strong className="font-semibold text-[#CF565D]">Rose</strong>
+              </span>
+              <span className="text-[#CF565D] group-hover:translate-x-0.5 transition-transform">
+                &rarr;
+              </span>
+            </button>
 
-          {/* Main Floating Trigger Button */}
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#CF565D] to-[#B34351] hover:from-[#B34351] hover:to-[#9E3340] text-white shadow-[0_8px_20px_rgba(207,86,93,0.35)] hover:shadow-[0_12px_28px_rgba(207,86,93,0.48)] flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer overflow-hidden p-1.5"
-            aria-label="Open Booking Assistant Rose"
-          >
-            {/* Online Green Pulsing Beacon */}
-            <span className="absolute top-0.5 right-0.5 flex h-3 w-3 z-10">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white" />
-            </span>
+            {/* Main Floating Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#CF565D] to-[#B34351] hover:from-[#B34351] hover:to-[#9E3340] text-white shadow-[0_8px_20px_rgba(207,86,93,0.35)] hover:shadow-[0_12px_28px_rgba(207,86,93,0.48)] flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer overflow-hidden p-1.5"
+              aria-label="Open Booking Assistant Rose"
+            >
+              {/* Online Green Pulsing Beacon */}
+              <span className="absolute top-0.5 right-0.5 flex h-3 w-3 z-10">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white" />
+              </span>
 
-            <div className="w-full h-full rounded-full overflow-hidden bg-white shadow-inner flex items-center justify-center">
-              <Image
-                src="/rose-essence-logo-square.jpg"
-                alt="Rose Booking Assistant"
-                width={48}
-                height={48}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-            </div>
-          </button>
+              <div className="w-full h-full rounded-full overflow-hidden bg-white shadow-inner flex items-center justify-center">
+                <Image
+                  src="/rose-essence-logo-square.jpg"
+                  alt="Rose Booking Assistant"
+                  width={48}
+                  height={48}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+              </div>
+            </button>
+          </div>
+
+          {/* Bottom (Below Chat Widget): WhatsApp Concierge Launcher */}
+          <div className="flex items-center">
+            {/* WhatsApp Floating Trigger Button */}
+            <a
+              href={`https://wa.me/971567108485?text=${encodeURIComponent(
+                "Hello Rose Essence! I would like to enquire about your luxury at-home beauty and spa services."
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#25D366] to-[#1ebe57] hover:from-[#1ebe57] hover:to-[#128C7E] text-white shadow-[0_8px_20px_rgba(37,211,102,0.35)] hover:shadow-[0_12px_28px_rgba(37,211,102,0.48)] flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer overflow-hidden p-1.5"
+              aria-label="Chat on WhatsApp +971 56 710 8485"
+              title="Chat on WhatsApp +971 56 710 8485"
+            >
+              {/* Online Green Pulsing Beacon */}
+              <span className="absolute top-0.5 right-0.5 flex h-3 w-3 z-10">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white" />
+              </span>
+
+              <div className="w-full h-full rounded-full overflow-hidden bg-white shadow-inner flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 sm:w-7 sm:h-7 fill-[#25D366] transition-transform duration-300 group-hover:scale-110"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                </svg>
+              </div>
+            </a>
+          </div>
         </div>
       )}
 
@@ -1433,44 +1601,143 @@ function BookingChatWidgetContent() {
                   )}
 
                   {/* -------------------------------------------------------- */}
-                  {/* STEP 5: CONTACT DETAILS FORM                              */}
+                  {/* STEP 5: CONTACT & ADDRESS DETAILS FORM                   */}
                   {/* -------------------------------------------------------- */}
                   {isBot && msg.type === "contact-form" && !contactSubmitted && (
                     <form
                       onSubmit={handleContactSubmit}
-                      className="w-full pt-1 p-3 rounded-2xl bg-white border border-[#E8D8C8] shadow-2xs space-y-2.5"
+                      className="w-full pt-1 p-3.5 rounded-2xl bg-white border border-[#E8D8C8] shadow-sm space-y-3"
                     >
-                      <div>
-                        <label className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider mb-1">
-                          Full Name *
-                        </label>
-                        <div className="relative">
-                          <User className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#746D69]" />
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Sarah Mansoor"
-                            value={customerName}
-                            onChange={(e) => setCustomerName(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
-                          />
+                      <div className="flex items-center justify-between border-b border-[#FAF7F2] pb-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#CF565D]">
+                          Home Visit & Contact Details
+                        </span>
+                        <span className="text-[10px] font-medium text-[#746D69]">
+                          Dubai, UAE
+                        </span>
+                      </div>
+
+                      {addressError && (
+                        <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-[11px] text-red-600 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{addressError}</span>
+                        </div>
+                      )}
+
+                      {/* Contact Info */}
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider mb-1">
+                            Full Name *
+                          </label>
+                          <div className="relative">
+                            <User className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#746D69]" />
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Sarah Mansoor"
+                              value={customerName}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider mb-1">
+                              Phone (WhatsApp) *
+                            </label>
+                            <div className="relative">
+                              <Phone className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#746D69]" />
+                              <input
+                                type="tel"
+                                required
+                                placeholder="+971 50 123 4567"
+                                value={customerPhone}
+                                onChange={(e) => setCustomerPhone(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider mb-1">
+                              Email Address *
+                            </label>
+                            <div className="relative">
+                              <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#746D69]" />
+                              <input
+                                type="email"
+                                required
+                                placeholder="name@example.com"
+                                value={customerEmail}
+                                onChange={(e) => setCustomerEmail(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider mb-1">
-                          WhatsApp / Phone *
-                        </label>
-                        <div className="relative">
-                          <Phone className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#746D69]" />
-                          <input
-                            type="tel"
-                            required
-                            placeholder="e.g. +971 50 123 4567"
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
-                          />
+                      {/* Service Address */}
+                      <div className="space-y-2 pt-2 border-t border-[#FAF7F2]">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-bold text-[#746D69] uppercase tracking-wider">
+                            Service Address *
+                          </label>
+                          <span className="text-[10px] font-semibold text-[#CF565D] bg-[#FAF7F2] px-2 py-0.5 rounded-md border border-[#E8D8C8]">
+                            Area: {selectedLocation || "Dubai"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-medium text-[#746D69] mb-0.5">
+                              Building / Villa *
+                            </label>
+                            <div className="relative">
+                              <Building className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#746D69]" />
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. Marina Gate 1"
+                                value={buildingName}
+                                onChange={(e) => setBuildingName(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-medium text-[#746D69] mb-0.5">
+                              Apartment / Unit # *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Apt 1402 / Villa 12"
+                              value={unitNumber}
+                              onChange={(e) => setUnitNumber(e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-medium text-[#746D69] mb-0.5">
+                            Street or Landmark (optional)
+                          </label>
+                          <div className="relative">
+                            <MapPin className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#746D69]" />
+                            <input
+                              type="text"
+                              placeholder="e.g. Near Marina Mall or Gate 2"
+                              value={street}
+                              onChange={(e) => setStreet(e.target.value)}
+                              className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#E8D8C8] bg-[#FAF7F2] text-xs text-[#292525] focus:outline-none focus:border-[#CF565D]"
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -1478,7 +1745,7 @@ function BookingChatWidgetContent() {
                         type="submit"
                         className="w-full py-2.5 rounded-xl bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                       >
-                        <span>Review Booking</span>
+                        <span>Review & Proceed to Payment</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </form>
@@ -1489,10 +1756,10 @@ function BookingChatWidgetContent() {
                   {/* -------------------------------------------------------- */}
                   {isBot && msg.type === "summary-card" && !bookingConfirmed && (
                     <div className="w-full pt-1 space-y-2">
-                      <div className="p-3.5 rounded-2xl bg-white border border-[#E8D8C8] shadow-sm space-y-2">
+                      <div className="p-3.5 rounded-2xl bg-white border border-[#E8D8C8] shadow-sm space-y-2.5">
                         <div className="flex items-center justify-between border-b border-[#FAF7F2] pb-2">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-[#CF565D]">
-                            Summary
+                            Booking Summary
                           </span>
                           <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                             Slot Reserved
@@ -1527,10 +1794,11 @@ function BookingChatWidgetContent() {
                             </span>
                           </div>
 
-                          <div className="flex justify-between">
-                            <span className="text-[#746D69]">Location:</span>
-                            <span className="font-semibold text-[#292525]">
-                              {selectedLocation}
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="text-[#746D69] shrink-0">Service Address:</span>
+                            <span className="font-semibold text-[#292525] text-right">
+                              {unitNumber ? `${unitNumber}, ` : ""}{buildingName ? `${buildingName}, ` : ""}{selectedLocation || "Dubai"}
+                              {street ? <span className="block text-[10px] text-[#746D69] font-normal">{street}</span> : null}
                             </span>
                           </div>
 
@@ -1541,17 +1809,20 @@ function BookingChatWidgetContent() {
                             </span>
                           </div>
 
-                          <div className="flex justify-between">
-                            <span className="text-[#746D69]">Client:</span>
-                            <span className="font-semibold text-[#292525]">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="text-[#746D69] shrink-0">Client:</span>
+                            <span className="font-semibold text-[#292525] text-right">
                               {customerName} ({customerPhone})
+                              {customerEmail && (
+                                <span className="block text-[10px] text-[#746D69] font-normal">{customerEmail}</span>
+                              )}
                             </span>
                           </div>
                         </div>
 
-                        <div className="pt-1 border-t border-[#FAF7F2] text-[10px] text-[#746D69] flex items-center gap-1">
-                          <Info className="w-3 h-3 text-[#CF565D] shrink-0" />
-                          <span>Pay in cash or card after service.</span>
+                        <div className="pt-2 border-t border-[#FAF7F2] text-[10px] text-[#746D69] flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>Home visit by verified, licensed female beauty specialist.</span>
                         </div>
                       </div>
 
@@ -1559,12 +1830,23 @@ function BookingChatWidgetContent() {
                       <div className="space-y-1.5">
                         <button
                           type="button"
+                          onClick={handleProceedToPayment}
+                          disabled={isSubmitting}
+                          className="w-full py-3 rounded-xl bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          <span>{isSubmitting ? "Opening Checkout..." : `Proceed to Payment (AED ${totalChatPrice})`}</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={handleConfirmBooking}
                           disabled={isSubmitting}
-                          className="w-full py-2.5 rounded-xl bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 disabled:opacity-50"
+                          className="w-full py-2 rounded-xl bg-white hover:bg-[#FAF7F2] border border-[#E8D8C8] text-[#292525] text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>{isSubmitting ? "Confirming..." : "Confirm My Booking Now"}</span>
+                          <Check className="w-3.5 h-3.5 text-[#CF565D]" />
+                          <span>Pay at Appointment (Cash / Card)</span>
                         </button>
 
                         <button
@@ -1594,29 +1876,41 @@ function BookingChatWidgetContent() {
                           </span>
                         </div>
                         <p className="text-[11px] text-emerald-700 leading-relaxed">
-                          Your appointment has been reserved. You can also chat with our dispatch team on WhatsApp anytime.
+                          Your appointment has been registered in our salon system. You can also proceed to view or manage your booking anytime.
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsOpen(false);
+                            router.push("/my-bookings");
+                          }}
+                          className="w-full sm:flex-1 py-2 px-3 rounded-xl bg-[#CF565D] hover:bg-[#b8454c] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                        >
+                          <span>View My Bookings</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+
                         <button
                           type="button"
                           onClick={openWhatsAppConfirmation}
-                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                          className="w-full sm:flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                         >
                           <span>WhatsApp Dispatch</span>
                           <ExternalLink className="w-3 h-3" />
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={initializeChat}
-                          className="py-2 px-3 rounded-xl bg-white hover:bg-[#FAF7F2] border border-[#E8D8C8] text-[#292525] text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                        >
-                          <RotateCcw className="w-3 h-3 text-[#CF565D]" />
-                          <span>Book Another</span>
-                        </button>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={initializeChat}
+                        className="w-full py-2 px-3 rounded-xl bg-white hover:bg-[#FAF7F2] border border-[#E8D8C8] text-[#292525] text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3 text-[#CF565D]" />
+                        <span>Book Another Treatment</span>
+                      </button>
                     </div>
                   )}
                 </div>

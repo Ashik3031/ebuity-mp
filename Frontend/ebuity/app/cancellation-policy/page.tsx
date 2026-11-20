@@ -262,7 +262,7 @@ export default function CancellationPolicyPage() {
           <p><strong className="text-[#292525]">Business Name:</strong> Rose Essence Beauty &amp; Wellness Services L.L.C.</p>
           <p><strong className="text-[#292525]">Brand Name:</strong> Rose Essence</p>
           <p><strong className="text-[#292525]">Official Email:</strong> <a href="mailto:support@roseessence.ae" className="text-[#CF565D] hover:underline">support@roseessence.ae</a></p>
-          <p><strong className="text-[#292525]">Phone / WhatsApp:</strong> +971 4 000 0000 / +971 50 000 0000</p>
+          <p><strong className="text-[#292525]">Phone / WhatsApp:</strong> <a href="https://wa.me/971567108485" target="_blank" rel="noopener noreferrer" className="text-[#CF565D] hover:underline">+971 56 710 8485</a></p>
           <p><strong className="text-[#292525]">Business Address:</strong> Downtown Dubai / Business Bay, Dubai, United Arab Emirates</p>
           <p><strong className="text-[#292525]">Official Website:</strong> <a href="https://roseessence.ae/" className="text-[#CF565D] hover:underline" target="_blank" rel="noopener noreferrer">https://roseessence.ae/</a></p>
         </div>

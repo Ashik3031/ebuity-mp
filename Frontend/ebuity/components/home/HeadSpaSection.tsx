@@ -63,7 +63,7 @@ export const HeadSpaSection: React.FC = () => {
             {/* Quick contact pills */}
             {/* <div className="flex flex-wrap gap-4 pt-1">
               <a
-                href="https://wa.me/971500000000"
+                href="https://wa.me/971567108485"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 backdrop-blur-md text-xs font-semibold transition-all"

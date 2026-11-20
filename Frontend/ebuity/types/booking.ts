@@ -209,6 +209,7 @@ export interface CreateBookingPayload {
   addressId?: string;
   scheduledDate: string;
   scheduledTime: string;
+  paymentMethod?: "noon" | "cash" | string;
   specialRequests?: string;
   saveAddressToProfile?: boolean;
   isLiveChat?: boolean;

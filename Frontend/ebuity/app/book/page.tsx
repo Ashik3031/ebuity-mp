@@ -346,6 +346,69 @@ function BookingContent() {
         } else if (categoryParam) {
           setSelectedCategory(categoryParam);
         }
+
+        // Check for pending chat booking transfer to checkout
+        let chatBookingData: any = null;
+        if (typeof window !== "undefined") {
+          try {
+            const raw = localStorage.getItem("rose_pending_chat_booking");
+            if (raw) chatBookingData = JSON.parse(raw);
+          } catch (e) {
+            console.warn("Could not parse pending chat booking:", e);
+          }
+        }
+
+        const requestedStep = searchParams?.get("step");
+        if (chatBookingData && (requestedStep === "4" || requestedStep === "checkout" || !requestedStep)) {
+          if (Array.isArray(chatBookingData.serviceIds) && chatBookingData.serviceIds.length > 0) {
+            setSelectedServiceIds(chatBookingData.serviceIds);
+          }
+          if (chatBookingData.address) {
+            setNewAddress({
+              label: "Home",
+              fullName: chatBookingData.address.fullName || "",
+              phone: chatBookingData.address.phone || "",
+              email: chatBookingData.address.email || "",
+              unitNumber: chatBookingData.address.unitNumber || "",
+              buildingName: chatBookingData.address.buildingName || "",
+              street: chatBookingData.address.street || "",
+              area: chatBookingData.address.area || "",
+              city: chatBookingData.address.city || "Dubai",
+              state: "Dubai",
+              accessInstructions: chatBookingData.address.accessInstructions || "",
+              saveToProfile: false,
+            });
+            setIsAddingNewAddress(true);
+            setSelectedAddressId("");
+          }
+          if (chatBookingData.scheduledDate) {
+            setSelectedDate(chatBookingData.scheduledDate);
+          }
+          if (chatBookingData.scheduledTime) {
+            const t = chatBookingData.scheduledTime;
+            const [h] = t.split(":").map(Number);
+            setSelectedSlot({
+              time: t,
+              endTime: "",
+              startTime: `${chatBookingData.scheduledDate || "2026-11-20"}T${t}:00.000Z`,
+              isAvailable: true,
+              period: h < 12 ? "morning" : h < 17 ? "afternoon" : "evening",
+            });
+          }
+          if (chatBookingData.specialRequests) {
+            setSpecialRequests(chatBookingData.specialRequests);
+          }
+
+          setCurrentStep(4);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.removeItem("rose_pending_chat_booking");
+            } catch { }
+          }
+        } else if (requestedStep) {
+          const s = parseInt(requestedStep, 10);
+          if (s >= 1 && s <= 5) setCurrentStep(s);
+        }
       } catch (err) {
         console.error("Failed to load services for booking:", err);
       } finally {
@@ -632,12 +695,7 @@ function BookingContent() {
         .getAvailability({
           date: selectedDate,
           duration: totalDurationMinutes,
-          serviceIds:
-            selectedServiceIds.length > 0
-              ? selectedServiceIds
-              : services[0]
-                ? [services[0]._id]
-                : [],
+          serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
         })
         .then((res) => {
           if (!isMounted) return;
@@ -656,24 +714,16 @@ function BookingContent() {
     return () => {
       isMounted = false;
     };
-  }, [selectedDate, totalDurationMinutes, selectedServiceIds, services]);
+  }, [selectedDate, totalDurationMinutes, selectedServiceIds]);
 
   const effectiveSlots = useMemo<TimeSlot[]>(() => {
     if (slots.length > 0) return slots;
 
     const times = [
-      "16:25", "16:30", "16:35", "16:40", "16:45", "16:50",
-      "16:55", "17:00", "17:05", "17:10", "17:15", "17:20",
-      "17:25", "17:30", "17:35", "17:40", "17:45", "17:50",
-      "17:55", "18:00", "18:05", "18:10", "18:15", "18:20",
-      "18:25", "18:30", "18:35", "18:40", "18:45", "18:50",
-      "18:55", "19:00", "19:05", "19:10", "19:15", "19:20",
-      "19:25", "19:30", "19:35", "19:40", "19:45", "19:50",
-      "19:55", "20:00", "20:05", "20:10", "20:15", "20:20",
-      "20:25", "20:30", "20:35", "20:40", "20:45", "20:50",
-      "20:55", "21:00", "21:05", "21:10", "21:15", "21:20",
-      "21:25", "21:30", "21:35", "21:40", "21:45", "21:50",
-      "21:55", "22:00",
+      "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+      "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+      "15:00", "15:30", "16:00", "16:30", "17:00", "17:30",
+      "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00",
     ];
 
     return times.map((t) => {
@@ -741,7 +791,7 @@ function BookingContent() {
               : [],
         packageId: selectedPackages[0]?._id,
         scheduledDate: selectedDate,
-        scheduledTime: selectedSlot?.time || "16:25",
+        scheduledTime: selectedSlot?.time || "10:00",
         specialRequests: combinedNotes || specialRequests,
         ...(useNewAddress
           ? {
@@ -2174,7 +2224,7 @@ function BookingContent() {
 
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center items-center pt-2">
                 <a
-                  href={`https://wa.me/971501234567?text=${encodeURIComponent(
+                  href={`https://wa.me/971567108485?text=${encodeURIComponent(
                     `Hello Rose Essence, I have just booked an appointment (Ref: ${confirmedBooking.bookingNumber || ""
                     }) for ${confirmedBooking.scheduledDate || ""}.`
                   )}`}

@@ -285,7 +285,7 @@ function NoonReturnContent() {
 
                 <div className="flex items-center justify-center gap-4 text-xs pt-1">
                   <a
-                    href={`https://wa.me/971501234567?text=${encodeURIComponent(
+                    href={`https://wa.me/971567108485?text=${encodeURIComponent(
                       `Hello Rose Essence, I have completed my booking (Ref: ${bookingId || referenceId}).`
                     )}`}
                     target="_blank"

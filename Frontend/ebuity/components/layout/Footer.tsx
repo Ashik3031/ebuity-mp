@@ -116,9 +116,14 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="#contact" className="hover:text-[#CF565D] transition-colors">
-                  Concierge Support
-                </Link>
+                <a
+                  href="https://wa.me/971567108485?text=Hello%20Rose%20Essence%2C%20I%20would%20like%20to%20enquire%20about%20your%20services."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#CF565D] transition-colors"
+                >
+                  Concierge Support (+971 56 710 8485)
+                </a>
               </li>
             </ul>
           </div>
